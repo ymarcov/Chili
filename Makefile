@@ -8,16 +8,13 @@ BIN_DIR=bin
 
 .PHONY: clean gmock_clean
 
-all: prepare main test
+all: prepare test
 
 prepare:
 	mkdir -p $(BIN_DIR)
 
-main: $(OBJECTS)
-	$(CXX) -o $(BIN_DIR)/main $(OBJECTS)
-
-test: gmock/libgmock.a $(TEST_OBJECTS)
-	$(CXX) -o $(BIN_DIR)/test gmock/libgmock.a $(TEST_OBJECTS) -lpthread
+test: gmock/libgmock.a $(TEST_OBJECTS) $(OBJECTS)
+	$(CXX) -o $(BIN_DIR)/test gmock/libgmock.a $(TEST_OBJECTS) $(OBJECTS) -lpthread
 
 gmock/libgmock.a:
 	$(CXX) -Igtest -c -o gtest/src/gtest-all.o gtest/src/gtest-all.cc
