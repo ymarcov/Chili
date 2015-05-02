@@ -1,3 +1,4 @@
 src/*.o
 test/*.o
 bin/*
+run.sh
