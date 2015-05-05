@@ -1,4 +1,4 @@
-src/*.o
-test/*.o
+*.o
+*.a
 bin/*
 run.sh
