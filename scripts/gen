@@ -1,0 +1,79 @@
+#!/bin/bash
+
+gen_header() {
+    cat>${1}/${2}.h<<EOF
+#pragma once
+
+namespace Yam {
+namespace Http {
+
+class $2 {
+public:
+};
+
+} // namespace Http
+} // namespace Yam
+
+EOF
+}
+
+gen_source() {
+    cat>${1}/${2}.cc<<EOF
+#include "${2}.h"
+
+namespace Yam {
+namespace Http {
+
+// TODO
+
+} // namespace Http
+} // namespace Yam
+
+EOF
+}
+
+gen_both() {
+    gen_header include $1
+    gen_source src $1
+}
+
+gen_test() {
+    class=$1
+    var=$(echo $class | sed 's/[a-z]//g' | tr '[:upper:]' '[:lower:]')
+    cat>test/${class}Test.cc<<EOF
+#include <gmock/gmock.h>
+
+#include "${class}.h"
+
+using namespace ::testing;
+
+namespace Yam {
+namespace Http {
+
+class ${class}Test : public Test {
+public:
+    ${class}Test() {
+    }
+
+protected:
+};
+
+TEST_F(${class}Test, constructs) {
+    $class $var;
+}
+
+} // namespace Http
+} // namespace Yam
+
+EOF
+}
+
+gen_all() {
+    gen_both $1
+    gen_test $1
+}
+
+T=$1
+shift
+
+gen_$T "$@"
