@@ -30,8 +30,10 @@ libgmock_clean:
 	rm -f ext/gmock/src/*.o
 	rm -f ext/gmock/*.a
 
-clean: libgmock_clean
+clean_own:
 	rm -f $(OBJECTS)
 	rm -f $(TEST_OBJECTS)
-	rm -f $(ext/gmock_OBJECTS)
 	rm -rf $(BIN_DIR)
+
+clean: libgmock_clean clean_own
+	rm -f $(ext/gmock_OBJECTS)
