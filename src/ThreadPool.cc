@@ -27,10 +27,10 @@ private:
 
     void Execute() {
         try {
-            _context->work();
-            _context->promise.set_value();
+            _context->_work();
+            _context->_promise.set_value();
         } catch (...) {
-            _context->promise.set_exception(std::current_exception());
+            _context->_promise.set_exception(std::current_exception());
         }
     }
 
@@ -57,7 +57,7 @@ std::future<void> ThreadPool::Post(Work w) {
     {
         std::lock_guard<std::mutex> lock(_mutex);
         _pending.push(std::make_unique<WorkContext>(std::move(w)));
-        result = _pending.back()->promise.get_future();
+        result = _pending.back()->_promise.get_future();
     }
     _cv.notify_one();
     return result;

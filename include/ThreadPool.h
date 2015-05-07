@@ -26,9 +26,9 @@ private:
     friend class Worker;
 
     struct WorkContext {
-        WorkContext(Work&& w) : work(std::move(w)) {}
-        std::promise<void> promise;
-        Work work;
+        WorkContext(Work&& w) : _work(std::move(w)) {}
+        std::promise<void> _promise;
+        Work _work;
     };
 
     int _capacity;
