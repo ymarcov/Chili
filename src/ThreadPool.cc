@@ -16,9 +16,7 @@ public:
 private:
     bool Fetch() {
         std::unique_lock<std::mutex> lock(_tp->_mutex);
-        _tp->_cv.wait(lock, [=] {
-            return _tp->_stop || !_tp->_pending.empty();
-        });
+        _tp->_cv.wait(lock, [&] { return _tp->_stop || !_tp->_pending.empty(); });
         if (_tp->_stop) return false;
         _context = std::move(_tp->_pending.front());
         _tp->_pending.pop();
@@ -41,15 +39,15 @@ private:
 ThreadPool::ThreadPool(int capacity) :
     _capacity{capacity} {
     _threads.resize(capacity);
-    for (auto& t : _threads)
-        t.reset(new std::thread{Worker{this}});
+    for (auto& t : _threads) t.reset(new std::thread{Worker{this}});
 }
 
 ThreadPool::~ThreadPool() {
+    _mutex.lock();
     _stop = true;
+    _mutex.unlock();
     _cv.notify_all();
-    for (auto& t : _threads)
-        t->join();
+    for (auto& t : _threads) t->join();
 }
 
 std::future<void> ThreadPool::Post(Work w) {
