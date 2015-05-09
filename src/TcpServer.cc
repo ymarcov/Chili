@@ -57,8 +57,8 @@ int TcpServer::CreateListenerSocket() const {
 std::future<void> TcpServer::Start(ConnectionHandler ch) {
     _socket = CreateListenerSocket();
     if (-1 == ::listen(_socket, SOMAXCONN)) throw SystemError();
-    _stop = false;
     if (_thread.joinable()) _thread.join();
+    _stop = false;
     _promise = std::promise<void>();
     _thread = std::thread([=] { AcceptLoop(std::move(ch)); });
     return _promise.get_future();
