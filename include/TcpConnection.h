@@ -38,7 +38,7 @@ public:
 
 private:
     int _socket;
-    IPEndpoint _ep;
+    IPEndpoint _endpoint;
 };
 
 inline IPEndpoint::IPEndpoint(const std::array<std::uint8_t, 4> address, int port) :
@@ -54,7 +54,7 @@ inline int IPEndpoint::GetPort() const noexcept {
 }
 
 inline const IPEndpoint& TcpConnection::Endpoint() const noexcept {
-    return _ep;
+    return _endpoint;
 }
 
 inline int TcpConnection::NativeHandle() const noexcept {

@@ -32,36 +32,44 @@ IPEndpoint::IPEndpoint(const ::sockaddr_in& sa) {
 std::unique_ptr<::sockaddr_in> IPEndpoint::GetAddrInfo() const {
     auto addr = std::make_unique<::sockaddr_in>();
     std::memset(addr.get(), 0, sizeof(*addr));
+
     addr->sin_family = AF_INET;
     addr->sin_port = ::htons(_port);
-    std::uint32_t ip = *reinterpret_cast<const std::uint32_t*>(_address.data());
+    auto ip = *reinterpret_cast<const std::uint32_t*>(_address.data());
     addr->sin_addr.s_addr = ip;
-    return std::move(addr);
+
+    return addr;
 }
 
 std::string IPEndpoint::ToString() const {
     std::ostringstream os;
+
     os << (int)_address[0] << '.'
        << (int)_address[1] << '.'
        << (int)_address[2] << '.'
        << (int)_address[3] << ':'
        << _port;
+
     return os.str();
 }
 
 TcpConnection::TcpConnection(const IPEndpoint& ep) :
     _socket(::socket(AF_INET, SOCK_STREAM, 0)),
-    _ep{ep} {
-    if (_socket == -1) throw SystemError();
-    if (!ConnectTo(_socket, ep)) throw SystemError();
+    _endpoint{ep} {
+    if (_socket == -1)
+        throw SystemError();
+
+    if (!ConnectTo(_socket, _endpoint))
+        throw SystemError();
 }
 
 TcpConnection::TcpConnection(int socket, const IPEndpoint& ep) :
     _socket(socket),
-    _ep{ep} {}
+    _endpoint{ep} {}
 
 TcpConnection::~TcpConnection() {
-    if (_socket != -1) ::close(_socket);
+    if (_socket != -1)
+        ::close(_socket);
 }
 
 void TcpConnection::Write(const void* data, std::size_t size) {
@@ -71,7 +79,10 @@ void TcpConnection::Write(const void* data, std::size_t size) {
 
 std::size_t TcpConnection::Read(void* buffer, std::size_t size) {
     int n = ::recv(_socket, buffer, size, 0);
-    if (n == -1) throw SystemError();
+
+    if (n == -1)
+        throw SystemError();
+
     return n;
 }
 

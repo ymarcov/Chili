@@ -11,14 +11,14 @@ class ThreadPoolTest : public Test {
 };
 
 TEST_F(ThreadPoolTest, increments_counter_concurrently) {
-    const int threadCount = 3;
+    const int threadCount = 10;
     ThreadPool tp{threadCount};
     std::vector<std::future<void>> futures;
     std::atomic_int counter{0};
 
     for (int i = 0; i < threadCount; i++)
         futures.push_back(tp.Post([&] {
-            while (counter++ < 1000000)
+            while (counter++ < 10000000)
                 ;
         }));
 

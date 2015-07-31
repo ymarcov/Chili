@@ -25,8 +25,8 @@ private:
     int CreateListenerSocket() const;
     void AcceptLoop(ConnectionHandler);
 
-    IPEndpoint _ep;
-    std::shared_ptr<ThreadPool> _tp;
+    IPEndpoint _endpoint;
+    std::shared_ptr<ThreadPool> _threadPool;
     int _socket;
     std::promise<void> _promise;
     std::thread _thread;

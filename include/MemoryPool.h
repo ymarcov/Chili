@@ -30,9 +30,17 @@ public:
     template <class... Args>
     auto New(Args&&... args) {
         auto t = static_cast<T*>(Allocate());
-        if (!t) throw std::bad_alloc();
-        try { new(t) T{std::forward<Args>(args)...}; }
-        catch(...) { Deallocate(t); throw; }
+
+        if (!t)
+            throw std::bad_alloc();
+
+        try {
+            new(t) T{std::forward<Args>(args)...};
+        } catch(...) {
+            Deallocate(t);
+            throw;
+        }
+
         auto deleter = [this](T* t) { Delete(t); };
         return std::unique_ptr<T, decltype(deleter)>(t, deleter);
     }
@@ -43,21 +51,44 @@ public:
     }
 
     void* Allocate() {
-        Chunk* mem = _head;
-        if (!mem) return nullptr;
-        while (!_head.compare_exchange_weak(mem, mem->_next))
-            if (!(mem = _head)) return nullptr;
+        Chunk* currentHead = _head;
+
+        if (!currentHead) {
+            // Oops: out of memory!
+            return nullptr;
+        }
+
+        while (!_head.compare_exchange_weak(currentHead, currentHead->_next)) {
+            // try to replace _head (assuming it still equals currentHead)
+            // with the next one, thereby releasing its node for external use.
+            if (!(currentHead = _head)) {
+                // Oops: out of memory!
+                return nullptr;
+            }
+        }
+
+        // allocation successful
         --_freeSlots;
-        return mem;
+
+        return currentHead;
     }
 
     void Deallocate(void* mem) {
-        if (!mem) return;
-        auto c = static_cast<Chunk*>(mem);
-        Chunk* head = _head;
-        c->_next = head;
-        while (!_head.compare_exchange_weak(head, c))
-            c->_next = head = _head;
+        if (!mem)
+            return;
+
+        auto correspondingChunk = static_cast<Chunk*>(mem);
+
+        Chunk* currentHead = _head;
+        correspondingChunk->_next = currentHead;
+
+        while (!_head.compare_exchange_weak(currentHead, correspondingChunk)) {
+            // we should be setting up the corresponding chunk
+            // as the new _head. keep trying till we get it right.
+            correspondingChunk->_next = currentHead = _head;
+        }
+
+        // deallocation successful
         ++_freeSlots;
     }
 
@@ -83,11 +114,14 @@ private:
         Chunk* _next;
     };
 
-    bool IsPageAligned(void* mem) {
+    static bool IsPageAligned(void* mem) {
         return 0 == reinterpret_cast<std::uintptr_t>(mem) % ::getpagesize();
     }
 
     Chunk* CreateBuffer() {
+        // first thing, get all the memory we need
+        // and make sure it meets all the expectations.
+
         auto mem = ::mmap(nullptr,
                 GetBufferSize(),
                 PROT_READ | PROT_WRITE,
@@ -100,6 +134,10 @@ private:
         if (!IsPageAligned(mem))
             throw std::logic_error("mmap() didn't return page-aligned memory");
 
+        // now set up the linked list. remember that we need
+        // the last one to point to null as its next node,
+        // signifying that there's no more memory following it.
+
         auto chunk = static_cast<Chunk*>(mem);
         auto memEnd = static_cast<char*>(mem) + (::getpagesize() * _pages);
         auto nextToLastChunk = reinterpret_cast<Chunk*>(memEnd - sizeof(Chunk));
@@ -108,6 +146,7 @@ private:
             chunk->_next = chunk + 1;
             ++chunk;
         }
+
         chunk->_next = nullptr; // last chunk points to null
 
         return static_cast<Chunk*>(mem);

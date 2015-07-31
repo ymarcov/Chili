@@ -35,7 +35,7 @@ private:
     std::vector<std::unique_ptr<std::thread>> _threads;
     std::queue<std::unique_ptr<WorkContext>> _pending;
     std::mutex _mutex;
-    std::condition_variable _cv;
+    std::condition_variable _workerAlarm;
     std::atomic_bool _stop{false};
 };
 
