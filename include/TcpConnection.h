@@ -34,6 +34,7 @@ public:
     void Write(const void*, std::size_t);
     std::size_t Read(void*, std::size_t);
     const IPEndpoint& Endpoint() const noexcept;
+    int NativeHandle() const noexcept;
 
 private:
     int _socket;
@@ -54,6 +55,10 @@ inline int IPEndpoint::GetPort() const noexcept {
 
 inline const IPEndpoint& TcpConnection::Endpoint() const noexcept {
     return _ep;
+}
+
+inline int TcpConnection::NativeHandle() const noexcept {
+    return _socket;
 }
 
 } // namespace Http
