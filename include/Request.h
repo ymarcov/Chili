@@ -24,8 +24,6 @@ public:
 
     static void Parse(Request* out, std::shared_ptr<const void> data, std::size_t size);
 
-    Request();
-
     Method GetMethod() const;
     std::string GetUri() const;
     HttpVersion GetHttpVersion() const;

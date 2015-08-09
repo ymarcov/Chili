@@ -16,6 +16,11 @@ const RequestHeader& H(const char* buf) { return reinterpret_cast<const RequestH
 } // unnamed namespace
 
 void Request::Parse(Request* result, std::shared_ptr<const void> data, std::size_t size) {
+    result->_data = nullptr;
+    result->_dataSize = 0;
+    result->_headerSize = 0;
+    std::memset(&result->_header, 0, sizeof(result->_header));
+
     auto charData = static_cast<const char*>(data.get());
     auto charDataSize = static_cast<int>(size);
 
@@ -39,10 +44,6 @@ std::size_t Request::GetHeaderSize(const char* data, std::size_t size) {
         throw std::runtime_error("Failed to find end of header");
 
     return result + 4;
-}
-
-Request::Request() {
-    std::memset(&_header, 0, sizeof(_header));
 }
 
 Request::Method Request::GetMethod() const {
