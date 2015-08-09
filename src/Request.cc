@@ -47,7 +47,7 @@ std::size_t Request::GetHeaderSize(const char* data, std::size_t size) {
 }
 
 Request::Method Request::GetMethod() const {
-    const char* methods[] = {
+    static const char* methods[] = {
         "OPTIONS",
         "GET",
         "HEAD",
@@ -70,7 +70,7 @@ std::string Request::GetUri() const {
 }
 
 HttpVersion Request::GetHttpVersion() const {
-    const char* versions[] = {
+    static const char* versions[] = {
         "HTTP/1.0",
         "HTTP/1.1"
     };
