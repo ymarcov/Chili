@@ -140,14 +140,14 @@ private:
 
         auto chunk = static_cast<Chunk*>(mem);
         auto memEnd = static_cast<char*>(mem) + (::getpagesize() * _pages);
-        auto nextToLastChunk = reinterpret_cast<Chunk*>(memEnd - sizeof(Chunk));
+        auto lastChunk = reinterpret_cast<Chunk*>(memEnd - sizeof(Chunk));
 
-        while (chunk != nextToLastChunk) {
+        while (chunk != lastChunk) {
             chunk->_next = chunk + 1;
             ++chunk;
         }
 
-        chunk->_next = nullptr; // last chunk points to null
+        lastChunk->_next = nullptr; // last chunk points to null
 
         return static_cast<Chunk*>(mem);
     }
