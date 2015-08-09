@@ -24,7 +24,7 @@ void Request::Parse(Request* result, std::shared_ptr<const void> data, std::size
     auto charData = static_cast<const char*>(data.get());
     auto charDataSize = static_cast<int>(size);
 
-    if (0 != h3_request_header_parse(&H(result->_header), charData, charDataSize))
+    if (0 != ::h3_request_header_parse(&H(result->_header), charData, charDataSize))
         throw std::runtime_error("Failed to parse HTTP request");
 
     result->_headerSize = GetHeaderSize(charData, charDataSize);
