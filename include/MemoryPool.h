@@ -147,7 +147,7 @@ private:
             ++slot;
         }
 
-        lastSlot->_next = nullptr; // last slot points to null
+        lastSlot->_next = nullptr;
 
         return static_cast<Slot*>(mem);
     }
