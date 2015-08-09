@@ -11,20 +11,10 @@ namespace Http {
 
 class Request {
 public:
-    enum class Method {
-        Options,
-        Get,
-        Head,
-        Post,
-        Put,
-        Delete,
-        Trace,
-        Connect
-    };
 
     static void Parse(Request* out, std::shared_ptr<const void> data, std::size_t size);
 
-    Method GetMethod() const;
+    Protocol::Method GetMethod() const;
     std::string GetUri() const;
     Protocol::Version GetHttpVersion() const;
     std::string GetUserAgent() const;

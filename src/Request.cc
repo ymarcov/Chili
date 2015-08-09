@@ -46,7 +46,7 @@ std::size_t Request::GetHeaderSize(const char* data, std::size_t size) {
     return result + 4;
 }
 
-Request::Method Request::GetMethod() const {
+Protocol::Method Request::GetMethod() const {
     static const char* methods[] = {
         "OPTIONS",
         "GET",
@@ -60,7 +60,7 @@ Request::Method Request::GetMethod() const {
 
     for (int i = 0; i < sizeof(methods) / sizeof(*methods); i++)
         if (!std::strncmp(methods[i], H(_header).RequestMethod, H(_header).RequestMethodLen))
-            return static_cast<Method>(i);
+            return static_cast<Protocol::Method>(i);
 
     throw std::runtime_error("Invalid request method");
 }
