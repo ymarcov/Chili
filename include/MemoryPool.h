@@ -15,7 +15,7 @@ namespace Http {
 template <class T>
 class MemoryPool {
 public:
-    static const std::size_t ChunkSize = sizeof(T);
+    static const std::size_t SlotSize = sizeof(T);
 
     MemoryPool(std::size_t pages = 1) :
         _pages(pages),
@@ -51,7 +51,7 @@ public:
     }
 
     void* Allocate() {
-        Chunk* currentHead = _head;
+        Slot* currentHead = _head;
 
         if (!currentHead) {
             // Oops: out of memory!
@@ -77,15 +77,15 @@ public:
         if (!mem)
             return;
 
-        auto correspondingChunk = static_cast<Chunk*>(mem);
+        auto correspondingSlot = static_cast<Slot*>(mem);
 
-        Chunk* currentHead = _head;
-        correspondingChunk->_next = currentHead;
+        Slot* currentHead = _head;
+        correspondingSlot->_next = currentHead;
 
-        while (!_head.compare_exchange_weak(currentHead, correspondingChunk)) {
-            // we should be setting up the corresponding chunk
+        while (!_head.compare_exchange_weak(currentHead, correspondingSlot)) {
+            // we should be setting up the corresponding slot
             // as the new _head. keep trying till we get it right.
-            correspondingChunk->_next = currentHead = _head;
+            correspondingSlot->_next = currentHead = _head;
         }
 
         // deallocation successful
@@ -93,7 +93,7 @@ public:
     }
 
     std::size_t GetCapacity() const noexcept {
-        return GetBufferSize() / sizeof(Chunk);
+        return GetBufferSize() / sizeof(Slot);
     }
 
     std::size_t GetFreeSlots() const {
@@ -109,16 +109,16 @@ public:
     }
 
 private:
-    union Chunk {
-        char _data[ChunkSize];
-        Chunk* _next;
+    union Slot {
+        char _data[SlotSize];
+        Slot* _next;
     };
 
     static bool IsPageAligned(void* mem) {
         return 0 == reinterpret_cast<std::uintptr_t>(mem) % ::getpagesize();
     }
 
-    Chunk* CreateBuffer() {
+    Slot* CreateBuffer() {
         // first thing, get all the memory we need
         // and make sure it meets all the expectations.
 
@@ -138,23 +138,23 @@ private:
         // the last one to point to null as its next node,
         // signifying that there's no more memory following it.
 
-        auto chunk = static_cast<Chunk*>(mem);
+        auto slot = static_cast<Slot*>(mem);
         auto memEnd = static_cast<char*>(mem) + (::getpagesize() * _pages);
-        auto lastChunk = reinterpret_cast<Chunk*>(memEnd - sizeof(Chunk));
+        auto lastSlot = reinterpret_cast<Slot*>(memEnd - sizeof(Slot));
 
-        while (chunk != lastChunk) {
-            chunk->_next = chunk + 1;
-            ++chunk;
+        while (slot != lastSlot) {
+            slot->_next = slot + 1;
+            ++slot;
         }
 
-        lastChunk->_next = nullptr; // last chunk points to null
+        lastSlot->_next = nullptr; // last slot points to null
 
-        return static_cast<Chunk*>(mem);
+        return static_cast<Slot*>(mem);
     }
 
     std::size_t _pages;
-    Chunk* _buffer;
-    std::atomic<Chunk*> _head;
+    Slot* _buffer;
+    std::atomic<Slot*> _head;
     std::atomic_size_t _freeSlots;
 };
 
