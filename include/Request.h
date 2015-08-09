@@ -11,7 +11,6 @@ namespace Http {
 
 class Request {
 public:
-
     static void Parse(Request* out, std::shared_ptr<const void> data, std::size_t size);
 
     Protocol::Method GetMethod() const;
