@@ -20,7 +20,8 @@ const char testRequest_simple[] =
     PtrShim(testRequest_##request), sizeof(testRequest_##request)
 
 TEST(RequestTest, parse_simple) {
-    Request r = Request::Parse(REQUEST(simple));
+    Request r;
+    Request::Parse(&r, REQUEST(simple));
 
     EXPECT_EQ(HttpVersion::Http11, r.GetHttpVersion());
     EXPECT_EQ(Request::Method::Post, r.GetMethod());

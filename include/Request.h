@@ -2,10 +2,6 @@
 
 #include "Http.h"
 
-extern "C" {
-#include <h3.h>
-}
-
 #include <cstddef>
 #include <memory>
 #include <string>
@@ -26,7 +22,7 @@ public:
         Connect
     };
 
-    static Request Parse(std::shared_ptr<const void> data, std::size_t size);
+    static void Parse(Request* out, std::shared_ptr<const void> data, std::size_t size);
 
     Request();
 
@@ -41,7 +37,7 @@ private:
     static std::size_t GetHeaderSize(const char* data, std::size_t size);
     std::string GetField(const char*) const;
 
-    RequestHeader _header; // h3 data type
+    char _header[0x300];
     std::shared_ptr<const void> _data;
     std::size_t _dataSize;
     std::size_t _headerSize;

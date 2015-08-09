@@ -1,25 +1,30 @@
 #include "Request.h"
 
+extern "C" {
+#include <h3.h>
+}
+
 #include <cstring>
 #include <strings.h>
 
 namespace Yam {
 namespace Http {
 
-Request Request::Parse(std::shared_ptr<const void> data, std::size_t size) {
-    Request result;
+namespace {
+RequestHeader& H(char* buf) { return reinterpret_cast<RequestHeader&>(*buf); }
+const RequestHeader& H(const char* buf) { return reinterpret_cast<const RequestHeader&>(*buf); }
+} // unnamed namespace
 
+void Request::Parse(Request* result, std::shared_ptr<const void> data, std::size_t size) {
     auto charData = static_cast<const char*>(data.get());
     auto charDataSize = static_cast<int>(size);
 
-    if (0 != h3_request_header_parse(&result._header, charData, charDataSize))
+    if (0 != h3_request_header_parse(&H(result->_header), charData, charDataSize))
         throw std::runtime_error("Failed to parse HTTP request");
 
-    result._data = data;
-    result._dataSize = size;
-    result._headerSize = GetHeaderSize(charData, charDataSize);
-
-    return result;
+    result->_data = data;
+    result->_dataSize = size;
+    result->_headerSize = GetHeaderSize(charData, charDataSize);
 }
 
 std::size_t Request::GetHeaderSize(const char* data, std::size_t size) {
@@ -53,14 +58,14 @@ Request::Method Request::GetMethod() const {
     };
 
     for (int i = 0; i < sizeof(methods) / sizeof(*methods); i++)
-        if (!std::strncmp(methods[i], _header.RequestMethod, _header.RequestMethodLen))
+        if (!std::strncmp(methods[i], H(_header).RequestMethod, H(_header).RequestMethodLen))
             return static_cast<Method>(i);
 
     throw std::runtime_error("Invalid request method");
 }
 
 std::string Request::GetUri() const {
-    return std::string(_header.RequestURI, _header.RequestURILen);
+    return std::string(H(_header).RequestURI, H(_header).RequestURILen);
 }
 
 HttpVersion Request::GetHttpVersion() const {
@@ -70,7 +75,7 @@ HttpVersion Request::GetHttpVersion() const {
     };
 
     for (int i = 0; i < sizeof(versions) / sizeof(*versions); i++)
-        if (!std::strncmp(versions[i], _header.HTTPVersion, _header.HTTPVersionLen))
+        if (!std::strncmp(versions[i], H(_header).HTTPVersion, H(_header).HTTPVersionLen))
             return static_cast<HttpVersion>(i);
 
     throw std::runtime_error("Unsupported request HTTP version");
@@ -89,8 +94,8 @@ const char* Request::GetBody() const {
 }
 
 std::string Request::GetField(const char* field) const {
-    for (int i = 0; i < _header.HeaderSize; i++) {
-        auto f = _header.Fields[i];
+    for (int i = 0; i < H(_header).HeaderSize; i++) {
+        auto f = H(_header).Fields[i];
         if (!::strncasecmp(field, f.FieldName, f.FieldNameLen))
             return std::string(f.Value, f.ValueLen);
     }
