@@ -2,10 +2,11 @@
 
 #include "Http.h"
 
-#include <cstddef>
 extern "C" {
 #include <h3.h>
 }
+
+#include <cstddef>
 #include <memory>
 #include <string>
 
