@@ -2,12 +2,14 @@
 
 namespace Yam {
 namespace Http {
+namespace Protocol {
 
-enum class HttpVersion {
+enum class Version {
     Http10,
     Http11
 };
 
+} // namespace Protocol
 } // namespace Http
 } // namespace Yam
 

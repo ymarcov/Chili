@@ -23,7 +23,7 @@ TEST(RequestTest, parse_simple) {
     Request r;
     Request::Parse(&r, REQUEST(simple));
 
-    EXPECT_EQ(HttpVersion::Http11, r.GetHttpVersion());
+    EXPECT_EQ(Protocol::Version::Http11, r.GetHttpVersion());
     EXPECT_EQ(Request::Method::Post, r.GetMethod());
     EXPECT_EQ("/test/uri", r.GetUri());
     EXPECT_EQ("curl/7.38.0", r.GetUserAgent());

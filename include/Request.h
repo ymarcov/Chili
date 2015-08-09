@@ -1,6 +1,6 @@
 #pragma once
 
-#include "Http.h"
+#include "Protocol.h"
 
 #include <cstddef>
 #include <memory>
@@ -26,7 +26,7 @@ public:
 
     Method GetMethod() const;
     std::string GetUri() const;
-    HttpVersion GetHttpVersion() const;
+    Protocol::Version GetHttpVersion() const;
     std::string GetUserAgent() const;
     std::string GetAccept() const;
     const char* GetBody() const;

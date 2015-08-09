@@ -69,7 +69,7 @@ std::string Request::GetUri() const {
     return std::string(H(_header).RequestURI, H(_header).RequestURILen);
 }
 
-HttpVersion Request::GetHttpVersion() const {
+Protocol::Version Request::GetHttpVersion() const {
     static const char* versions[] = {
         "HTTP/1.0",
         "HTTP/1.1"
@@ -77,7 +77,7 @@ HttpVersion Request::GetHttpVersion() const {
 
     for (int i = 0; i < sizeof(versions) / sizeof(*versions); i++)
         if (!std::strncmp(versions[i], H(_header).HTTPVersion, H(_header).HTTPVersionLen))
-            return static_cast<HttpVersion>(i);
+            return static_cast<Protocol::Version>(i);
 
     throw std::runtime_error("Unsupported request HTTP version");
 }
