@@ -16,10 +16,14 @@ const RequestHeader& H(const char* buf) { return reinterpret_cast<const RequestH
 } // unnamed namespace
 
 void Request::Parse(Request* result, std::shared_ptr<const void> data, std::size_t size) {
+    // reset out variable state
+
     result->_data = nullptr;
     result->_dataSize = 0;
     result->_headerSize = 0;
     std::memset(&result->_header, 0, sizeof(result->_header));
+
+    // parse data
 
     auto charData = static_cast<const char*>(data.get());
     auto charDataSize = static_cast<int>(size);
@@ -27,23 +31,36 @@ void Request::Parse(Request* result, std::shared_ptr<const void> data, std::size
     if (0 != ::h3_request_header_parse(&H(result->_header), charData, charDataSize))
         throw std::runtime_error("Failed to parse HTTP request");
 
+    // store data/inc references in out variable
+
     result->_headerSize = GetHeaderSize(charData, charDataSize);
     result->_data = data;
     result->_dataSize = size;
 }
 
-std::size_t Request::GetHeaderSize(const char* data, std::size_t size) {
-    std::size_t result = 0;
+std::size_t Request::GetHeaderSize(const char* dataPtr, std::size_t dataSize) {
+    std::size_t headerSize = 0;
 
-    while (result < size && std::strncmp("\r\n\r\n", data, 4)) {
-        ++result;
-        ++data;
+    // HTTP end of header is marked by an empty line.
+    // Here we're iterating the data till we see a double
+    // CRLF, which would mean that we're right at the end
+    // of the line before the empty line.
+
+    const std::size_t doubleCrlfLength = 4;
+
+    while ( ((headerSize + doubleCrlfLength) < dataSize) &&
+            std::strncmp("\r\n\r\n", dataPtr, doubleCrlfLength) ) {
+        ++headerSize;
+        ++dataPtr;
     }
 
-    if (result >= size)
+    // put us right after the empty line.
+    headerSize += doubleCrlfLength;
+
+    if (headerSize > dataSize)
         throw std::runtime_error("Failed to find end of header");
 
-    return result + 4;
+    return headerSize;
 }
 
 Protocol::Method Request::GetMethod() const {
@@ -92,6 +109,10 @@ std::string Request::GetAccept() const {
 
 const char* Request::GetBody() const {
     return static_cast<const char*>(_data.get()) + _headerSize;
+}
+
+std::size_t Request::GetBodySize() const {
+    return _dataSize - _headerSize;
 }
 
 std::string Request::GetField(const char* field) const {

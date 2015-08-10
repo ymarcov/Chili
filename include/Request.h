@@ -19,6 +19,7 @@ public:
     std::string GetUserAgent() const;
     std::string GetAccept() const;
     const char* GetBody() const;
+    std::size_t GetBodySize() const;
 
 private:
     static std::size_t GetHeaderSize(const char* data, std::size_t size);
