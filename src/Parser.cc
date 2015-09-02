@@ -92,9 +92,7 @@ void Parser::ParseNextFieldLine() {
         --_remainingChars;
     }
 
-    Field value = ParseRestOfLine();
-
-    _extraFields[{key.Data, key.Size}] = value;
+    _extraFields[{key.Data, key.Size}] = ParseRestOfLine();
 }
 
 void Parser::SkipToBody() {
