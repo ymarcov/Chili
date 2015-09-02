@@ -100,11 +100,11 @@ public:
         return _freeSlots;
     }
 
-    void* GetBuffer() const {
+    void* GetBuffer() const noexcept {
         return _buffer;
     }
 
-    std::size_t GetBufferSize() const {
+    std::size_t GetBufferSize() const noexcept {
         return _pages * ::getpagesize();
     }
 
@@ -114,7 +114,7 @@ private:
         Slot* _next;
     };
 
-    static bool IsPageAligned(void* mem) {
+    static bool IsPageAligned(void* mem) noexcept {
         return 0 == reinterpret_cast<std::uintptr_t>(mem) % ::getpagesize();
     }
 
