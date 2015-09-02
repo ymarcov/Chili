@@ -6,7 +6,7 @@ namespace Http {
 class Worker {
 public:
     Worker(ThreadPool* tp) :
-        _threadPool(tp) {}
+        _threadPool{tp} {}
 
     void operator()() noexcept {
         do try {
@@ -29,7 +29,7 @@ private:
             return false;
 
         // we've really got some work to do.
-        // pop it and get set current work context.
+        // pop it and set current work context.
 
         _workContext = std::move(_threadPool->_pending.front());
         _threadPool->_pending.pop();
