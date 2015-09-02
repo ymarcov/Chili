@@ -3,9 +3,9 @@
 #include <algorithm>
 #include <cstddef>
 #include <experimental/string_view>
-#include <strings.h>
 #include <stdexcept>
 #include <string>
+#include <strings.h>
 #include <unordered_map>
 
 namespace Yam {
