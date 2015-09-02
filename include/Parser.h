@@ -17,19 +17,6 @@ public: // public types
         Error(const char* what) : runtime_error(what) {}
     };
 
-    enum class FieldType {
-        ProtocolVersion,
-        Method,
-        Uri,
-        Accept,
-        AcceptEncoding,
-        AcceptLanguage,
-        Connection,
-        Host,
-        Referer,
-        UserAgent
-    };
-
     struct Field {
         const char* Data;
         std::size_t Size;
@@ -47,10 +34,6 @@ public: // public functions
     const char* GetBody() const;
 
 private: // private functions
-    /* internal data query & store */
-    Field GetField(FieldType) const;
-    void SaveFieldLocation(FieldType, Field);
-
     /* internal parsing logic */
     void ParseRequestLine();
     Field ParseUntil(char delimeter);

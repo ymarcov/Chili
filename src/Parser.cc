@@ -15,19 +15,6 @@ void Parser::Parse() {
     SkipToBody();
 }
 
-void Parser::SaveFieldLocation(FieldType type, Field field) {
-    _requestLineFields[static_cast<int>(type)] = field;
-}
-
-Parser::Field Parser::GetField(FieldType type) const {
-    auto i = _requestLineFields.find(static_cast<int>(type));
-
-    if (i != end(_requestLineFields))
-        return i->second;
-    else
-        throw Error("Field does not exist");
-}
-
 const char* Parser::GetBody() const {
     return _positionedBuffer;
 }
@@ -41,22 +28,32 @@ Parser::Field Parser::GetField(const std::string& name) const {
         throw Error("Field does not exist");
 }
 
+namespace {
+namespace RequestField {
+
+static const std::string Method = "$req_method";
+static const std::string Uri = "$req_uri";
+static const std::string Version = "$req_version";
+
+} // namespace RequestField
+} // unnamed namespace
+
 Parser::Field Parser::GetMethod() const {
-    return GetField(FieldType::Method);
+    return _extraFields.at(RequestField::Method);
 }
 
 Parser::Field Parser::GetUri() const {
-    return GetField(FieldType::Uri);
+    return _extraFields.at(RequestField::Uri);
 }
 
 Parser::Field Parser::GetProtocolVersion() const {
-    return GetField(FieldType::ProtocolVersion);
+    return _extraFields.at(RequestField::Version);
 }
 
 void Parser::ParseRequestLine() {
-    SaveFieldLocation(FieldType::Method, ParseUntil(' '));
-    SaveFieldLocation(FieldType::Uri, ParseUntil(' '));
-    SaveFieldLocation(FieldType::ProtocolVersion, ParseRestOfLine());
+    _extraFields[RequestField::Method] = ParseUntil(' ');
+    _extraFields[RequestField::Uri] = ParseUntil(' ');
+    _extraFields[RequestField::Version] = ParseRestOfLine();
 }
 
 Parser::Field Parser::ParseUntil(char delimeter) {
