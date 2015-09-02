@@ -1,7 +1,6 @@
 #pragma once
 
 #include <algorithm>
-#include <cstddef>
 #include <experimental/string_view>
 #include <stdexcept>
 #include <string>
