@@ -22,9 +22,9 @@ public: // public types
         std::size_t Size;
     };
 
+public: // public functions
     Parser(const char* buf, std::size_t bufSize);
 
-public: // public functions
     void Parse();
 
     Field GetField(const std::string& name) const;
