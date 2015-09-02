@@ -34,7 +34,6 @@ public: // public functions
     const char* GetBody() const;
 
 private: // private functions
-    /* internal parsing logic */
     void ParseRequestLine();
     Field ParseUntil(char delimeter);
     Field ParseRestOfLine();
