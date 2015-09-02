@@ -19,9 +19,6 @@ void Parser::SaveFieldLocation(FieldType type, Field field) {
     _requestLineFields[static_cast<int>(type)] = field;
 }
 
-void Parser::SaveFieldLocation(std::string name, Field field) {
-}
-
 Parser::Field Parser::GetField(FieldType type) const {
     auto i = _requestLineFields.find(static_cast<int>(type));
 

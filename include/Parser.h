@@ -50,7 +50,6 @@ private: // private functions
     /* internal data query & store */
     Field GetField(FieldType) const;
     void SaveFieldLocation(FieldType, Field);
-    void SaveFieldLocation(std::string name, Field);
 
     /* internal parsing logic */
     void ParseRequestLine();
