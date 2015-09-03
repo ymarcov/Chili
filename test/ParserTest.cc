@@ -9,15 +9,6 @@ using namespace ::testing;
 namespace Yam {
 namespace Http {
 
-/*
- * Critical fields in this request:
- * - Method
- * - URI
- * - Connection
- * - Host
- * All the rest can be queried explicitly
- */
-
 const char testRequest[] =
 "GET /path/to/res HTTP/1.1\r\n"
 "Accept: text/html,application/xhtml+xml,application/xml;q=0.9,*/*;q=0.8\r\n"
