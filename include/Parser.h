@@ -6,6 +6,7 @@
 #include <string>
 #include <strings.h>
 #include <unordered_map>
+#include <vector>
 
 namespace Yam {
 namespace Http {
@@ -26,18 +27,21 @@ public: // public functions
 
     void Parse();
 
+    Field GetCookie(const std::string& name) const;
     Field GetField(const std::string& name) const;
     Field GetMethod() const;
-    Field GetUri() const;
     Field GetProtocolVersion() const;
+    Field GetUri() const;
     const char* GetBody() const;
+    std::vector<Field> GetCookieNames() const;
 
 private: // private functions
-    void ParseRequestLine();
-    Field ParseUntil(char delimeter);
     Field ParseRestOfLine();
+    Field ParseUntil(char delimeter);
     bool EndOfHeader() const;
+    void ParseCookies() const;
     void ParseNextFieldLine();
+    void ParseRequestLine();
     void SkipToBody();
 
 private: // private aliases and helper types
@@ -65,6 +69,8 @@ private: // private variables
     std::size_t _remainingChars;
     std::unordered_map<int, Field> _requestLineFields;
     std::unordered_map<string_view, Field, CIHash, CICmp> _extraFields;
+    mutable std::unordered_map<string_view, Field, CIHash, CICmp> _cookies;
+    mutable bool _cookiesHaveBeenParsed = false;
 };
 
 } // namespace Http

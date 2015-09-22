@@ -18,6 +18,7 @@ const char testRequest[] =
 "Host: request.urih.com\r\n"
 "Referer: http://www.google.com/?url=http%3A%2F%2Frequest.urih.com\r\n"
 "User-agent: Mozilla/5.0 (X11; Linux x86_64; rv:31.0) Gecko/20100101 Firefox/31.0 Iceweasel/31.8.0\r\n"
+"Cookie: Session=abcd1234; User=Yam\r\n"
 "X-http-proto: HTTP/1.1\r\n"
 "X-log-7527: 95.35.33.46\r\n"
 "X-real-ip: 95.35.33.46\r\n"
@@ -72,6 +73,21 @@ TEST_F(ParserTest, case_insensitive_key) {
     Parser::Field field;
     ASSERT_NO_THROW(field = p.GetField("host"));
     EXPECT_EQ("request.urih.com", std::string(field.Data, field.Size));
+}
+
+TEST_F(ParserTest, cookie_raw) {
+    Parser::Field field = p.GetField("cookie");
+    EXPECT_EQ("Session=abcd1234; User=Yam", std::string(field.Data, field.Size));
+}
+
+TEST_F(ParserTest, cookie_get_specific) {
+    Parser::Field session = p.GetCookie("Session");
+    EXPECT_EQ("abcd1234", std::string(session.Data, session.Size));
+
+    Parser::Field user = p.GetCookie("user"); // note intentional wrong case
+    EXPECT_EQ("Yam", std::string(user.Data, user.Size));
+
+    ASSERT_THROW(p.GetCookie("unspecified"), std::runtime_error);
 }
 
 } // namespace Http

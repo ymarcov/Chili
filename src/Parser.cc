@@ -1,4 +1,5 @@
 #include "Parser.h"
+#include <array>
 
 namespace Yam {
 namespace Http {
@@ -26,6 +27,94 @@ Parser::Field Parser::GetField(const std::string& name) const {
         return i->second;
     else
         throw Error("Field does not exist");
+}
+
+Parser::Field Parser::GetCookie(const std::string& name) const {
+    if (!_cookiesHaveBeenParsed)
+        ParseCookies();
+
+    auto i = _cookies.find(name);
+
+    if (i != end(_cookies))
+        return i->second;
+    else
+        throw Error("Cookie does not exist");
+}
+
+std::vector<Parser::Field> Parser::GetCookieNames() const {
+    if (!_cookiesHaveBeenParsed)
+        ParseCookies();
+
+    std::vector<Parser::Field> result;
+    result.reserve(_cookies.size());
+
+    for (auto& kv : _cookies)
+        result.emplace_back(Field{kv.first.data(), kv.first.size()});
+
+    return result;
+}
+
+void Parser::ParseCookies() const {
+    auto field = _extraFields.find("Cookie");
+
+    if (field == end(_extraFields))
+        return;
+
+    auto ptr = field->second.Data;
+    auto remainingChars = field->second.Size;
+
+    Field name = {ptr, 0};
+    Field value;
+    bool parsingName = true;
+
+    while (remainingChars) {
+        if (parsingName) {
+            while (remainingChars && *ptr != '=') {
+                ++ptr;
+                ++name.Size;
+                --remainingChars;
+            }
+
+            // if we hit '=', skip it and continue
+            if (remainingChars) {
+                ++ptr;
+                --remainingChars;
+            }
+
+            value.Data = ptr;
+            value.Size = 0;
+
+            parsingName = false;
+        } else { // parsing value
+            while (remainingChars && *ptr != ';') {
+                ++ptr;
+                ++value.Size;
+                --remainingChars;
+            }
+
+            // if we hit ';', skip it and continue.
+            if (remainingChars) {
+                ++ptr;
+                --remainingChars;
+            }
+
+            // NOTE: here is where we insert the cookie to the cache
+            _cookies[{name.Data, name.Size}] = value;
+
+            // tolerate spaces between cookies
+            while (remainingChars && (*ptr == ' ' || *ptr == '\t')) {
+                ++ptr;
+                --remainingChars;
+            }
+
+            name.Data = ptr;
+            name.Size = 0;
+
+            parsingName = true; // ???
+        }
+    }
+
+    _cookiesHaveBeenParsed = true;
 }
 
 namespace {
@@ -83,8 +172,9 @@ bool Parser::EndOfHeader() const {
 void Parser::ParseNextFieldLine() {
     Field key = ParseUntil(':');
 
-    // tolerantly allow for an _optional_ space after colon
-    if (_remainingChars && *_positionedBuffer == ' ') {
+    // tolerate spaces after colon
+    while (_remainingChars &&
+            (*_positionedBuffer == ' ' || *_positionedBuffer == '\t')) {
         ++_positionedBuffer;
         --_remainingChars;
     }
