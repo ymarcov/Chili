@@ -21,6 +21,10 @@ void Parser::Lexer::SetDelimeters(std::initializer_list<const char*> delimeters)
         AddDelimeter(d);
 }
 
+std::pair<const char*, std::size_t> Parser::Lexer::GetRemaining() const {
+    return {_stream, _length};
+}
+
 std::size_t Parser::Lexer::GetConsumption() const {
     return _initialLength - _length;
 }
@@ -111,9 +115,7 @@ std::size_t Parser::Lexer::DelimeterAt(const char* cursor, std::size_t consumed)
 /* Parser functions */
 
 Parser::Parser(const char* buf, std::size_t bufSize) :
-    _lexer{buf, bufSize},
-    _positionedBuffer{buf},
-    _remainingChars{bufSize} {}
+    _lexer{buf, bufSize} {}
 
 void Parser::Parse() {
     ParseRequestLine();
@@ -123,8 +125,8 @@ void Parser::Parse() {
 }
 
 Parser::Field Parser::GetBody() const {
-    auto c = _lexer.GetConsumption();
-    return {_positionedBuffer + c, _remainingChars - c};
+    auto r = _lexer.GetRemaining();
+    return {r.first, r.second};
 }
 
 Parser::Field Parser::GetField(const std::string& name) const {

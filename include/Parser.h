@@ -53,6 +53,7 @@ private: // private aliases and helper types
 
         void SetDelimeters(std::initializer_list<const char*>);
         std::size_t GetConsumption() const;
+        std::pair<const char*, std::size_t> GetRemaining() const;
         bool EndOfStream() const;
         std::size_t Compress();
         std::pair<const char*, std::size_t> Next(bool compress = true);
@@ -91,8 +92,6 @@ private: // private aliases and helper types
 
 private: // private variables
     Lexer _lexer;
-    const char* _positionedBuffer;
-    std::size_t _remainingChars;
     std::unordered_map<string_view, Field, CIHash, CICmp> _fields;
     mutable std::unordered_map<string_view, Field, CIHash, CICmp> _cookies;
     mutable bool _cookiesHaveBeenParsed = false;
