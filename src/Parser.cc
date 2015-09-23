@@ -214,25 +214,6 @@ void Parser::ParseRequestLine() {
     _extraFields[RequestField::Version] = {word.first, word.second};
 }
 
-Parser::Field Parser::ParseUntil(char delimeter) {
-    Field field;
-
-    field.Data = _positionedBuffer;
-    field.Size = 0;
-
-    while (_remainingChars-- && *_positionedBuffer++ != delimeter)
-        ++field.Size;
-
-    return field;
-}
-
-Parser::Field Parser::ParseRestOfLine() {
-    Field f = ParseUntil('\r');
-    ++_positionedBuffer;
-    --_remainingChars;
-    return f;
-}
-
 bool Parser::EndOfHeader() {
     Lexer lexer = _lexer;
     lexer.SetDelimeters({"\r\n", "\r", "\n"});

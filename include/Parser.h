@@ -38,8 +38,6 @@ public: // public functions
     std::vector<Field> GetCookieNames() const;
 
 private: // private functions
-    Field ParseRestOfLine();
-    Field ParseUntil(char delimeter);
     void ParseCookies() const;
     void ParseNextFieldLine();
     void ParseRequestLine();
