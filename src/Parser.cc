@@ -169,8 +169,9 @@ void Parser::ParseCookies() const {
 
     Lexer lexer{field->second.Data, field->second.Size};
 
+    lexer.SetDelimeters({"=", ";", ",", " ", "\t"});
+
     while (!lexer.EndOfStream()) {
-        lexer.SetDelimeters({"=", ";", ",", " ", "\t"});
 
         auto name = lexer.Next();
         auto value = lexer.Next();
