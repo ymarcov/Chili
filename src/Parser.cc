@@ -128,9 +128,9 @@ Parser::Field Parser::GetBody() const {
 }
 
 Parser::Field Parser::GetField(const std::string& name) const {
-    auto i = _extraFields.find(name);
+    auto i = _fields.find(name);
 
-    if (i != end(_extraFields))
+    if (i != end(_fields))
         return i->second;
     else
         throw Error("Field does not exist");
@@ -162,9 +162,9 @@ std::vector<Parser::Field> Parser::GetCookieNames() const {
 }
 
 void Parser::ParseCookies() const {
-    auto field = _extraFields.find("Cookie");
+    auto field = _fields.find("Cookie");
 
-    if (field == end(_extraFields))
+    if (field == end(_fields))
         return;
 
     Lexer lexer{field->second.Data, field->second.Size};
@@ -193,26 +193,26 @@ static const std::string Version = "$req_version";
 } // unnamed namespace
 
 Parser::Field Parser::GetMethod() const {
-    return _extraFields.at(RequestField::Method);
+    return _fields.at(RequestField::Method);
 }
 
 Parser::Field Parser::GetUri() const {
-    return _extraFields.at(RequestField::Uri);
+    return _fields.at(RequestField::Uri);
 }
 
 Parser::Field Parser::GetProtocolVersion() const {
-    return _extraFields.at(RequestField::Version);
+    return _fields.at(RequestField::Version);
 }
 
 void Parser::ParseRequestLine() {
     _lexer.SetDelimeters({" ", "\t", "\r", "\n"});
 
     auto word = _lexer.Next();
-    _extraFields[RequestField::Method] = {word.first, word.second};
+    _fields[RequestField::Method] = {word.first, word.second};
     word = _lexer.Next();
-    _extraFields[RequestField::Uri] = {word.first, word.second};
+    _fields[RequestField::Uri] = {word.first, word.second};
     word = _lexer.Next();
-    _extraFields[RequestField::Version] = {word.first, word.second};
+    _fields[RequestField::Version] = {word.first, word.second};
 }
 
 bool Parser::EndOfHeader() {
@@ -233,7 +233,7 @@ void Parser::ParseNextFieldLine() {
     _lexer.SetDelimeters({"\r\n", "\r", "\n"});
     auto value = _lexer.Next(false);
 
-    _extraFields[{key.first, key.second}] = {value.first, value.second};
+    _fields[{key.first, key.second}] = {value.first, value.second};
 }
 
 } // namespace Http

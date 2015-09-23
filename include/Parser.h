@@ -93,7 +93,7 @@ private: // private variables
     Lexer _lexer;
     const char* _positionedBuffer;
     std::size_t _remainingChars;
-    std::unordered_map<string_view, Field, CIHash, CICmp> _extraFields;
+    std::unordered_map<string_view, Field, CIHash, CICmp> _fields;
     mutable std::unordered_map<string_view, Field, CIHash, CICmp> _cookies;
     mutable bool _cookiesHaveBeenParsed = false;
 };
