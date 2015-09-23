@@ -32,16 +32,16 @@ public: // public functions
     Field GetMethod() const;
     Field GetProtocolVersion() const;
     Field GetUri() const;
-    const char* GetBody() const;
+    Field GetBody() const;
     std::vector<Field> GetCookieNames() const;
 
 private: // private functions
     Field ParseRestOfLine();
     Field ParseUntil(char delimeter);
-    bool EndOfHeader() const;
     void ParseCookies() const;
     void ParseNextFieldLine();
     void ParseRequestLine();
+    bool EndOfHeader();
     void SkipToBody();
 
 private: // private aliases and helper types

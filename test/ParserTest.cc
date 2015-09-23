@@ -28,7 +28,7 @@ const char testRequest[] =
 class ParserTest : public Test {
 public:
     ParserTest() :
-        p{testRequest, sizeof(testRequest)} {
+        p{testRequest, sizeof(testRequest) - 1 /* null terminator */} {
         p.Parse();
     }
 
@@ -66,7 +66,8 @@ TEST_F(ParserTest, few_fields) {
 }
 
 TEST_F(ParserTest, request_body) {
-    EXPECT_STREQ("Request body!", p.GetBody());
+    Parser::Field body = p.GetBody();
+    EXPECT_EQ("Request body!", std::string(body.Data, body.Size));
 }
 
 TEST_F(ParserTest, case_insensitive_key) {

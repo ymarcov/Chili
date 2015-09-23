@@ -1,13 +1,135 @@
 #include "Parser.h"
+
 #include <array>
+#include <initializer_list>
+#include <string.h>
 
 namespace Yam {
 namespace Http {
 
+namespace {
+
+class Lexer {
+public:
+    Lexer(const char* stream, std::size_t length) :
+        _stream{stream},
+        _initialLength{length},
+        _length{length} {}
+
+    void SetDelimeters(std::initializer_list<const char*> delimeters) {
+        if (_delimeters.size() < delimeters.size())
+            throw std::logic_error("Too many delimeters");
+
+        _delimeterCount = 0;
+        _usableDelimeterData = _delimeterData.size();
+
+        for (const char* d : delimeters)
+            AddDelimeter(d);
+    }
+
+    std::size_t GetConsumption() const {
+        return _initialLength - _length;
+    }
+
+    bool EndOfStream() const {
+        return !_length;
+    }
+
+    std::size_t Compress() {
+        std::size_t stride = ConsumeDelimeters(_stream, 0);
+        _stream += stride;
+        _length -= stride;
+        return stride;
+    }
+
+    std::pair<const char*, std::size_t> Next(bool compressDelimeters = true) {
+        const char* startingPoint = _stream;
+        const char* cursor = startingPoint;
+        std::size_t wordLength = 0;
+
+        while (_length > wordLength) {
+            if (std::size_t delimLength = DelimeterAt(cursor, wordLength)) {
+                std::size_t stride = wordLength;
+
+                if (compressDelimeters)
+                    stride += ConsumeDelimeters(cursor, wordLength);
+                else
+                    stride += delimLength;
+
+                _stream += stride;
+                _length -= stride;
+
+                return {startingPoint, wordLength};
+            } else {
+                ++cursor;
+                ++wordLength;
+            }
+        }
+
+        // reached end of stream
+
+        _stream += wordLength;
+        _length -= wordLength;
+
+        return {startingPoint, wordLength};
+    }
+
+private:
+    std::size_t ConsumeDelimeters(const char* cursor, std::size_t consumed) {
+        std::size_t stride = 0;
+
+        while (_length > consumed + stride)
+            if (auto delimLength = DelimeterAt(cursor, consumed + stride)) {
+                cursor += delimLength;
+                stride += delimLength;
+            } else {
+                break;
+            }
+
+        return stride;
+    }
+
+    void AddDelimeter(const char* delimeter) {
+        std::size_t length = ::strnlen(delimeter, _usableDelimeterData + 1);
+
+        if (length > _usableDelimeterData)
+            throw std::logic_error("Delimeter too large to fit buffer");
+
+        std::size_t dataOffset = _delimeterData.size() - _usableDelimeterData;
+        char* dataSlot = _delimeterData.data() + dataOffset;
+        ::strncpy(dataSlot, delimeter, length);
+
+        _delimeterLengths[_delimeterCount] = length;
+        _delimeters[_delimeterCount] = dataSlot;
+
+        _usableDelimeterData -= length;
+        ++_delimeterCount;
+
+    }
+
+    std::size_t DelimeterAt(const char* cursor, std::size_t consumed) {
+        for (std::size_t i = 0; i < _delimeterCount; ++i)
+            if (_length > consumed + (_delimeterLengths[i] - 1))
+                if (!::strncmp(cursor, _delimeters[i], _delimeterLengths[i]))
+                    return _delimeterLengths[i];
+        return 0;
+    }
+
+    const char* _stream;
+    std::size_t _initialLength;
+    std::size_t _length;
+    std::array<const char*, 16> _delimeters;
+    std::array<std::size_t, 16> _delimeterLengths;
+    std::array<char, 64> _delimeterData;
+    std::size_t _delimeterCount = 0;
+    std::size_t _usableDelimeterData = 0;
+};
+
+} // unnamed namespace
+
 Parser::Parser(const char* buf, std::size_t bufSize) :
     _positionedBuffer(buf),
-    _remainingChars(bufSize) {
-}
+    _remainingChars(bufSize) {}
 
 void Parser::Parse() {
     ParseRequestLine();
@@ -16,8 +138,8 @@ void Parser::Parse() {
     SkipToBody();
 }
 
-const char* Parser::GetBody() const {
-    return _positionedBuffer;
+Parser::Field Parser::GetBody() const {
+    return {_positionedBuffer, _remainingChars};
 }
 
 Parser::Field Parser::GetField(const std::string& name) const {
@@ -60,58 +182,15 @@ void Parser::ParseCookies() const {
     if (field == end(_extraFields))
         return;
 
-    auto ptr = field->second.Data;
-    auto remainingChars = field->second.Size;
+    Lexer lexer{field->second.Data, field->second.Size};
 
-    Field name = {ptr, 0};
-    Field value;
-    bool parsingName = true;
+    while (!lexer.EndOfStream()) {
+        lexer.SetDelimeters({"=", ";", ",", " ", "\t"});
 
-    while (remainingChars) {
-        if (parsingName) {
-            while (remainingChars && *ptr != '=') {
-                ++ptr;
-                ++name.Size;
-                --remainingChars;
-            }
+        auto name = lexer.Next();
+        auto value = lexer.Next();
 
-            // if we hit '=', skip it and continue
-            if (remainingChars) {
-                ++ptr;
-                --remainingChars;
-            }
-
-            value.Data = ptr;
-            value.Size = 0;
-
-            parsingName = false;
-        } else { // parsing value
-            while (remainingChars && *ptr != ';') {
-                ++ptr;
-                ++value.Size;
-                --remainingChars;
-            }
-
-            // if we hit ';', skip it and continue.
-            if (remainingChars) {
-                ++ptr;
-                --remainingChars;
-            }
-
-            // NOTE: here is where we insert the cookie to the cache
-            _cookies[{name.Data, name.Size}] = value;
-
-            // tolerate spaces between cookies
-            while (remainingChars && (*ptr == ' ' || *ptr == '\t')) {
-                ++ptr;
-                --remainingChars;
-            }
-
-            name.Data = ptr;
-            name.Size = 0;
-
-            parsingName = true; // ???
-        }
+        _cookies[{name.first, name.second}] = {value.first, value.second};
     }
 
     _cookiesHaveBeenParsed = true;
@@ -140,9 +219,20 @@ Parser::Field Parser::GetProtocolVersion() const {
 }
 
 void Parser::ParseRequestLine() {
-    _extraFields[RequestField::Method] = ParseUntil(' ');
-    _extraFields[RequestField::Uri] = ParseUntil(' ');
-    _extraFields[RequestField::Version] = ParseRestOfLine();
+    Lexer lexer{_positionedBuffer, _remainingChars};
+
+    lexer.SetDelimeters({" ", "\t", "\r", "\n"});
+
+    auto word = lexer.Next();
+    _extraFields[RequestField::Method] = {word.first, word.second};
+    word = lexer.Next();
+    _extraFields[RequestField::Uri] = {word.first, word.second};
+    word = lexer.Next();
+    _extraFields[RequestField::Version] = {word.first, word.second};
+
+    auto consumption = lexer.GetConsumption();
+    _positionedBuffer += consumption;
+    _remainingChars -= consumption;
 }
 
 Parser::Field Parser::ParseUntil(char delimeter) {
@@ -164,34 +254,36 @@ Parser::Field Parser::ParseRestOfLine() {
     return f;
 }
 
-bool Parser::EndOfHeader() const {
-    auto buf = _positionedBuffer;
-    return (_remainingChars < 2) || (buf[0] == '\r' && buf[1] == '\n');
-}
-
-void Parser::ParseNextFieldLine() {
-    Field key = ParseUntil(':');
-
-    // tolerate spaces after colon
-    while (_remainingChars &&
-            (*_positionedBuffer == ' ' || *_positionedBuffer == '\t')) {
-        ++_positionedBuffer;
-        --_remainingChars;
-    }
-
-    _extraFields[{key.Data, key.Size}] = ParseRestOfLine();
+bool Parser::EndOfHeader() {
+    Lexer lexer{_positionedBuffer, _remainingChars};
+    lexer.SetDelimeters({"\r\n", "\r", "\n"});
+    return !lexer.Next(false).second;
 }
 
 void Parser::SkipToBody() {
-    if (_remainingChars && *_positionedBuffer == '\r') {
-        ++_positionedBuffer;
-        --_remainingChars;
-    }
+    Lexer lexer{_positionedBuffer, _remainingChars};
+    lexer.SetDelimeters({"\r\n", "\r", "\n"});
+    lexer.Next(false);
 
-    if (_remainingChars && *_positionedBuffer == '\n') {
-        ++_positionedBuffer;
-        --_remainingChars;
-    }
+    auto consumption = lexer.GetConsumption();
+    _positionedBuffer += consumption;
+    _remainingChars -= consumption;
+}
+
+void Parser::ParseNextFieldLine() {
+    Lexer lexer{_positionedBuffer, _remainingChars};
+
+    lexer.SetDelimeters({" ", "\t", ":"});
+    auto key = lexer.Next();
+
+    lexer.SetDelimeters({"\r\n", "\r", "\n"});
+    auto value = lexer.Next(false);
+
+    _extraFields[{key.first, key.second}] = {value.first, value.second};
+
+    auto consumption = lexer.GetConsumption();
+    _positionedBuffer += consumption;
+    _remainingChars -= consumption;
 }
 
 } // namespace Http
