@@ -29,13 +29,13 @@ public: // public functions
 
     void Parse();
 
+    std::vector<Field> GetCookieNames() const;
     Field GetCookie(const std::string& name) const;
     Field GetField(const std::string& name) const;
     Field GetMethod() const;
     Field GetProtocolVersion() const;
     Field GetUri() const;
     Field GetBody() const;
-    std::vector<Field> GetCookieNames() const;
 
 private: // private functions
     void ParseCookies() const;
