@@ -111,8 +111,9 @@ std::size_t Parser::Lexer::DelimeterAt(const char* cursor, std::size_t consumed)
 /* Parser functions */
 
 Parser::Parser(const char* buf, std::size_t bufSize) :
-    _positionedBuffer(buf),
-    _remainingChars(bufSize) {}
+    _lexer{buf, bufSize},
+    _positionedBuffer{buf},
+    _remainingChars{bufSize} {}
 
 void Parser::Parse() {
     ParseRequestLine();
@@ -122,7 +123,8 @@ void Parser::Parse() {
 }
 
 Parser::Field Parser::GetBody() const {
-    return {_positionedBuffer, _remainingChars};
+    auto c = _lexer.GetConsumption();
+    return {_positionedBuffer + c, _remainingChars - c};
 }
 
 Parser::Field Parser::GetField(const std::string& name) const {
@@ -202,20 +204,14 @@ Parser::Field Parser::GetProtocolVersion() const {
 }
 
 void Parser::ParseRequestLine() {
-    Lexer lexer{_positionedBuffer, _remainingChars};
+    _lexer.SetDelimeters({" ", "\t", "\r", "\n"});
 
-    lexer.SetDelimeters({" ", "\t", "\r", "\n"});
-
-    auto word = lexer.Next();
+    auto word = _lexer.Next();
     _extraFields[RequestField::Method] = {word.first, word.second};
-    word = lexer.Next();
+    word = _lexer.Next();
     _extraFields[RequestField::Uri] = {word.first, word.second};
-    word = lexer.Next();
+    word = _lexer.Next();
     _extraFields[RequestField::Version] = {word.first, word.second};
-
-    auto consumption = lexer.GetConsumption();
-    _positionedBuffer += consumption;
-    _remainingChars -= consumption;
 }
 
 Parser::Field Parser::ParseUntil(char delimeter) {
@@ -238,35 +234,24 @@ Parser::Field Parser::ParseRestOfLine() {
 }
 
 bool Parser::EndOfHeader() {
-    Lexer lexer{_positionedBuffer, _remainingChars};
+    Lexer lexer = _lexer;
     lexer.SetDelimeters({"\r\n", "\r", "\n"});
     return !lexer.Next(false).second;
 }
 
 void Parser::SkipToBody() {
-    Lexer lexer{_positionedBuffer, _remainingChars};
-    lexer.SetDelimeters({"\r\n", "\r", "\n"});
-    lexer.Next(false);
-
-    auto consumption = lexer.GetConsumption();
-    _positionedBuffer += consumption;
-    _remainingChars -= consumption;
+    _lexer.SetDelimeters({"\r\n", "\r", "\n"});
+    _lexer.Next(false);
 }
 
 void Parser::ParseNextFieldLine() {
-    Lexer lexer{_positionedBuffer, _remainingChars};
+    _lexer.SetDelimeters({" ", "\t", ":"});
+    auto key = _lexer.Next();
 
-    lexer.SetDelimeters({" ", "\t", ":"});
-    auto key = lexer.Next();
-
-    lexer.SetDelimeters({"\r\n", "\r", "\n"});
-    auto value = lexer.Next(false);
+    _lexer.SetDelimeters({"\r\n", "\r", "\n"});
+    auto value = _lexer.Next(false);
 
     _extraFields[{key.first, key.second}] = {value.first, value.second};
-
-    auto consumption = lexer.GetConsumption();
-    _positionedBuffer += consumption;
-    _remainingChars -= consumption;
 }
 
 } // namespace Http

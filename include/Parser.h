@@ -92,6 +92,7 @@ private: // private aliases and helper types
     };
 
 private: // private variables
+    Lexer _lexer;
     const char* _positionedBuffer;
     std::size_t _remainingChars;
     std::unordered_map<int, Field> _requestLineFields;
