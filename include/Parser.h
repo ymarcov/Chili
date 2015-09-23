@@ -75,8 +75,8 @@ private: // private aliases and helper types
     struct CIHash {
         template <class S>
         std::size_t operator()(const S& val) const {
-            return std::accumulate(begin(val), end(val), 0, [](char init, char c) {
-                return init + std::tolower(c);
+            return std::accumulate(begin(val), end(val), 0, [](char agg, char c) {
+                return agg + std::tolower(c);
             });
         }
     };
