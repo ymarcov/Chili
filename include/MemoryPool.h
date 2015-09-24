@@ -14,9 +14,9 @@ namespace Http {
 
 template <class T>
 class MemoryPool {
-public:
     static const std::size_t SlotSize = sizeof(T);
 
+public:
     MemoryPool(std::size_t pages = 1) :
         _pages(pages),
         _buffer(CreateBuffer()),
