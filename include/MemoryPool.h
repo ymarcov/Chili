@@ -13,7 +13,7 @@ namespace Yam {
 namespace Http {
 
 template <class T>
-class MemoryPool {
+class MemoryPool : public std::enable_shared_from_this<MemoryPool<T>> {
 private:
     static const std::size_t SlotSize = sizeof(T);
 
@@ -28,12 +28,28 @@ public:
         return std::shared_ptr<MemoryPool>{new MemoryPool{pages}};
     }
 
+    struct Deleter {
+        Deleter() {}
+
+        Deleter(std::shared_ptr<MemoryPool<T>> mp) :
+            _mp{std::move(mp)} {}
+
+        void operator()(T* t) {
+            _mp->Delete(t);
+        }
+
+    private:
+        std::shared_ptr<MemoryPool<T>> _mp;
+    };
+
+    using Ptr = std::unique_ptr<T, Deleter>;
+
     ~MemoryPool() {
         ::munmap(_buffer, GetBufferSize());
     }
 
     template <class... Args>
-    auto New(Args&&... args) {
+    Ptr New(Args&&... args) {
         auto t = static_cast<T*>(Allocate());
 
         if (!t)
@@ -46,8 +62,7 @@ public:
             throw;
         }
 
-        auto deleter = [this](T* t) { Delete(t); };
-        return std::unique_ptr<T, decltype(deleter)>(t, deleter);
+        return {t, this->shared_from_this()};
     }
 
     void Delete(T* t) {
@@ -162,6 +177,9 @@ private:
     std::atomic<Slot*> _head;
     std::atomic_size_t _freeSlots;
 };
+
+template <class T>
+using MemorySlot = typename MemoryPool<T>::Ptr;
 
 } // namespace Http
 } // namespace Yam

@@ -164,7 +164,19 @@ TEST_F(MemoryPoolTest, concurrent_alloc_dealloc_randomly) {
     EXPECT_EQ(mp->GetCapacity(), mp->GetFreeSlots());
 }
 
-TEST_F(MemoryPoolTest, owned_ptrs_outlive_pool) {
+TEST_F(MemoryPoolTest, live_slots_outlive_pool) {
+    MemorySlot<DestructionVerifier> slot;
+    DestructionVerifier::Handle handle;
+
+    {
+        slot = MemoryPool<DestructionVerifier>::Create()->New(handle);
+    }
+
+    EXPECT_EQ(DestructionVerifier::Handle::Live, handle);
+
+    slot.reset();
+
+    EXPECT_EQ(DestructionVerifier::Handle::Destroyed, handle);
 }
 
 } // namespace Http
