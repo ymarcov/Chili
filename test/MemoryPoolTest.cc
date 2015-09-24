@@ -64,27 +64,27 @@ protected:
 };
 
 TEST_F(MemoryPoolTest, alloc_dealloc) {
-    MemoryPool<Type> mp;
+    auto mp = MemoryPool<Type>::Create();
 
-    void* mem = mp.Allocate();
-    mp.Deallocate(mem);
+    void* mem = mp->Allocate();
+    mp->Deallocate(mem);
 }
 
 TEST_F(MemoryPoolTest, use_memory) {
-    MemoryPool<Type> mp;
+    auto mp = MemoryPool<Type>::Create();
 
-    Type* t = static_cast<Type*>(mp.Allocate());
+    Type* t = static_cast<Type*>(mp->Allocate());
     t->w = 'a';
     t->x = 1;
     t->y = 2;
     t->z = 3;
-    mp.Deallocate(t);
+    mp->Deallocate(t);
 }
 
 TEST_F(MemoryPoolTest, alloc_and_construct) {
-    MemoryPool<Type> mp;
+    auto mp = MemoryPool<Type>::Create();
 
-    auto t = mp.New('a', 1, 2, 3);
+    auto t = mp->New('a', 1, 2, 3);
 
     EXPECT_EQ('a', t->w);
     EXPECT_EQ(1, t->x);
@@ -101,8 +101,8 @@ TEST_F(MemoryPoolTest, new_returns_smart_ptr) {
         int* _i;
     };
 
-    MemoryPool<Type> mp;
-    mp.New(&i);
+    auto mp = MemoryPool<Type>::Create();
+    mp->New(&i);
     EXPECT_EQ(1, i);
 }
 
@@ -115,45 +115,48 @@ TEST_F(MemoryPoolTest, shared_ptr_from_smart_ptr) {
         int* _i;
     };
 
-    MemoryPool<Type> mp;
-    std::shared_ptr<Type>{mp.New(&i)};
+    auto mp = MemoryPool<Type>::Create();
+    std::shared_ptr<Type>{mp->New(&i)};
     EXPECT_EQ(1, i);
 }
 
 TEST_F(MemoryPoolTest, alloc_dealloc_all) {
-    MemoryPool<Type> mp;
+    auto mp = MemoryPool<Type>::Create();
 
     std::vector<void*> ptrs;
 
-    while (mp.GetFreeSlots())
-        ptrs.push_back(mp.Allocate());
+    while (mp->GetFreeSlots())
+        ptrs.push_back(mp->Allocate());
 
     for (auto ptr : ptrs)
-        mp.Deallocate(ptr);
+        mp->Deallocate(ptr);
 
-    EXPECT_EQ(mp.GetCapacity(), mp.GetFreeSlots());
+    EXPECT_EQ(mp->GetCapacity(), mp->GetFreeSlots());
 }
 
 TEST_F(MemoryPoolTest, alloc_dealloc_randomly) {
-    MemoryPool<Type> mp;
-    AllocDeallocRandomly(mp);
-    EXPECT_EQ(mp.GetCapacity(), mp.GetFreeSlots());
+    auto mp = MemoryPool<Type>::Create();
+    AllocDeallocRandomly(*mp);
+    EXPECT_EQ(mp->GetCapacity(), mp->GetFreeSlots());
 }
 
 TEST_F(MemoryPoolTest, concurrent_alloc_dealloc_randomly) {
-    MemoryPool<Type> mp;
+    auto mp = MemoryPool<Type>::Create();
 
     std::vector<std::unique_ptr<std::thread>> threads;
 
     for (int i = 0; i < 5; i++)
         threads.emplace_back(new std::thread{[&] {
-                AllocDeallocRandomly(mp);
+                AllocDeallocRandomly(*mp);
         }});
 
     for (auto& t : threads)
         t->join();
 
-    EXPECT_EQ(mp.GetCapacity(), mp.GetFreeSlots());
+    EXPECT_EQ(mp->GetCapacity(), mp->GetFreeSlots());
+}
+
+TEST_F(MemoryPoolTest, owned_ptrs_outlive_pool) {
 }
 
 } // namespace Http

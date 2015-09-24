@@ -14,14 +14,19 @@ namespace Http {
 
 template <class T>
 class MemoryPool {
+private:
     static const std::size_t SlotSize = sizeof(T);
 
-public:
-    MemoryPool(std::size_t pages = 1) :
+    MemoryPool(std::size_t pages) :
         _pages(pages),
         _buffer(CreateBuffer()),
         _head(_buffer),
         _freeSlots(GetCapacity()) {}
+
+public:
+    static std::shared_ptr<MemoryPool> Create(std::size_t pages = 1) {
+        return std::shared_ptr<MemoryPool>{new MemoryPool{pages}};
+    }
 
     ~MemoryPool() {
         ::munmap(_buffer, GetBufferSize());
