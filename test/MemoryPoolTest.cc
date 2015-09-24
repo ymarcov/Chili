@@ -22,6 +22,26 @@ struct Type {
     int z;
 };
 
+class DestructionVerifier {
+public:
+    enum class Handle {
+        Live,
+        Destroyed
+    };
+
+    DestructionVerifier(Handle& h) :
+        _h(&h) {
+        *_h = Handle::Live;
+    }
+
+    ~DestructionVerifier() {
+        *_h = Handle::Destroyed;
+    }
+
+private:
+    Handle* _h;
+};
+
 class MemoryPoolTest : public Test {
 public:
     MemoryPoolTest() {
@@ -93,31 +113,19 @@ TEST_F(MemoryPoolTest, alloc_and_construct) {
 }
 
 TEST_F(MemoryPoolTest, new_returns_smart_ptr) {
-    int i = 0;
+    DestructionVerifier::Handle handle;
 
-    struct Type {
-        Type(int* i) : _i(i) {}
-        ~Type() { *_i = 1; }
-        int* _i;
-    };
-
-    auto mp = MemoryPool<Type>::Create();
-    mp->New(&i);
-    EXPECT_EQ(1, i);
+    auto mp = MemoryPool<DestructionVerifier>::Create();
+    mp->New(handle);
+    EXPECT_EQ(DestructionVerifier::Handle::Destroyed, handle);
 }
 
 TEST_F(MemoryPoolTest, shared_ptr_from_smart_ptr) {
-    int i = 0;
+    DestructionVerifier::Handle handle;
 
-    struct Type {
-        Type(int* i) : _i(i) {}
-        ~Type() { *_i = 1; }
-        int* _i;
-    };
-
-    auto mp = MemoryPool<Type>::Create();
-    std::shared_ptr<Type>{mp->New(&i)};
-    EXPECT_EQ(1, i);
+    auto mp = MemoryPool<DestructionVerifier>::Create();
+    std::shared_ptr<DestructionVerifier>{mp->New(handle)};
+    EXPECT_EQ(DestructionVerifier::Handle::Destroyed, handle);
 }
 
 TEST_F(MemoryPoolTest, alloc_dealloc_all) {
