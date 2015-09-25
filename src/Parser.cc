@@ -1,5 +1,8 @@
 #include "Parser.h"
 
+#include <algorithm>
+#include <strings.h>
+
 namespace Yam {
 namespace Http {
 
@@ -24,7 +27,7 @@ Parser::Field Parser::GetField(const std::string& name) const {
     if (i != end(_fields))
         return i->second;
     else
-        throw Error("Field does not exist");
+        throw Error{"Field does not exist"};
 }
 
 Parser::Field Parser::GetCookie(const std::string& name) const {
@@ -36,7 +39,7 @@ Parser::Field Parser::GetCookie(const std::string& name) const {
     if (i != end(_cookies))
         return i->second;
     else
-        throw Error("Cookie does not exist");
+        throw Error{"Cookie does not exist"};
 }
 
 std::vector<Parser::Field> Parser::GetCookieNames() const {
@@ -96,14 +99,29 @@ Parser::Field Parser::GetProtocolVersion() const {
 }
 
 void Parser::ParseRequestLine() {
-    _lexer.SetDelimeters({" ", "\t", "\r", "\n"});
+    _lexer.SetDelimeters({" ", "\t"});
 
-    auto word = _lexer.Next();
-    _fields[RequestField::Method] = {word.first, word.second};
-    word = _lexer.Next();
-    _fields[RequestField::Uri] = {word.first, word.second};
-    word = _lexer.Next();
-    _fields[RequestField::Version] = {word.first, word.second};
+    auto method = _lexer.Next();
+    _fields[RequestField::Method] = {method.first, method.second};
+
+    { // verify method type, allow wrong case
+        auto supportedMethods = {"GET", "POST", "HEAD"};
+
+        auto ciCmp = [&](auto m) {
+            return !::strncasecmp(m, method.first, method.second);
+        };
+
+        if (!std::any_of(begin(supportedMethods), end(supportedMethods), ciCmp))
+            throw Error{"Unsupportd HTTP method"};
+    }
+
+    auto uri = _lexer.Next();
+    _fields[RequestField::Uri] = {uri.first, uri.second};
+
+    _lexer.SetDelimeters({"\r\n", "\r", "\n"});
+
+    auto protocol = _lexer.Next(false);
+    _fields[RequestField::Version] = {protocol.first, protocol.second};
 }
 
 bool Parser::EndOfHeader() {
@@ -114,7 +132,10 @@ bool Parser::EndOfHeader() {
 
 void Parser::SkipToBody() {
     _lexer.SetDelimeters({"\r\n", "\r", "\n"});
+    auto c = _lexer.GetConsumption();
     _lexer.Next(false);
+    if (c == _lexer.GetConsumption())
+        throw Error{"Request header did not end in blank line"};
 }
 
 void Parser::ParseNextFieldLine() {
