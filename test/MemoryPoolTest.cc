@@ -2,6 +2,7 @@
 
 #include "MemoryPool.h"
 
+#include <array>
 #include <random>
 #include <thread>
 #include <vector>
@@ -140,6 +141,49 @@ TEST_F(MemoryPoolTest, alloc_dealloc_all) {
         mp->Deallocate(ptr);
 
     EXPECT_EQ(mp->GetCapacity(), mp->GetFreeSlots());
+}
+
+TEST_F(MemoryPoolTest, primitive_types) {
+    auto intMp = MemoryPool<int>::Create();
+    auto doubleMp = MemoryPool<double>::Create();
+    auto i = intMp->New(123);
+    auto f = doubleMp->New(1.23);
+    EXPECT_EQ(123, *i);
+    EXPECT_EQ(1.23, *f);
+}
+
+TEST_F(MemoryPoolTest, std_array) {
+    static constexpr int initialCount = 5;
+    static int count = initialCount;
+
+    struct Decrement {
+        ~Decrement() {
+            --count;
+        }
+    };
+
+    auto mp = MemoryPool<std::array<Decrement, initialCount>>::Create();
+
+    EXPECT_EQ(initialCount, count);
+    mp->New();
+    EXPECT_EQ(0, count);
+}
+
+TEST_F(MemoryPoolTest, c_array) {
+    static constexpr int initialCount = 5;
+    static int count = initialCount;
+
+    struct Decrement {
+        ~Decrement() {
+            --count;
+        }
+    };
+
+    auto mp = MemoryPool<Decrement[initialCount]>::Create();
+
+    EXPECT_EQ(initialCount, count);
+    mp->New();
+    EXPECT_EQ(0, count);
 }
 
 TEST_F(MemoryPoolTest, alloc_dealloc_randomly) {

@@ -2,6 +2,7 @@
 
 #include "SystemError.h"
 
+#include <array>
 #include <atomic>
 #include <memory>
 #include <new>
@@ -177,6 +178,9 @@ private:
     std::atomic<Slot*> _head;
     std::atomic_size_t _freeSlots;
 };
+
+template <class T, std::size_t N>
+class MemoryPool<T[N]> : public MemoryPool<std::array<T, N>> {};
 
 template <class T>
 using MemorySlot = typename MemoryPool<T>::Ptr;
