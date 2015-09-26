@@ -42,9 +42,9 @@ TEST_F(RequestTest, getters) {
 
     Request r{std::move(buffer)};
 
-    EXPECT_EQ("GET", r.GetMethod());
+    EXPECT_EQ(Protocol::Method::Get, r.GetMethod());
+    EXPECT_EQ(Protocol::Version::Http11, r.GetProtocol());
     EXPECT_EQ("/path/to/res", r.GetUri());
-    EXPECT_EQ("HTTP/1.1", r.GetProtocol());
     EXPECT_EQ("request.urih.com", r.GetField("Host"));
     EXPECT_EQ("abcd1234", r.GetCookie("Session"));
     EXPECT_EQ(2, r.GetCookieNames().size());

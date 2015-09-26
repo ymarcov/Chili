@@ -1,9 +1,11 @@
 #pragma once
 
-#include "Parser.h"
 #include "MemoryPool.h"
+#include "Parser.h"
+#include "Protocol.h"
 
 #include <string>
+#include <strings.h>
 #include <utility>
 #include <vector>
 
@@ -20,9 +22,29 @@ public:
         _parser.Parse();
     }
 
-    std::string GetMethod() const {
-        auto f = _parser.GetMethod();
-        return {f.Data, f.Size};
+    Protocol::Method GetMethod() const {
+        auto field = _parser.GetMethod();
+
+        // indices must correspond to Protocol::Method enum
+        auto methods = {
+            "OPTIONS",
+            "GET",
+            "HEAD",
+            "POST",
+            "PUT",
+            "DELETE",
+            "TRACE",
+            "CONNECT"
+        };
+
+        int i = 0;
+        for (auto& m : methods) {
+            if (!::strncasecmp(field.Data, m, field.Size))
+                return static_cast<Protocol::Method>(i);
+            ++i;
+        }
+
+        throw std::runtime_error("Unknown HTTP method");
     }
 
     std::string GetUri() const {
@@ -30,9 +52,23 @@ public:
         return {f.Data, f.Size};
     }
 
-    std::string GetProtocol() const {
-        auto f = _parser.GetProtocolVersion();
-        return {f.Data, f.Size};
+    Protocol::Version GetProtocol() const {
+        auto field = _parser.GetProtocolVersion();
+
+        // indices must correspond to Protocol::Version
+        auto versions = {
+            "HTTP/1.0",
+            "HTTP/1.1"
+        };
+
+        int i = 0;
+        for (auto& v : versions) {
+            if (!::strncasecmp(field.Data, v, field.Size))
+                return static_cast<Protocol::Version>(i);
+            ++i;
+        }
+
+        throw std::runtime_error("Unknown HTTP method");
     }
 
     std::string GetField(const std::string& name) const {
