@@ -35,7 +35,8 @@ public: // public functions
     Field GetMethod() const;
     Field GetProtocolVersion() const;
     Field GetUri() const;
-    Field GetBody() const;
+    const char* GetBody() const;
+    std::size_t GetBodyLength() const;
 
 private: // private functions
     void ParseCookies() const;

@@ -1,6 +1,7 @@
 #include "Parser.h"
 
 #include <algorithm>
+#include <cstdlib>
 #include <strings.h>
 
 namespace Yam {
@@ -16,9 +17,14 @@ void Parser::Parse() {
     SkipToBody();
 }
 
-Parser::Field Parser::GetBody() const {
-    auto r = _lexer.GetRemaining();
-    return {r.first, r.second};
+const char* Parser::GetBody() const {
+    return _lexer.GetRemaining().first;
+}
+
+std::size_t Parser::GetBodyLength() const {
+    // TODO add HasBody() and test by RFC 2616: 4.4
+    auto f = GetField("Content-Length");
+    return std::strtoll(f.Data, nullptr, 8);
 }
 
 Parser::Field Parser::GetField(const std::string& name) const {

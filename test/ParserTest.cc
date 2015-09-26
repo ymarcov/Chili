@@ -22,6 +22,7 @@ const char testRequest[] =
 "X-http-proto: HTTP/1.1\r\n"
 "X-log-7527: 95.35.33.46\r\n"
 "X-real-ip: 95.35.33.46\r\n"
+"Content-Length: 15\r\n" // specified in octets
 "\r\n"
 "Request body!";
 
@@ -66,8 +67,10 @@ TEST_F(ParserTest, few_fields) {
 }
 
 TEST_F(ParserTest, request_body) {
-    Parser::Field body = p.GetBody();
-    EXPECT_EQ("Request body!", std::string(body.Data, body.Size));
+    const char* body = p.GetBody();
+    auto length = p.GetBodyLength();
+    EXPECT_EQ(13, length);
+    EXPECT_EQ("Request body!", std::string(body, length));
 }
 
 TEST_F(ParserTest, case_insensitive_key) {
