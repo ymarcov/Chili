@@ -5,6 +5,7 @@
 #include <array>
 #include <random>
 #include <thread>
+#include <type_traits>
 #include <vector>
 
 using namespace ::testing;
@@ -184,6 +185,9 @@ TEST_F(MemoryPoolTest, c_array) {
     EXPECT_EQ(initialCount, count);
     mp->New();
     EXPECT_EQ(0, count);
+
+    // API check
+    static_assert(std::is_same<decltype(mp->New().get()), Decrement*>::value, "");
 }
 
 TEST_F(MemoryPoolTest, alloc_dealloc_randomly) {

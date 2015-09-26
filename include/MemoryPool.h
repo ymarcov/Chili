@@ -24,11 +24,7 @@ private:
         _head(_buffer),
         _freeSlots(GetCapacity()) {}
 
-public:
-    static std::shared_ptr<MemoryPool> Create(std::size_t pages = 1) {
-        return std::shared_ptr<MemoryPool>{new MemoryPool{pages}};
-    }
-
+public: // public types
     struct Deleter {
         Deleter() {}
 
@@ -44,6 +40,11 @@ public:
     };
 
     using Ptr = std::unique_ptr<T, Deleter>;
+
+public: // public functions
+    static std::shared_ptr<MemoryPool> Create(std::size_t pages = 1) {
+        return std::shared_ptr<MemoryPool>{new MemoryPool{pages}};
+    }
 
     ~MemoryPool() {
         ::munmap(_buffer, GetBufferSize());
@@ -64,11 +65,6 @@ public:
         }
 
         return {t, this->shared_from_this()};
-    }
-
-    void Delete(T* t) {
-        t->~T();
-        Deallocate(t);
     }
 
     void* Allocate() {
@@ -130,6 +126,9 @@ public:
     }
 
 private:
+    template <class U>
+    friend class MemoryPool;
+
     union Slot {
         char _data[SlotSize];
         Slot* _next;
@@ -137,6 +136,11 @@ private:
 
     static bool IsPageAligned(void* mem) noexcept {
         return 0 == reinterpret_cast<std::uintptr_t>(mem) % ::getpagesize();
+    }
+
+    void Delete(T* t) {
+        t->~T();
+        Deallocate(t);
     }
 
     Slot* CreateBuffer() {
@@ -179,8 +183,72 @@ private:
     std::atomic_size_t _freeSlots;
 };
 
+// some wizardry to allow MemoryPool<T[N]>,
+// including template expectations on its
+// returned pointers from New(), etc.
+
 template <class T, std::size_t N>
-class MemoryPool<T[N]> : public MemoryPool<std::array<T, N>> {};
+class MemoryPool<T[N]> : public std::enable_shared_from_this<MemoryPool<T[N]>> {
+    using InternalPool = MemoryPool<std::array<T, N>>;
+
+public: // public types
+    struct Deleter {
+        Deleter() {}
+
+        Deleter(typename InternalPool::Ptr ptr) :
+            _ptr{std::move(ptr)} {}
+
+        void operator()(T* t) {
+            _ptr.reset();
+        }
+
+    private:
+        typename InternalPool::Ptr _ptr;
+    };
+
+    using Ptr = std::unique_ptr<T[], Deleter>;
+
+public: // public functions
+    static std::shared_ptr<MemoryPool> Create(std::size_t pages = 1) {
+        return std::shared_ptr<MemoryPool>{new MemoryPool{pages}};
+    }
+
+    Ptr New() {
+        auto ptr = _mp->New();
+        auto data = ptr->data();
+        return {data, std:move(ptr)};
+    }
+
+    void* Allocate() {
+        return _mp->Allocate();
+    }
+
+    void Deallocate(void* mem) {
+        return _mp->Deallocate(mem);
+    }
+
+    std::size_t GetCapacity() const noexcept {
+        return _mp->GetCapacity();
+    }
+
+    std::size_t GetFreeSlots() const {
+        return _mp->GetFreeSlots();
+    }
+
+    void* GetBuffer() const noexcept {
+        return _mp->GetBuffer();
+    }
+
+    std::size_t GetBufferSize() const noexcept {
+        return _mp->GetBufferSize();
+    }
+
+private:
+    MemoryPool(std::size_t pages = 1) :
+        _mp{InternalPool::Create(pages)} {}
+
+    std::shared_ptr<InternalPool> _mp;
+};
 
 template <class T>
 using MemorySlot = typename MemoryPool<T>::Ptr;
