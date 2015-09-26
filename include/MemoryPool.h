@@ -15,15 +15,6 @@ namespace Http {
 
 template <class T>
 class MemoryPool : public std::enable_shared_from_this<MemoryPool<T>> {
-private:
-    static const std::size_t SlotSize = sizeof(T);
-
-    MemoryPool(std::size_t pages) :
-        _pages(pages),
-        _buffer(CreateBuffer()),
-        _head(_buffer),
-        _freeSlots(GetCapacity()) {}
-
 public: // public types
     struct Deleter {
         Deleter() {}
@@ -130,7 +121,7 @@ private:
     friend class MemoryPool;
 
     union Slot {
-        char _data[SlotSize];
+        char _data[sizeof(T)];
         Slot* _next;
     };
 
@@ -138,12 +129,21 @@ private:
         return 0 == reinterpret_cast<std::uintptr_t>(mem) % ::getpagesize();
     }
 
+    MemoryPool(std::size_t pages) :
+        _pages(pages),
+        _buffer(CreateBuffer()),
+        _head(_buffer),
+        _freeSlots(GetCapacity()) {}
+
     void Delete(T* t) {
         t->~T();
         Deallocate(t);
     }
 
     Slot* CreateBuffer() {
+        if (GetBufferSize() < sizeof(Slot))
+            throw std::logic_error("Memory pool buffer size is too small");
+
         // first thing, get all the memory we need
         // and make sure it meets all the expectations.
 
