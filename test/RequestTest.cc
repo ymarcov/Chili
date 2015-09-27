@@ -30,7 +30,7 @@ const char requestData[] =
 class RequestTest : public Test {
 public:
     RequestTest() :
-        _memoryPool{MemoryPool<Request::Buffer>::Create(4)} {}
+        _memoryPool{MemoryPool<Request::Buffer>::Create()} {}
 
 protected:
     std::shared_ptr<MemoryPool<Request::Buffer>> _memoryPool;

@@ -13,6 +13,16 @@
 namespace Yam {
 namespace Http {
 
+namespace Detail {
+
+inline std::size_t MinPagesFor(std::size_t bytes) {
+    // see Hacker's Delight 2nd ed. p.59, section 3-1.
+    auto pageSize = static_cast<std::size_t>(::getpagesize());
+    return bytes + (-bytes & (pageSize - 1));
+}
+
+} // namespace Detail
+
 template <class T>
 class MemoryPool : public std::enable_shared_from_this<MemoryPool<T>> {
 public: // public types
@@ -33,7 +43,7 @@ public: // public types
     using Ptr = std::unique_ptr<T, Deleter>;
 
 public: // public functions
-    static std::shared_ptr<MemoryPool> Create(std::size_t pages = 1) {
+    static std::shared_ptr<MemoryPool> Create(std::size_t pages = Detail::MinPagesFor(sizeof(T))) {
         return std::shared_ptr<MemoryPool>{new MemoryPool{pages}};
     }
 
@@ -209,7 +219,7 @@ public: // public types
     using Ptr = std::unique_ptr<T[], Deleter>;
 
 public: // public functions
-    static std::shared_ptr<MemoryPool> Create(std::size_t pages = 1) {
+    static std::shared_ptr<MemoryPool> Create(std::size_t pages = Detail::MinPagesFor(sizeof(std::array<T, N>))) {
         return std::shared_ptr<MemoryPool>{new MemoryPool{pages}};
     }
 
