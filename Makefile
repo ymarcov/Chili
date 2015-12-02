@@ -11,7 +11,7 @@ BIN_DIR=bin
 
 .PHONY: clean ext/gmock_clean
 
-all: prepare sandbox test run_test
+all: prepare test run_test
 
 prepare:
 	mkdir -p $(BIN_DIR)
