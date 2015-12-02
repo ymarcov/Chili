@@ -4,13 +4,14 @@ CXXFLAGS=-std=c++1y -Iinclude -g
 
 OBJECTS=$(foreach f, $(basename $(wildcard src/*.cc)), $(f).o)
 TEST_OBJECTS=$(foreach f, $(basename $(wildcard test/*.cc)), $(f).o)
+SANDBOX_OBJECTS=$(foreach f, $(basename $(wildcard sandbox/*.cc)), $(f).o)
 
 BIN_DIR=bin
 
 
 .PHONY: clean ext/gmock_clean
 
-all: prepare test run_test
+all: prepare sandbox test run_test
 
 prepare:
 	mkdir -p $(BIN_DIR)
@@ -20,6 +21,12 @@ run_test:
 
 test: ext/gmock/libgmock.a $(TEST_OBJECTS) $(OBJECTS)
 	$(CXX) $(CXXFLAGS) -o $(BIN_DIR)/test $(TEST_OBJECTS) $(OBJECTS) ext/gmock/libgmock.a -lpthread
+
+sandbox: $(SANDBOX_OBJECTS) $(OBJECTS)
+	$(CXX) $(CXXFLAGS) -o $(BIN_DIR)/sandbox $(SANDBOX_OBJECTS) $(OBJECTS) -lpthread
+	@bin/sandbox
+
+sb: sandbox
 
 ext/gmock/libgmock.a:
 	$(CXX) -Iext/gtest -c -o ext/gtest/src/gtest-all.o ext/gtest/src/gtest-all.cc
