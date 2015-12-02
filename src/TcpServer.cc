@@ -128,7 +128,9 @@ void TcpServer::AcceptLoop(ConnectionHandler connectionHandler) {
 }
 
 void TcpServer::Stop() {
-    _stop = true;
+    bool reentrance = false;
+    if (!_stop.compare_exchange_strong(reentrance, true))
+        return;
 
     if (_socket != -1) {
         ::shutdown(_socket, SHUT_RDWR);
