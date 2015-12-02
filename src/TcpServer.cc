@@ -73,7 +73,7 @@ int TcpServer::CreateListenerSocket() const {
 }
 
 std::future<void> TcpServer::Start(ConnectionHandler ch) {
-    if (_thread.joinable())
+    if (!_stop || _thread.joinable())
         throw std::logic_error("Start() called when TCP server is already running");
 
     _socket = CreateListenerSocket();
