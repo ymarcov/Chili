@@ -11,6 +11,10 @@
 namespace Yam {
 namespace Http {
 
+/*
+ * Taking ownership of a request buffer, provides
+ * a simple API to access its various properties.
+ */
 class Request {
 public:
     using Buffer = char[8192];
