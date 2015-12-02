@@ -97,8 +97,9 @@ int main(int argc, char* argv[]) {
     auto args = ArgsToVector(argc, argv);
     auto config = CreateConfiguration(args);
     auto server = CreateServer(config);
+    auto handler = CreateHandler();
 
-    auto task = server->Start(CreateHandler());
+    auto task = server->Start(handler);
     std::cout << "Sandbox started.\n";
     task.get();
 }
