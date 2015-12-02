@@ -32,14 +32,14 @@ bool Lexer::EndOfStream() const {
     return !_length;
 }
 
-std::size_t Lexer::Compress() {
-    std::size_t stride = ConsumeDelimeters(_stream, 0);
+std::size_t Lexer::SkipDelimeters() {
+    std::size_t stride = DistanceToNextToken(_stream, 0);
     _stream += stride;
     _length -= stride;
     return stride;
 }
 
-std::pair<const char*, std::size_t> Lexer::Next(bool compress) {
+std::pair<const char*, std::size_t> Lexer::Next(bool skipFollowingDelimeters) {
     const char* startingPoint = _stream;
     const char* cursor = startingPoint;
     std::size_t wordLength = 0;
@@ -48,8 +48,8 @@ std::pair<const char*, std::size_t> Lexer::Next(bool compress) {
         if (std::size_t delimLength = DelimeterAt(cursor, wordLength)) {
             std::size_t stride = wordLength;
 
-            if (compress)
-                stride += ConsumeDelimeters(cursor, wordLength);
+            if (skipFollowingDelimeters)
+                stride += DistanceToNextToken(cursor, wordLength);
             else
                 stride += delimLength;
 
@@ -71,7 +71,7 @@ std::pair<const char*, std::size_t> Lexer::Next(bool compress) {
     return {startingPoint, wordLength};
 }
 
-std::size_t Lexer::ConsumeDelimeters(const char* cursor, std::size_t consumed) {
+std::size_t Lexer::DistanceToNextToken(const char* cursor, std::size_t consumed) {
     std::size_t stride = 0;
 
     while (_length > consumed + stride)

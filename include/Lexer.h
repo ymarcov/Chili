@@ -6,19 +6,55 @@
 namespace Yam {
 namespace Http {
 
+/*
+ * A low-overhead lexer which lets you specify and change
+ * delimeters on-the-fly as you go along, and extract extra tokens.
+ *
+ * Specs
+ * -----
+ * N = Input length
+ * Memory: O(1)
+ * Runtime: O(N)
+ */
 class Lexer {
 public:
     Lexer(const char* stream, std::size_t length);
 
+    /*
+     * Sets the delimeters used for tokenizing.
+     * Can be called multiple time during one session.
+     */
     void SetDelimeters(std::initializer_list<const char*>);
+
+    /*
+     * Gets how much of the stream has already been consumed.
+     */
     std::size_t GetConsumption() const;
+
+    /*
+     * Gets a pointer to the current position in the stream,
+     * along with how many bytes have not yet been consumed.
+     */
     std::pair<const char*, std::size_t> GetRemaining() const;
+
+    /*
+     * Returns true of the end of the stream has been reached.
+     */
     bool EndOfStream() const;
-    std::size_t Compress();
-    std::pair<const char*, std::size_t> Next(bool compress = true);
+
+    /*
+     * Skips the delimeters currently ahead of the stream.
+     * Returns how many bytes were skipped in the process.
+     */
+    std::size_t SkipDelimeters();
+
+    /*
+     * Returns a pointer to the next token, along with its size.
+     */
+    std::pair<const char*, std::size_t> Next(bool skipFollowingDelimeters = true);
 
 private:
-    std::size_t ConsumeDelimeters(const char* cursor, std::size_t consumed);
+    std::size_t DistanceToNextToken(const char* cursor, std::size_t consumed);
     void AddDelimeter(const char*);
     std::size_t DelimeterAt(const char* cursor, std::size_t consumed);
 
