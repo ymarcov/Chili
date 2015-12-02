@@ -7,10 +7,16 @@
 namespace Yam {
 namespace Http {
 
+Parser Parser::Parse(const char* buf, std::size_t bufSize) {
+    Parser p(buf, bufSize);
+    p.ParseAll();
+    return p;
+}
+
 Parser::Parser(const char* buf, std::size_t bufSize) :
     _lexer{buf, bufSize} {}
 
-void Parser::Parse() {
+void Parser::ParseAll() {
     ParseRequestLine();
     while (!EndOfHeader())
         ParseNextFieldLine();

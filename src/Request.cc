@@ -6,9 +6,7 @@ namespace Http {
 
 Request::Request(MemorySlot<Buffer> slot) :
     _slot{std::move(slot)},
-    _parser{_slot.get(), sizeof(Buffer)} {
-    _parser.Parse();
-}
+    _parser{Parser::Parse(_slot.get(), sizeof(Buffer))} {}
 
 Protocol::Method Request::GetMethod() const {
     auto field = _parser.GetMethod();

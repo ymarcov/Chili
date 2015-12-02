@@ -13,6 +13,10 @@
 namespace Yam {
 namespace Http {
 
+/*
+ * Parses an HTTP request efficiently.
+ * Avoids dynamic allocations and copying of strings.
+ */
 class Parser {
 public: // public types
     struct Error : public std::runtime_error {
@@ -25,9 +29,7 @@ public: // public types
     };
 
 public: // public functions
-    Parser(const char* buf, std::size_t bufSize);
-
-    void Parse();
+    static Parser Parse(const char* buf, std::size_t bufSize);
 
     std::vector<Field> GetCookieNames() const;
     Field GetCookie(const std::string& name) const;
@@ -39,6 +41,9 @@ public: // public functions
     std::size_t GetBodyLength() const;
 
 private: // private functions
+    Parser(const char* buf, std::size_t bufSize);
+
+    void ParseAll();
     void ParseCookies() const;
     void ParseNextFieldLine();
     void ParseRequestLine();

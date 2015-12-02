@@ -29,9 +29,7 @@ const char testRequest[] =
 class ParserTest : public Test {
 public:
     ParserTest() :
-        p{testRequest, sizeof(testRequest) - 1 /* null terminator */} {
-        p.Parse();
-    }
+        p{Parser::Parse(testRequest, sizeof(testRequest) - 1 /* null terminator */)} {}
 
 protected:
     Parser p;
@@ -111,8 +109,7 @@ TEST_F(ParserTest, cookie_get_specific) {
 
 TEST(ParserTest_EdgeCase, only_request_line) {
     const char request[] = "GET /path/to/res HTTP/1.1\r\n\r\n";
-    Parser p{request, sizeof(request)};
-    p.Parse();
+    Parser p = Parser::Parse(request, sizeof(request));
 
     auto f = p.GetMethod();
     EXPECT_EQ("GET", std::string(f.Data, f.Size));
@@ -124,29 +121,22 @@ TEST(ParserTest_EdgeCase, only_request_line) {
 
 TEST(ParserTest_Malformed, no_final_blank_line) {
     const char request[] = "GET /path/to/res HTTP/1.1\r\n";
-    Parser p{request, sizeof(request)};
-    EXPECT_THROW(p.Parse(), Parser::Error);
+    EXPECT_THROW(Parser::Parse(request, sizeof(request)), Parser::Error);
 }
 
 TEST(ParserTest_Malformed, empty) {
     const char request[] = "";
-
-    Parser p{request, sizeof(request)};
-    EXPECT_THROW(p.Parse(), Parser::Error);
+    EXPECT_THROW(Parser::Parse(request, sizeof(request)), Parser::Error);
 }
 
 TEST(ParserTest_Malformed, gibberish) {
     const char request[] = "9&ASD97h12duizshd9A*Daor;adA:OSDIa;O8dyqddASD;:";
-
-    Parser p{request, sizeof(request)};
-    EXPECT_THROW(p.Parse(), Parser::Error);
+    EXPECT_THROW(Parser::Parse(request, sizeof(request)), Parser::Error);
 }
 
 TEST(ParserTest_Malformed, request_line_method) {
     const char request[] = "GETS /path/to/res HTTP/1.1\r\n\r\n";
-
-    Parser p{request, sizeof(request)};
-    EXPECT_THROW(p.Parse(), Parser::Error);
+    EXPECT_THROW(Parser::Parse(request, sizeof(request)), Parser::Error);
 }
 
 
