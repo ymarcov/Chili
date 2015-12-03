@@ -2,11 +2,15 @@
 #include "Request.h"
 #include "TcpServer.h"
 
+#include <chrono>
 #include <iostream>
 #include <memory>
+#include <signal.h>
 #include <string>
+#include <thread>
 
 using namespace Yam::Http;
+using namespace std::literals;
 
 struct ServerConfiguration {
     IPEndpoint _endpoint;
@@ -85,7 +89,11 @@ TcpServer::ConnectionHandler CreateHandler() {
         auto request = Request{std::move(buffer)};
 
         PrintInfo(request);
+        std::this_thread::sleep_for(1s);
         conn->Write("hello!\n", 8);
+
+        conn.reset();
+        std::cout << "Connection closed.\n";
     };
 }
 
@@ -93,13 +101,25 @@ std::vector<std::string> ArgsToVector(int argc, char* argv[]) {
     return std::vector<std::string>{argv, argv + argc};
 }
 
+void TrapInterrupt(std::function<void()> handler) {
+    static std::function<void()> signalHandler;
+    signalHandler = handler;
+    struct ::sigaction action;
+    action.sa_handler = [](int) { signalHandler(); };
+    ::sigaction(SIGINT, &action, nullptr);
+}
+
 int main(int argc, char* argv[]) {
     auto args = ArgsToVector(argc, argv);
+
     auto config = CreateConfiguration(args);
     auto server = CreateServer(config);
     auto handler = CreateHandler();
 
+    TrapInterrupt([&] { server->Stop(); });
+
     auto task = server->Start(handler);
     std::cout << "Sandbox started.\n";
     task.get();
+    std::cout << "Sandbox exited.\n";
 }
