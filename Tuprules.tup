@@ -1,0 +1,7 @@
+ROOT=$(TUP_CWD)
+
+CMAKE=cmake
+CXX=g++
+CXXFLAGS=-std=c++1y -I$(ROOT)/include -g
+
+!c++ = |> $(CXX) $(CXXFLAGS) -c %f -o %o |>

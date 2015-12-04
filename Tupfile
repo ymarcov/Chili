@@ -1,0 +1,4 @@
+include_rules
+
+: sandbox/main.o src/*.o |> $(CXX) %f -o %o -lpthread |> bin/sandbox
+: test/*.o src/*.o ext/gmock/libgmock.a |> $(CXX) %f -o %o -lpthread |> bin/test
