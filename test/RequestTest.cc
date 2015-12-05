@@ -4,6 +4,7 @@
 #include "MemoryPool.h"
 
 #include <cstring>
+#include <memory>
 
 using namespace ::testing;
 
@@ -33,24 +34,24 @@ public:
         _memoryPool{MemoryPool<Request::Buffer>::Create()} {}
 
 protected:
+    std::unique_ptr<Request> MakeRequest() {
+        auto buffer = _memoryPool->New();
+        std::strncpy(buffer.get(), requestData, sizeof(requestData));
+        return std::make_unique<Request>(std::move(buffer));
+    }
+
     std::shared_ptr<MemoryPool<Request::Buffer>> _memoryPool;
 };
 
-TEST_F(RequestTest, getters) {
-    auto buffer = _memoryPool->New();
-    std::strncpy(buffer.get(), requestData, sizeof(requestData));
+TEST_F(RequestTest, header_getters) {
+    auto r = MakeRequest();
 
-    Request r{std::move(buffer)};
-
-    EXPECT_EQ(Protocol::Method::Get, r.GetMethod());
-    EXPECT_EQ(Protocol::Version::Http11, r.GetProtocol());
-    EXPECT_EQ("/path/to/res", r.GetUri());
-    EXPECT_EQ("request.urih.com", r.GetField("Host"));
-    EXPECT_EQ("abcd1234", r.GetCookie("Session"));
-    EXPECT_EQ(2, r.GetCookieNames().size());
-
-    auto body = r.GetBody();
-    EXPECT_EQ("Request body!", std::string(body.first, body.second));
+    EXPECT_EQ(Protocol::Method::Get, r->GetMethod());
+    EXPECT_EQ(Protocol::Version::Http11, r->GetProtocol());
+    EXPECT_EQ("/path/to/res", r->GetUri());
+    EXPECT_EQ("request.urih.com", r->GetField("Host"));
+    EXPECT_EQ("abcd1234", r->GetCookie("Session"));
+    EXPECT_EQ(2, r->GetCookieNames().size());
 }
 
 } // namespace Http
