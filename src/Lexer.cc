@@ -4,6 +4,8 @@
 namespace Yam {
 namespace Http {
 
+Lexer::Lexer() {}
+
 Lexer::Lexer(const char* stream, std::size_t length) :
     _stream{stream},
     _initialLength{length},

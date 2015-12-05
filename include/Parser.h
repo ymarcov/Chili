@@ -29,8 +29,18 @@ public: // public types
     };
 
 public: // public functions
+    /*
+     * Creates a parser for the specified stream.
+     * This is the main, useful creation method.
+     */
     static Parser Parse(const char* buf, std::size_t bufSize);
 
+    /*
+     * Creates a degenerate object.
+     */
+    Parser();
+
+    std::vector<Field> GetFieldNames() const;
     std::vector<Field> GetCookieNames() const;
     Field GetCookie(const std::string& name) const;
     Field GetField(const std::string& name) const;
@@ -39,17 +49,6 @@ public: // public functions
     Field GetUri() const;
     std::size_t GetHeaderLength() const;
     const char* GetBody() const;
-    std::size_t GetBodyLength() const;
-
-private: // private functions
-    Parser(const char* buf, std::size_t bufSize);
-
-    void ParseAll();
-    void ParseCookies() const;
-    void ParseNextFieldLine();
-    void ParseRequestLine();
-    bool EndOfHeader();
-    void SkipToBody();
 
 private: // private aliases and helper types
     using string_view = std::experimental::string_view;
@@ -71,10 +70,22 @@ private: // private aliases and helper types
         }
     };
 
+    using InternalHash = std::unordered_map<string_view, Field, CIHash, CICmp>;
+
+private: // private functions
+    Parser(const char* buf, std::size_t bufSize);
+
+    void ParseAll();
+    void ParseCookies() const;
+    void ParseNextFieldLine();
+    void ParseRequestLine();
+    bool EndOfHeader();
+    void SkipToBody();
+
 private: // private variables
     Lexer _lexer;
-    std::unordered_map<string_view, Field, CIHash, CICmp> _fields;
-    mutable std::unordered_map<string_view, Field, CIHash, CICmp> _cookies;
+    InternalHash _fields;
+    mutable InternalHash _cookies;
     mutable bool _cookiesHaveBeenParsed = false;
 };
 

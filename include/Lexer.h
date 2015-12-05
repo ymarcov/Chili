@@ -18,6 +18,14 @@ namespace Http {
  */
 class Lexer {
 public:
+    /*
+     * Creates a degenerate object.
+     */
+    Lexer();
+
+    /*
+     * Creates a lexer for parsing the specified stream.
+     */
     Lexer(const char* stream, std::size_t length);
 
     /*

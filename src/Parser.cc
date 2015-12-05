@@ -1,17 +1,29 @@
 #include "Parser.h"
 
 #include <algorithm>
-#include <cstdlib>
 #include <strings.h>
 
 namespace Yam {
 namespace Http {
+
+namespace {
+namespace RequestField {
+
+static const char Marker = '$';
+static const std::string Method = "$req_method";
+static const std::string Uri = "$req_uri";
+static const std::string Version = "$req_version";
+
+} // namespace RequestField
+} // unnamed namespace
 
 Parser Parser::Parse(const char* buf, std::size_t bufSize) {
     Parser p(buf, bufSize);
     p.ParseAll();
     return p;
 }
+
+Parser::Parser() {}
 
 Parser::Parser(const char* buf, std::size_t bufSize) :
     _lexer{buf, bufSize} {}
@@ -27,12 +39,6 @@ const char* Parser::GetBody() const {
     return _lexer.GetRemaining().first;
 }
 
-std::size_t Parser::GetBodyLength() const {
-    // TODO add HasBody() and test by RFC 2616: 4.4
-    auto f = GetField("Content-Length");
-    return std::strtoll(f.Data, nullptr, 8);
-}
-
 std::size_t Parser::GetHeaderLength() const {
     _lexer.GetConsumption();
 }
@@ -44,6 +50,17 @@ Parser::Field Parser::GetField(const std::string& name) const {
         return i->second;
     else
         throw Error{"Field does not exist"};
+}
+
+std::vector<Parser::Field> Parser::GetFieldNames() const {
+    std::vector<Parser::Field> result;
+    result.reserve(_fields.size() - 3 /* request line fields */);
+
+    for (auto& kv : _fields)
+        if (kv.first[0] != RequestField::Marker)
+            result.emplace_back(Field{kv.first.data(), kv.first.size()});
+
+    return result;
 }
 
 Parser::Field Parser::GetCookie(const std::string& name) const {
@@ -91,16 +108,6 @@ void Parser::ParseCookies() const {
 
     _cookiesHaveBeenParsed = true;
 }
-
-namespace {
-namespace RequestField {
-
-static const std::string Method = "$req_method";
-static const std::string Uri = "$req_uri";
-static const std::string Version = "$req_version";
-
-} // namespace RequestField
-} // unnamed namespace
 
 Parser::Field Parser::GetMethod() const {
     return _fields.at(RequestField::Method);

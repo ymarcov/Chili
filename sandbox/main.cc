@@ -8,6 +8,7 @@
 #include <signal.h>
 #include <string>
 #include <thread>
+#include <unistd.h>
 
 using namespace Yam::Http;
 using namespace std::literals;
@@ -40,7 +41,7 @@ ServerConfiguration CreateConfiguration(std::vector<std::string> argv) {
     return {endpoint, threadPool};
 }
 
-void PrintInfo(const Request& request) {
+void PrintInfo(Request& request) {
     /*
      * Print request line
      */
@@ -69,6 +70,17 @@ void PrintInfo(const Request& request) {
     }
 
     /*
+     * Print various header fields
+     */
+    for (auto& fieldName : request.GetFieldNames()) {
+        if (fieldName == "Cookie")
+            continue;
+
+        auto field = request.GetField(fieldName);
+        std::cout << fieldName << ": " << field << "\n";
+    }
+
+    /*
      * Print cookies
      */
 
@@ -76,23 +88,45 @@ void PrintInfo(const Request& request) {
         auto cookie = request.GetCookie(cookieName);
         std::cout << "Cookie: " << cookieName << " = " << cookie << "\n";
     }
+
+    /*
+     * Print body
+     */
+
+    if (request.GetMethod() == Protocol::Method::Post) {
+        std::cout << "--------------------\n";
+        auto remaining = request.GetContentLength();
+        auto total = remaining;
+        while (remaining) {
+            char buffer[0x100];
+            auto bytesRead = request.ReadNextBodyChunk(buffer, sizeof(buffer));
+            auto str = std::string{buffer, bytesRead};
+            std::cout << str;
+            remaining -= bytesRead;
+        }
+        std::cout << "--------------------\n";
+    }
 }
 
 TcpServer::ConnectionHandler CreateHandler() {
     auto memoryPool = MemoryPool<Request::Buffer>::Create();
 
     return [=](std::shared_ptr<TcpConnection> conn) {
-        std::cout << "Connection received!\n";
+        std::cout << "\nConnection received!\n";
+        std::cout << "********************\n";
 
-        auto buffer = memoryPool->New();
-        conn->Read(buffer.get(), sizeof(Request::Buffer));
-        auto request = Request{std::move(buffer)};
+        auto request = Request{memoryPool->New(), conn};
+
+        if (request.GetField("Expect") == "100-continue")
+            conn->Write("HTTP/1.1 100 Continue\r\n\r\n", 25);
 
         PrintInfo(request);
+
         std::this_thread::sleep_for(1s);
-        conn->Write("hello!\n", 8);
+        conn->Write("HTTP/1.1 200 OK\r\n\r\n", 19);
 
         conn.reset();
+        std::cout << "********************\n";
         std::cout << "Connection closed.\n";
     };
 }
@@ -121,5 +155,5 @@ int main(int argc, char* argv[]) {
     auto task = server->Start(handler);
     std::cout << "Sandbox started.\n";
     task.get();
-    std::cout << "Sandbox exited.\n";
+    std::cout << "\nSandbox exited.\n";
 }

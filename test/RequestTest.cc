@@ -24,7 +24,7 @@ const char requestData[] =
 "X-http-proto: HTTP/1.1\r\n"
 "X-log-7527: 95.35.33.46\r\n"
 "X-real-ip: 95.35.33.46\r\n"
-"Content-Length: 15\r\n"
+"Content-Length: 13\r\n"
 "\r\n"
 "Request body!";
 
@@ -52,6 +52,15 @@ TEST_F(RequestTest, header_getters) {
     EXPECT_EQ("request.urih.com", r->GetField("Host"));
     EXPECT_EQ("abcd1234", r->GetCookie("Session"));
     EXPECT_EQ(2, r->GetCookieNames().size());
+    EXPECT_EQ(13, r->GetContentLength());
+}
+
+TEST_F(RequestTest, body) {
+    auto r = MakeRequest();
+
+    char buffer[0x1000];
+    auto bytesRead = r->ReadNextBodyChunk(buffer, sizeof(buffer));
+    EXPECT_EQ("Request body!", std::string(buffer, bytesRead));
 }
 
 } // namespace Http

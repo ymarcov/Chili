@@ -32,6 +32,12 @@ public:
         p{Parser::Parse(testRequest, sizeof(testRequest) - 1 /* null terminator */)} {}
 
 protected:
+    auto FindField(const std::vector<Parser::Field>& fields, const std::string& name) {
+        return find_if(begin(fields), end(fields), [&](const Parser::Field& f) {
+            return name == std::string{f.Data, f.Size};
+        });
+    }
+
     Parser p;
 };
 
@@ -66,7 +72,7 @@ TEST_F(ParserTest, few_fields) {
 
 TEST_F(ParserTest, request_body) {
     const char* body = p.GetBody();
-    auto length = p.GetBodyLength();
+    auto length = std::strlen("Request body!");
     EXPECT_EQ(13, length);
     EXPECT_EQ("Request body!", std::string(body, length));
 }
@@ -74,7 +80,7 @@ TEST_F(ParserTest, request_body) {
 TEST_F(ParserTest, request_header_length) {
     auto totalLength = sizeof(testRequest) - 1 /* null terminator */;
     auto headerLength = p.GetHeaderLength();
-    auto bodyLength = p.GetBodyLength();
+    auto bodyLength = std::strlen("Request body!");
     EXPECT_EQ(totalLength - bodyLength, headerLength);
 }
 
@@ -82,6 +88,30 @@ TEST_F(ParserTest, case_insensitive_key) {
     Parser::Field field;
     ASSERT_NO_THROW(field = p.GetField("host"));
     EXPECT_EQ("request.urih.com", std::string(field.Data, field.Size));
+}
+
+TEST_F(ParserTest, field_names) {
+    auto names = p.GetFieldNames();
+    ASSERT_EQ(12, names.size());
+    EXPECT_NE(end(names), FindField(names, "Accept"));
+    EXPECT_NE(end(names), FindField(names, "Accept-encoding"));
+    EXPECT_NE(end(names), FindField(names, "Accept-language"));
+    EXPECT_NE(end(names), FindField(names, "Connection"));
+    EXPECT_NE(end(names), FindField(names, "Host"));
+    EXPECT_NE(end(names), FindField(names, "Referer"));
+    EXPECT_NE(end(names), FindField(names, "User-agent"));
+    EXPECT_NE(end(names), FindField(names, "Cookie"));
+    EXPECT_NE(end(names), FindField(names, "X-http-proto"));
+    EXPECT_NE(end(names), FindField(names, "X-log-7527"));
+    EXPECT_NE(end(names), FindField(names, "X-real-ip"));
+    EXPECT_NE(end(names), FindField(names, "Content-Length"));
+}
+
+TEST_F(ParserTest, cookie_get_names) {
+    auto names = p.GetCookieNames();
+    ASSERT_EQ(2, names.size());
+    EXPECT_NE(end(names), FindField(names, "Session"));
+    EXPECT_NE(end(names), FindField(names, "User"));
 }
 
 TEST_F(ParserTest, cookie_raw) {
