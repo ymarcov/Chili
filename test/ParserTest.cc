@@ -71,6 +71,13 @@ TEST_F(ParserTest, request_body) {
     EXPECT_EQ("Request body!", std::string(body, length));
 }
 
+TEST_F(ParserTest, request_header_length) {
+    auto totalLength = sizeof(testRequest) - 1 /* null terminator */;
+    auto headerLength = p.GetHeaderLength();
+    auto bodyLength = p.GetBodyLength();
+    EXPECT_EQ(totalLength - bodyLength, headerLength);
+}
+
 TEST_F(ParserTest, case_insensitive_key) {
     Parser::Field field;
     ASSERT_NO_THROW(field = p.GetField("host"));

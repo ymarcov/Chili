@@ -37,6 +37,7 @@ public: // public functions
     Field GetMethod() const;
     Field GetProtocolVersion() const;
     Field GetUri() const;
+    std::size_t GetHeaderLength() const;
     const char* GetBody() const;
     std::size_t GetBodyLength() const;
 

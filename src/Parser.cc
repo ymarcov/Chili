@@ -33,6 +33,10 @@ std::size_t Parser::GetBodyLength() const {
     return std::strtoll(f.Data, nullptr, 8);
 }
 
+std::size_t Parser::GetHeaderLength() const {
+    _lexer.GetConsumption();
+}
+
 Parser::Field Parser::GetField(const std::string& name) const {
     auto i = _fields.find(name);
 
