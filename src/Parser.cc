@@ -40,7 +40,7 @@ const char* Parser::GetBody() const {
 }
 
 std::size_t Parser::GetHeaderLength() const {
-    _lexer.GetConsumption();
+    return _lexer.GetConsumption();
 }
 
 Parser::Field Parser::GetField(const std::string& name) const {
