@@ -117,8 +117,10 @@ TcpServer::ConnectionHandler CreateHandler() {
 
         auto request = Request{memoryPool->New(), conn};
 
-        if (request.GetField("Expect") == "100-continue")
-            conn->Write("HTTP/1.1 100 Continue\r\n\r\n", 25);
+        auto fieldNames = request.GetFieldNames();
+        if (find(begin(fieldNames), end(fieldNames), "Expect") != end(fieldNames))
+            if (request.GetField("Expect") == "100-continue")
+                conn->Write("HTTP/1.1 100 Continue\r\n\r\n", 25);
 
         PrintInfo(request);
 
