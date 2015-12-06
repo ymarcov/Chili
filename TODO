@@ -1,5 +1,3 @@
-* Really don't need request constructor that doesn't get an input stream.
-
 * Add automated tests for curl-like interaction with small and big responses,
 with expect 100-continue and without.
 

@@ -21,17 +21,6 @@ public:
     using Buffer = char[8192];
 
     /*
-     * Parses the data in the buffer and provides a clean API to access it.
-     *
-     * The specified buffer must already be filled
-     * with request data ready for parsing.
-     *
-     * Mostly useful for simple GET-like requests, when
-     * no significant additional content is being sent along.
-     */
-    Request(MemorySlot<Buffer> bufferWithContent);
-
-    /*
      * Reads data from input into the specified buffer, parses it,
      * and keeps retrieving data from it as necessary according
      * to the length of the request body.

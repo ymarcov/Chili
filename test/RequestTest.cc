@@ -5,6 +5,7 @@
 
 #include <cstring>
 #include <memory>
+#include <string>
 
 using namespace ::testing;
 
@@ -28,6 +29,23 @@ const char requestData[] =
 "\r\n"
 "Request body!";
 
+class StringInputStream : public InputStream {
+public:
+    StringInputStream(const std::string& str) :
+        _str(str) {}
+
+    std::size_t Read(void* buffer, std::size_t bufferSize) override {
+        auto remaining = _str.size() - _position;
+        auto readBytes = std::min(remaining, bufferSize);
+        std::memcpy(buffer, _str.data() + _position, readBytes);
+        _position += readBytes;
+    }
+
+private:
+    std::string _str;
+    std::size_t _position = 0;
+};
+
 class RequestTest : public Test {
 public:
     RequestTest() :
@@ -35,9 +53,9 @@ public:
 
 protected:
     std::unique_ptr<Request> MakeRequest() {
-        auto buffer = _memoryPool->New();
-        std::strncpy(buffer.get(), requestData, sizeof(requestData));
-        return std::make_unique<Request>(std::move(buffer));
+        auto str = std::string{requestData, sizeof(requestData)};
+        auto s = std::make_shared<StringInputStream>(str);
+        return std::make_unique<Request>(_memoryPool->New(), std::move(s));
     }
 
     std::shared_ptr<MemoryPool<Request::Buffer>> _memoryPool;

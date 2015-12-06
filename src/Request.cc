@@ -8,10 +8,6 @@
 namespace Yam {
 namespace Http {
 
-Request::Request(MemorySlot<Buffer> buffer) :
-    _buffer{std::move(buffer)},
-    _parser{Parser::Parse(_buffer.get(), sizeof(Buffer))} {}
-
 Request::Request(MemorySlot<Buffer> emptyBuffer, std::shared_ptr<InputStream> input) :
     _buffer{std::move(emptyBuffer)},
     _input{std::move(input)} {
