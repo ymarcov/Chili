@@ -21,7 +21,7 @@ public:
     /*
      * Creates a degenerate object.
      */
-    Lexer();
+    Lexer() = default;
 
     /*
      * Creates a lexer for parsing the specified stream.

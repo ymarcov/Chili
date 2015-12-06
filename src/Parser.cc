@@ -23,8 +23,6 @@ Parser Parser::Parse(const char* buf, std::size_t bufSize) {
     return p;
 }
 
-Parser::Parser() {}
-
 Parser::Parser(const char* buf, std::size_t bufSize) :
     _lexer{buf, bufSize} {}
 

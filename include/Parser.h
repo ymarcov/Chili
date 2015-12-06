@@ -38,7 +38,7 @@ public: // public functions
     /*
      * Creates a degenerate object.
      */
-    Parser();
+    Parser() = default;
 
     std::vector<Field> GetFieldNames() const;
     std::vector<Field> GetCookieNames() const;

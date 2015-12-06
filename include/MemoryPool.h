@@ -27,7 +27,7 @@ template <class T>
 class MemoryPool : public std::enable_shared_from_this<MemoryPool<T>> {
 public: // public types
     struct Deleter {
-        Deleter() {}
+        Deleter() = default;
 
         Deleter(std::shared_ptr<MemoryPool<T>> mp) :
             _mp{std::move(mp)} {}
@@ -203,7 +203,7 @@ class MemoryPool<T[N]> : public std::enable_shared_from_this<MemoryPool<T[N]>> {
 
 public: // public types
     struct Deleter {
-        Deleter() {}
+        Deleter() = default;
 
         Deleter(typename InternalPool::Ptr ptr) :
             _ptr{std::move(ptr)} {}

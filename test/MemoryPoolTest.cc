@@ -14,7 +14,8 @@ namespace Yam {
 namespace Http {
 
 struct Type {
-    Type() {}
+    Type() = default;
+
     Type(char w, int x, int y, int z) :
         w(w), x(x), y(y), z(z) {}
 
