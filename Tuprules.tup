@@ -1,7 +1,7 @@
 ROOT=$(TUP_CWD)
 
 CXX=g++
-CXXFLAGS=-std=c++1y -I$(ROOT)/include -g
+CXXFLAGS=-std=c++1y -I$(ROOT)/include -g -Wall
 
 !c++ = |> $(CXX) $(CXXFLAGS) -c %f -o %o |>
 !link = |> $(CXX) %f -o %o -lpthread |>
