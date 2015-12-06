@@ -56,6 +56,9 @@ void PrintInfo(Request& request) {
         case Protocol::Method::Post:
             std::cout << "POST ";
             break;
+        default:
+            std::cout << "Unsupported ";
+            break;
     }
 
     std::cout << request.GetUri() << " ";
@@ -96,7 +99,6 @@ void PrintInfo(Request& request) {
     if (request.GetMethod() == Protocol::Method::Post) {
         std::cout << "--------------------\n";
         auto remaining = request.GetContentLength();
-        auto total = remaining;
         while (remaining) {
             char buffer[0x100];
             auto bytesRead = request.ReadNextBodyChunk(buffer, sizeof(buffer));

@@ -226,7 +226,7 @@ public: // public functions
     Ptr New() {
         auto ptr = _mp->New();
         auto data = ptr->data();
-        return {data, std:move(ptr)};
+        return {data, std::move(ptr)};
     }
 
     void* Allocate() {

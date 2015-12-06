@@ -31,7 +31,7 @@ protected:
         return [](std::shared_ptr<TcpConnection> conn) {
             char buffer[0x100] = {0};
             auto n = conn->Read(buffer, sizeof(buffer));
-            EXPECT_STREQ("hello", buffer);
+            EXPECT_EQ("hello", std::string(buffer, n));
             conn->Write("goodbye", 8);
         };
     }
