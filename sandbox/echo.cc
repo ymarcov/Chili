@@ -23,7 +23,7 @@ std::unique_ptr<TcpServer> CreateServer(ServerConfiguration config) {
 }
 
 ServerConfiguration CreateConfiguration(std::vector<std::string> argv) {
-    if (argv.size() > 2)
+    if (argv.size() > 3)
         throw std::runtime_error("Invalid command line arguments");
 
     auto port = 3000;
