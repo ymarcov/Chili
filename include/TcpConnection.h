@@ -1,6 +1,7 @@
 #pragma once
 
 #include "InputStream.h"
+#include "OutputStream.h"
 
 #include <array>
 #include <cstdint>
@@ -27,13 +28,13 @@ private:
     int _port;
 };
 
-class TcpConnection : public InputStream {
+class TcpConnection : public InputStream, public OutputStream {
 public:
     TcpConnection(const IPEndpoint&);
     TcpConnection(int socket, const IPEndpoint&);
     ~TcpConnection();
 
-    void Write(const void*, std::size_t);
+    void Write(const void*, std::size_t) override;
     std::size_t Read(void*, std::size_t) override;
     const IPEndpoint& Endpoint() const noexcept;
     int NativeHandle() const noexcept;
