@@ -157,7 +157,7 @@ int main(int argc, char* argv[]) {
     TrapInterrupt([&] { server->Stop(); });
 
     auto task = server->Start(handler);
-    std::cout << "Sandbox started.\n";
+    std::cout << "Echo server started.\n";
     task.get();
-    std::cout << "\nSandbox exited.\n";
+    std::cout << "\nEcho server exited.\n";
 }

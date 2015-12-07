@@ -1,7 +1,7 @@
 include_rules
 
-SANDBOX_OBJS=sandbox/*.o src/*.o
+ECHO_OBJS=sandbox/echo.o src/*.o
 TEST_OBJS=test/*.o src/*.o ext/gmock/libgmock.a
 
-: $(SANDBOX_OBJS) |> !link |> bin/sandbox
+: $(ECHO_OBJS) |> !link |> bin/echo
 : $(TEST_OBJS) |> !link |> bin/test
