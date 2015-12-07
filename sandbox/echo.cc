@@ -5,6 +5,7 @@
 #include <chrono>
 #include <iostream>
 #include <memory>
+#include <mutex>
 #include <signal.h>
 #include <string>
 #include <thread>
@@ -110,28 +111,35 @@ void PrintInfo(Request& request) {
     }
 }
 
+std::mutex _outputMutex;
+
 TcpServer::ConnectionHandler CreateHandler() {
     auto memoryPool = MemoryPool<Request::Buffer>::Create();
 
     return [=](std::shared_ptr<TcpConnection> conn) {
-        std::cout << "\nConnection received!\n";
-        std::cout << "********************\n";
+        try {
+            auto request = Request{memoryPool->New(), conn};
 
-        auto request = Request{memoryPool->New(), conn};
+            auto fieldNames = request.GetFieldNames();
+            if (find(begin(fieldNames), end(fieldNames), "Expect") != end(fieldNames))
+                if (request.GetField("Expect") == "100-continue")
+                    conn->Write("HTTP/1.1 100 Continue\r\n\r\n", 25);
 
-        auto fieldNames = request.GetFieldNames();
-        if (find(begin(fieldNames), end(fieldNames), "Expect") != end(fieldNames))
-            if (request.GetField("Expect") == "100-continue")
-                conn->Write("HTTP/1.1 100 Continue\r\n\r\n", 25);
+            {
+                std::lock_guard<std::mutex> lock{_outputMutex};
+                std::cout << "\n";
+                PrintInfo(request);
+                std::cout << "\n";
+            }
 
-        PrintInfo(request);
+            std::this_thread::sleep_for(1s);
+            conn->Write("HTTP/1.1 200 OK\r\n\r\n", 19);
 
-        std::this_thread::sleep_for(1s);
-        conn->Write("HTTP/1.1 200 OK\r\n\r\n", 19);
-
-        conn.reset();
-        std::cout << "********************\n";
-        std::cout << "Connection closed.\n";
+            conn.reset();
+        } catch (const std::exception& e) {
+            std::lock_guard<std::mutex> lock{_outputMutex};
+            std::cout << "E: " << e.what() << "\n";
+        }
     };
 }
 
