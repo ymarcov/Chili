@@ -12,7 +12,7 @@ class Responder {
 public:
     Responder(std::shared_ptr<OutputStream>);
 
-    void Send(Protocol::Status);
+    void Send(Status);
 
 private:
     std::shared_ptr<OutputStream> _stream;

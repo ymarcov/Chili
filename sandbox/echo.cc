@@ -48,13 +48,13 @@ void PrintInfo(Request& request) {
      */
 
     switch (request.GetMethod()) {
-        case Protocol::Method::Get:
+        case Method::Get:
             std::cout << "GET ";
             break;
-        case Protocol::Method::Head:
+        case Method::Head:
             std::cout << "HEAD ";
             break;
-        case Protocol::Method::Post:
+        case Method::Post:
             std::cout << "POST ";
             break;
         default:
@@ -65,10 +65,10 @@ void PrintInfo(Request& request) {
     std::cout << request.GetUri() << " ";
 
     switch (request.GetProtocol()) {
-        case Protocol::Version::Http10:
+        case Version::Http10:
             std::cout << "HTTP/1.0\n";
             break;
-        case Protocol::Version::Http11:
+        case Version::Http11:
             std::cout << "HTTP/1.1\n";
             break;
     }
@@ -97,7 +97,7 @@ void PrintInfo(Request& request) {
      * Print body
      */
 
-    if (request.GetMethod() == Protocol::Method::Post) {
+    if (request.GetMethod() == Method::Post) {
         std::cout << "====================\n";
         auto remaining = request.GetContentLength();
         while (remaining) {

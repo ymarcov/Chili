@@ -40,9 +40,9 @@ public:
      */
     Request(MemorySlot<Buffer> emptyBuffer, std::shared_ptr<InputStream> input);
 
-    Protocol::Method GetMethod() const;
+    Method GetMethod() const;
     std::string GetUri() const;
-    Protocol::Version GetProtocol() const;
+    Version GetProtocol() const;
     std::vector<std::string> GetFieldNames() const;
     std::string GetField(const std::string& name) const;
     std::string GetCookie(const std::string& name) const;

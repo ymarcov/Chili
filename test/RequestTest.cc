@@ -128,8 +128,8 @@ protected:
 TEST_F(RequestTest, header_getters) {
     auto r = MakeRequest(MakeContiguousInputStream());
 
-    EXPECT_EQ(Protocol::Method::Get, r->GetMethod());
-    EXPECT_EQ(Protocol::Version::Http11, r->GetProtocol());
+    EXPECT_EQ(Method::Get, r->GetMethod());
+    EXPECT_EQ(Version::Http11, r->GetProtocol());
     EXPECT_EQ("/path/to/res", r->GetUri());
     EXPECT_EQ("request.urih.com", r->GetField("Host"));
     EXPECT_EQ("abcd1234", r->GetCookie("Session"));
@@ -151,8 +151,8 @@ TEST_F(RequestTest, non_contiguous_header_and_body) {
     auto buffer = std::array<char, 0x1000>{};
     auto readBodyBytes = r->ReadNextBodyChunk(buffer.data(), buffer.size());
 
-    EXPECT_EQ(Protocol::Method::Get, r->GetMethod());
-    EXPECT_EQ(Protocol::Version::Http11, r->GetProtocol());
+    EXPECT_EQ(Method::Get, r->GetMethod());
+    EXPECT_EQ(Version::Http11, r->GetProtocol());
     EXPECT_EQ("/path/to/res", r->GetUri());
     EXPECT_EQ(13, r->GetContentLength());
     EXPECT_EQ("100-continue", r->GetField("Expect"));

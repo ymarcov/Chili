@@ -2,7 +2,7 @@
 
 namespace Yam {
 namespace Http {
-namespace Protocol {
+inline namespace Protocol {
 
 enum class Method {
     Options,

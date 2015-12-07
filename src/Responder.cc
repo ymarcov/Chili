@@ -8,13 +8,11 @@ static std::string HttpVersion = "HTTP/1.1";
 Responder::Responder(std::shared_ptr<OutputStream> stream) :
     _stream(std::move(stream)) {}
 
-void Responder::Send(Protocol::Status status) {
-    using Sts = Protocol::Status;
-
+void Responder::Send(Status status) {
     _stream->Write(HttpVersion.data(), HttpVersion.size());
 
     switch (status) {
-        case Sts::Continue:
+        case Status::Continue:
             _stream->Write(" 100 Continue", 13);
             break;
         default:

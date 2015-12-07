@@ -42,7 +42,7 @@ TEST_F(ResponderTest, responds_with_continue) {
     auto stream = MakeStream();
     auto r = MakeResponder(stream);
 
-    r->Send(Protocol::Status::Continue);
+    r->Send(Status::Continue);
 
     EXPECT_EQ("HTTP/1.1 100 Continue\r\n\r\n", stream->ToString());
 }

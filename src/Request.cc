@@ -16,10 +16,10 @@ Request::Request(MemorySlot<Buffer> emptyBuffer, std::shared_ptr<InputStream> in
     _onlySentHeaderFirst = (bytesRead == _parser.GetHeaderLength());
 }
 
-Protocol::Method Request::GetMethod() const {
+Method Request::GetMethod() const {
     auto field = _parser.GetMethod();
 
-    // indices must correspond to Protocol::Method enum
+    // indices must correspond to Method enum
     auto methods = {
         "OPTIONS",
         "GET",
@@ -34,7 +34,7 @@ Protocol::Method Request::GetMethod() const {
     int i = 0;
     for (auto& m : methods) {
         if (!::strncasecmp(field.Data, m, field.Size))
-            return static_cast<Protocol::Method>(i);
+            return static_cast<Method>(i);
         ++i;
     }
 
@@ -46,10 +46,10 @@ std::string Request::GetUri() const {
     return {f.Data, f.Size};
 }
 
-Protocol::Version Request::GetProtocol() const {
+Version Request::GetProtocol() const {
     auto field = _parser.GetProtocolVersion();
 
-    // indices must correspond to Protocol::Version
+    // indices must correspond to Version
     auto versions = {
         "HTTP/1.0",
         "HTTP/1.1"
@@ -58,7 +58,7 @@ Protocol::Version Request::GetProtocol() const {
     int i = 0;
     for (auto& v : versions) {
         if (!::strncasecmp(field.Data, v, field.Size))
-            return static_cast<Protocol::Version>(i);
+            return static_cast<Version>(i);
         ++i;
     }
 
