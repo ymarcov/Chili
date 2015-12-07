@@ -92,13 +92,13 @@ TEST_F(MemoryPoolTest, gets_min_pages_for_type) {
     EXPECT_EQ(0, Detail::MinPagesFor(0));
 
     for (int i = 1; i <= pageSize; ++i)
-        EXPECT_EQ(pageSize, Detail::MinPagesFor(i));
+        EXPECT_EQ(1, Detail::MinPagesFor(i));
 
     for (int i = 1; i <= pageSize; ++i)
-        EXPECT_EQ(pageSize * 2, Detail::MinPagesFor(pageSize + i));
+        EXPECT_EQ(2, Detail::MinPagesFor(pageSize + i));
 
     for (int i = 1; i <= pageSize; ++i)
-        EXPECT_EQ(pageSize * 3, Detail::MinPagesFor(pageSize * 2 + i));
+        EXPECT_EQ(3, Detail::MinPagesFor(pageSize * 2 + i));
 }
 
 TEST_F(MemoryPoolTest, alloc_dealloc) {

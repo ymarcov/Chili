@@ -18,7 +18,7 @@ namespace Detail {
 inline std::size_t MinPagesFor(std::size_t bytes) {
     // see Hacker's Delight 2nd ed. p.59, section 3-1.
     auto pageSize = static_cast<std::size_t>(::getpagesize());
-    return bytes + (-bytes & (pageSize - 1));
+    return (bytes + (-bytes & (pageSize - 1))) / pageSize;
 }
 
 } // namespace Detail
