@@ -1,1 +1,2 @@
 * When stopping server, stop all active connections as well.
+* For server socket, add CLOEXEC
