@@ -97,7 +97,7 @@ void PrintInfo(Request& request) {
      */
 
     if (request.GetMethod() == Protocol::Method::Post) {
-        std::cout << "--------------------\n";
+        std::cout << "====================\n";
         auto remaining = request.GetContentLength();
         while (remaining) {
             char buffer[0x100];
@@ -106,7 +106,7 @@ void PrintInfo(Request& request) {
             std::cout << str;
             remaining -= bytesRead;
         }
-        std::cout << "--------------------\n";
+        std::cout << "====================\n";
     }
 }
 
