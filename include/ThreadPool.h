@@ -21,6 +21,7 @@ public:
     ~ThreadPool();
 
     std::future<void> Post(Work);
+    std::size_t GetThreadCount() const;
 
 private:
     friend class Worker;
@@ -38,6 +39,10 @@ private:
     std::condition_variable _workerAlarm;
     std::atomic_bool _stop{false};
 };
+
+inline std::size_t ThreadPool::GetThreadCount() const {
+    return _threads.size();
+}
 
 } // namespace Http
 } // namespace Yam

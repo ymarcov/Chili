@@ -113,8 +113,9 @@ void PrintInfo(Request& request) {
 
 std::mutex _outputMutex;
 
-TcpServer::ConnectionHandler CreateHandler() {
-    auto memoryPool = MemoryPool<Request::Buffer>::Create();
+TcpServer::ConnectionHandler CreateHandler(ServerConfiguration config) {
+    auto totalPages = 2 * config._threadPool->GetThreadCount();
+    auto memoryPool = MemoryPool<Request::Buffer>::Create(totalPages);
 
     return [=](std::shared_ptr<TcpConnection> conn) {
         try {
@@ -160,7 +161,7 @@ int main(int argc, char* argv[]) {
 
     auto config = CreateConfiguration(args);
     auto server = CreateServer(config);
-    auto handler = CreateHandler();
+    auto handler = CreateHandler(config);
 
     TrapInterrupt([&] { server->Stop(); });
 
