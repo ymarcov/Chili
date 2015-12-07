@@ -115,7 +115,7 @@ Parser::Field Parser::GetUri() const {
     return _fields.at(RequestField::Uri);
 }
 
-Parser::Field Parser::GetProtocolVersion() const {
+Parser::Field Parser::GetVersion() const {
     return _fields.at(RequestField::Version);
 }
 

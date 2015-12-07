@@ -64,7 +64,7 @@ void PrintInfo(Request& request) {
 
     std::cout << request.GetUri() << " ";
 
-    switch (request.GetProtocol()) {
+    switch (request.GetVersion()) {
         case Version::Http10:
             std::cout << "HTTP/1.0\n";
             break;

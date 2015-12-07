@@ -46,8 +46,8 @@ std::string Request::GetUri() const {
     return {f.Data, f.Size};
 }
 
-Version Request::GetProtocol() const {
-    auto field = _parser.GetProtocolVersion();
+Version Request::GetVersion() const {
+    auto field = _parser.GetVersion();
 
     // indices must correspond to Version
     auto versions = {

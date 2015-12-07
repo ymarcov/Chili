@@ -50,7 +50,7 @@ TEST_F(ParserTest, request_line) {
     ASSERT_NO_THROW(uri = p.GetUri());
     EXPECT_EQ("/path/to/res", std::string(uri.Data, uri.Size));
 
-    ASSERT_NO_THROW(protocolVersion = p.GetProtocolVersion());
+    ASSERT_NO_THROW(protocolVersion = p.GetVersion());
     EXPECT_EQ("HTTP/1.1", std::string(protocolVersion.Data, protocolVersion.Size));
 }
 
@@ -152,7 +152,7 @@ TEST(ParserTest_EdgeCase, only_request_line) {
     EXPECT_EQ("GET", std::string(f.Data, f.Size));
     f = p.GetUri();
     EXPECT_EQ("/path/to/res", std::string(f.Data, f.Size));
-    f = p.GetProtocolVersion();
+    f = p.GetVersion();
     EXPECT_EQ("HTTP/1.1", std::string(f.Data, f.Size));
 }
 

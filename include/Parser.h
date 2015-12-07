@@ -45,7 +45,7 @@ public: // public functions
     Field GetCookie(const std::string& name) const;
     Field GetField(const std::string& name) const;
     Field GetMethod() const;
-    Field GetProtocolVersion() const;
+    Field GetVersion() const;
     Field GetUri() const;
     std::size_t GetHeaderLength() const;
     const char* GetBody() const;

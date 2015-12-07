@@ -42,7 +42,7 @@ public:
 
     Method GetMethod() const;
     std::string GetUri() const;
-    Version GetProtocol() const;
+    Version GetVersion() const;
     std::vector<std::string> GetFieldNames() const;
     std::string GetField(const std::string& name) const;
     std::string GetCookie(const std::string& name) const;
