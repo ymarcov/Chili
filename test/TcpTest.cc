@@ -32,18 +32,18 @@ protected:
             char buffer[0x100] = {0};
             auto n = conn->Read(buffer, sizeof(buffer));
             EXPECT_EQ("hello", std::string(buffer, n));
-            conn->Write("goodbye", 8);
+            conn->Write("goodbye", 7);
         };
     }
 
     void SayHello(TcpConnection& c) {
-        c.Write("hello", 6);
+        c.Write("hello", 5);
     }
 
     void WaitForGoodbye(TcpConnection& c) {
         char buffer[0x100];
         auto n = c.Read(buffer, sizeof(buffer));
-        EXPECT_EQ(8, n);
+        EXPECT_EQ(7, n);
     }
 
 private:
