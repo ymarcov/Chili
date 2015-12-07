@@ -28,8 +28,17 @@ public:
      * Mostly useful for POST and PUT operations where the request
      * body can be quite large.
      *
-     * Note: The whole header itself (excluding the body)
-     * must still not be bigger than the buffer size.
+     * Notes:
+     * - The whole header itself (excluding the body)
+     *   must still not be bigger than the buffer size.
+     * - The request intentionally receives the buffer
+     *   and does not store it as part of its own
+     *   memory, so that the buffer can be an exact
+     *   multiple of the page size, which makes it
+     *   easier to reason about the memory and avoid
+     *   fragmentation issues over time.
+     * - The request is intended to be a copyable/movable
+     *   object, while the buffer isn't.
      */
     Request(MemorySlot<Buffer> emptyBuffer, std::shared_ptr<InputStream> input);
 
