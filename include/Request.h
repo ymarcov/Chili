@@ -37,7 +37,7 @@ public:
      *   multiple of the page size, which makes it
      *   easier to reason about the memory and avoid
      *   fragmentation issues over time.
-     * - The request is intended to be a copyable/movable
+     * - The request is intended to be a movable
      *   object, while the buffer isn't.
      */
     Request(MemorySlot<Buffer> emptyBuffer, std::shared_ptr<InputStream> input);
