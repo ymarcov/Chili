@@ -1,3 +1,2 @@
 * When stopping server, stop all active connections as well.
-* For server socket, add CLOEXEC
 * When parsing, suggest response codes on error

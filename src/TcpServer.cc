@@ -58,7 +58,7 @@ TcpServer::~TcpServer() {
 }
 
 int TcpServer::CreateListenerSocket() const {
-    SocketGuard sock = ::socket(AF_INET, SOCK_STREAM, 0);
+    SocketGuard sock = ::socket(AF_INET, SOCK_STREAM | SOCK_CLOEXEC, 0);
 
     if (sock == -1)
         throw SystemError();
