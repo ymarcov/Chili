@@ -50,6 +50,16 @@ Parser::Field Parser::GetField(const std::string& name) const {
         throw Error{"Field does not exist"};
 }
 
+bool Parser::GetField(const std::string& name, Field* value) const {
+    auto i = _fields.find(name);
+    auto found = i != end(_fields);
+
+    if (found && value)
+        *value = i->second;
+
+    return found;
+}
+
 std::vector<Parser::Field> Parser::GetFieldNames() const {
     std::vector<Parser::Field> result;
     result.reserve(_fields.size() - 3 /* request line fields */);

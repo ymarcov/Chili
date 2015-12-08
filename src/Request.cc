@@ -72,6 +72,18 @@ std::vector<std::string> Request::GetFieldNames() const {
     return result;
 }
 
+bool Request::GetField(const std::string& name, std::string* value) const {
+    Parser::Field f;
+
+    if (_parser.GetField(name, &f)) {
+        if (value)
+            *value = {f.Data, f.Size};
+        return true;
+    }
+
+    return false;
+}
+
 std::string Request::GetField(const std::string& name) const {
     auto f = _parser.GetField(name);
     return {f.Data, f.Size};

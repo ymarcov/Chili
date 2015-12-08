@@ -1,5 +1,6 @@
 #include "MemoryPool.h"
 #include "Request.h"
+#include "Responder.h"
 #include "TcpServer.h"
 
 #include <chrono>
@@ -120,11 +121,10 @@ TcpServer::ConnectionHandler CreateHandler(ServerConfiguration config) {
     return [=](std::shared_ptr<TcpConnection> conn) {
         try {
             auto request = Request{memoryPool->New(), conn};
+            auto responder = Responder{conn};
 
-            auto fieldNames = request.GetFieldNames();
-            if (find(begin(fieldNames), end(fieldNames), "Expect") != end(fieldNames))
-                if (request.GetField("Expect") == "100-continue")
-                    conn->Write("HTTP/1.1 100 Continue\r\n\r\n", 25);
+            if (request.GetField("Expect", nullptr))
+                responder.Send(Status::Continue);
 
             {
                 std::lock_guard<std::mutex> lock{_outputMutex};
@@ -134,9 +134,7 @@ TcpServer::ConnectionHandler CreateHandler(ServerConfiguration config) {
             }
 
             std::this_thread::sleep_for(1s);
-            conn->Write("HTTP/1.1 200 OK\r\n\r\n", 19);
-
-            conn.reset();
+            responder.Send(Status::Ok);
         } catch (const std::exception& e) {
             std::lock_guard<std::mutex> lock{_outputMutex};
             std::cout << "E: " << e.what() << "\n";

@@ -44,6 +44,7 @@ public:
     std::string GetUri() const;
     Version GetVersion() const;
     std::vector<std::string> GetFieldNames() const;
+    bool GetField(const std::string& name, std::string* value) const;
     std::string GetField(const std::string& name) const;
     std::string GetCookie(const std::string& name) const;
     std::vector<std::string> GetCookieNames() const;

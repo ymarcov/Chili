@@ -44,6 +44,7 @@ public: // public functions
     std::vector<Field> GetCookieNames() const;
     Field GetCookie(const std::string& name) const;
     Field GetField(const std::string& name) const;
+    bool GetField(const std::string& name, Field* value) const;
     Field GetMethod() const;
     Field GetVersion() const;
     Field GetUri() const;
