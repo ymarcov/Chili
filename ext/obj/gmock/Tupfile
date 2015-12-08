@@ -1,0 +1,10 @@
+include_rules
+CXXFLAGS=
+
+PATH=../../gmock
+TEST_PATH=$(PATH)/../gtest
+
+: $(TEST_PATH)/src/gtest-all.cc |> $(CXX) $(CXXFLAGS) -I$(TEST_PATH) -c %f -o %o |> %B.o
+: $(PATH)/src/gmock-all.cc |> $(CXX) $(CXXFLAGS) -I$(PATH) -c %f -o %o |> %B.o
+: $(PATH)/src/gmock_main.cc |> $(CXX) $(CXXFLAGS) -I$(PATH) -c %f -o %o |> %B.o
+: *.o |> ar -rv %o %f |> libgmock.a

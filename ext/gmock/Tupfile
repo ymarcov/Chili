@@ -1,9 +1,0 @@
-include_rules
-CXXFLAGS=
-
-TEST=../gtest
-
-: $(TEST)/src/gtest-all.cc |> $(CXX) $(CXXFLAGS) -I$(TEST) -c %f -o %o |> gtest-all.o
-: src/gmock-all.cc |> $(CXX) $(CXXFLAGS) -I. -c %f -o %o |> gmock-all.o
-: src/gmock_main.cc |> $(CXX) $(CXXFLAGS) -I. -c %f -o %o |> gmock_main.o
-: *.o |> ar -rv %o %f |> libgmock.a
