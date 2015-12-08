@@ -1,0 +1,7 @@
+PATH=$(TUP_CWD)/../../cppformat
+
+CXX=g++
+CXXFLAGS=-Wall -Werror -pedantic -std=c++1y
+
+: foreach $(PATH)/format.cc $(PATH)/posix.cc |> $(CXX) $(CXXFLAGS) -c %f -o %o |> %B.o
+: *.o |> ar -rv %o %f |> libcppformat.a
