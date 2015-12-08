@@ -1,6 +1,6 @@
-PATH=$(TUP_CWD)/../../cppformat
+include_rules
 
-CXX=g++
+PATH=$(TUP_CWD)/../../cppformat
 CXXFLAGS=-Wall -Werror -pedantic -std=c++1y
 
 : foreach $(PATH)/format.cc $(PATH)/posix.cc |> $(CXX) $(CXXFLAGS) -c %f -o %o |> %B.o
