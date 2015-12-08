@@ -68,8 +68,29 @@ Responder::Responder(std::shared_ptr<OutputStream> stream) :
 
 void Responder::Send(Status status) {
     fmt::MemoryWriter w;
-    w.write("{} {}\r\n\r\n", HttpVersion, ToString(status));
+
+    w.write("{} {}\r\n", HttpVersion, ToString(status));
+
+    for (auto& nv : _fields)
+        w.write("{}: {}\r\n", nv.first, nv.second);
+
+    if (_body)
+        w.write("Content-Length: {}\r\n", _body->size());
+
+    w.write("\r\n");
+
     _stream->Write(w.c_str(), w.size());
+
+    if (_body)
+        _stream->Write(_body->data(), _body->size());
+}
+
+void Responder::SetField(std::string name, std::string value) {
+    _fields.emplace_back(std::move(name), std::move(value));
+}
+
+void Responder::SetBody(std::shared_ptr<std::vector<char>> body) {
+    _body = std::move(body);
 }
 
 } // namespace Http

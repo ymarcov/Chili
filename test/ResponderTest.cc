@@ -29,22 +29,58 @@ private:
 
 class ResponderTest : public Test {
 protected:
-    auto MakeResponder(std::shared_ptr<StringOutputStream> s) {
-        return std::make_unique<Responder>(s);
+    auto MakeResponder(std::shared_ptr<StringOutputStream> s) const {
+        return std::make_unique<Responder>(std::move(s));
     }
 
-    auto MakeStream() {
+    auto MakeStream() const {
         return std::make_shared<StringOutputStream>();
+    }
+
+    auto MakeBodyFromString(const std::string& s) const {
+        return std::make_shared<std::vector<char>>(s.data(), s.data() + s.size());
     }
 };
 
-TEST_F(ResponderTest, responds_with_continue) {
+TEST_F(ResponderTest, just_status) {
     auto stream = MakeStream();
     auto r = MakeResponder(stream);
 
     r->Send(Status::Continue);
 
     EXPECT_EQ("HTTP/1.1 100 Continue\r\n\r\n", stream->ToString());
+}
+
+TEST_F(ResponderTest, some_headers) {
+    auto stream = MakeStream();
+    auto r = MakeResponder(stream);
+
+    r->SetField("First", "Hello world!");
+    r->SetField("Second", "v4r!0u$ sYm80;5");
+    r->Send(Status::Ok);
+
+    auto expected = "HTTP/1.1 200 OK\r\n"
+        "First: Hello world!\r\n"
+        "Second: v4r!0u$ sYm80;5\r\n"
+        "\r\n";
+
+    EXPECT_EQ(expected, stream->ToString());
+}
+
+TEST_F(ResponderTest, headers_and_body) {
+    auto stream = MakeStream();
+    auto r = MakeResponder(stream);
+
+
+    r->SetBody(MakeBodyFromString("Hello world!"));
+    r->Send(Status::BadGateway);
+
+    auto expected = "HTTP/1.1 502 Bad Gateway\r\n"
+        "Content-Length: 12\r\n"
+        "\r\n"
+        "Hello world!";
+
+    EXPECT_EQ(expected, stream->ToString());
 }
 
 } // namespace Http
