@@ -1,2 +1,3 @@
 * When stopping server, stop all active connections as well.
 * When parsing, suggest response codes on error
+* Add dedicated socket class. There are subtle bugs otherwise.
