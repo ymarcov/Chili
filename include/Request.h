@@ -12,43 +12,68 @@
 namespace Yam {
 namespace Http {
 
-/*
- * Taking ownership of a request buffer, provides
- * a simple API to access its various properties.
- */
 class Request {
 public:
     using Buffer = char[8192];
 
-    /*
-     * Reads data from input into the specified buffer, parses it,
-     * and keeps retrieving data from it as necessary according
-     * to the length of the request body.
-     *
-     * Mostly useful for POST and PUT operations where the request
-     * body can be quite large.
-     *
-     * Notes:
-     * - The whole header itself (excluding the body)
-     *   must still not be bigger than the buffer size.
-     * - The request intentionally receives the buffer
-     *   and does not store it as part of its own
-     *   memory, so that the buffer can be an exact
-     *   multiple of the page size, which makes it
-     *   easier to reason about the memory and avoid
-     *   fragmentation issues over time.
-     */
     Request(MemorySlot<Buffer> emptyBuffer, std::shared_ptr<InputStream> input);
 
+    /*
+     * Gets the HTTP method of the request.
+     */
     Method GetMethod() const;
+
+    /*
+     * Gets the URI string of the request.
+     */
     std::string GetUri() const;
+
+    /*
+     * Gets the HTTP version of the request.
+     */
     Version GetVersion() const;
+
+    /*
+     * Gets the names of all header fields present in the request.
+     */
     std::vector<std::string> GetFieldNames() const;
+
+    /*
+     * Tries to get a field by name, returns true if it was found.
+     *
+     * If field was found and value is not null, then value is set.
+     * Otherwise, value isn't ignored.
+     *
+     */
     bool GetField(const std::string& name, std::string* value) const;
+
+    /*
+     * Gets a field by name.
+     * Throws if the field does not exist.
+     */
     std::string GetField(const std::string& name) const;
-    std::string GetCookie(const std::string& name) const;
+
+    /*
+     * Gets the names of all cookies present in the request.
+     */
     std::vector<std::string> GetCookieNames() const;
+
+    /*
+     * Gets a cookie by name.
+     * Throws if the cookie does not exist.
+     */
+    std::string GetCookie(const std::string& name) const;
+
+    /*
+     * Gets the length of the associated content.
+     * Returns 0 if the Content-Length field is not present.
+     */
     std::size_t GetContentLength() const;
+
+    /*
+     * Read data from the request body and advances the stream position.
+     * Returns how many bytes were read.
+     */
     std::size_t ReadNextBodyChunk(void* buffer, std::size_t bufferSize);
 
 private:
