@@ -76,7 +76,7 @@ private:
     std::size_t _position = 0;
 };
 
-class NonContiguousInputStream : public StringInputStream {
+class NonContiguousInputStream : public InputStream {
 public:
     NonContiguousInputStream(std::initializer_list<std::string> strings) {
         for (auto& s : strings)
