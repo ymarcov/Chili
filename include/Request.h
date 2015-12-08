@@ -42,7 +42,7 @@ public:
      * Tries to get a field by name, returns true if it was found.
      *
      * If field was found and value is not null, then value is set.
-     * Otherwise, value isn't ignored.
+     * Otherwise, value is ignored.
      *
      */
     bool GetField(const std::string& name, std::string* value) const;
