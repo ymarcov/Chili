@@ -82,6 +82,22 @@ TEST_F(ResponderTest, headers_and_body) {
     EXPECT_EQ(expected, stream->ToString());
 }
 
+TEST_F(ResponderTest, simple_cookies) {
+    auto stream = MakeStream();
+    auto r = MakeResponder(stream);
+
+    r->SetCookie("First", "One");
+    r->SetCookie("Second", "Two");
+    r->Send(Status::NotFound);
+
+    auto expected = "HTTP/1.1 404 Not Found\r\n"
+        "Set-Cookie: First=One\r\n"
+        "Set-Cookie: Second=Two\r\n"
+        "\r\n";
+
+    EXPECT_EQ(expected, stream->ToString());
+}
+
 } // namespace Http
 } // namespace Yam
 

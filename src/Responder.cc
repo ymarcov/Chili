@@ -89,6 +89,10 @@ void Responder::SetField(std::string name, std::string value) {
     _fields.emplace_back(std::move(name), std::move(value));
 }
 
+void Responder::SetCookie(std::string name, std::string value) {
+    SetField("Set-Cookie", fmt::format("{}={}", std::move(name), std::move(value)));
+}
+
 void Responder::SetBody(std::shared_ptr<std::vector<char>> body) {
     _body = std::move(body);
 }
