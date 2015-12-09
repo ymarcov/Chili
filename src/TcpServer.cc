@@ -13,75 +13,61 @@ namespace Http {
 
 namespace {
 
-class SocketGuard {
-public:
-    SocketGuard(int s) :
-        _s(s) {}
-
-    ~SocketGuard() {
-        if (_s != -1)
-            ::close(_s);
+void EnableAddressReuse(Socket& socket) {
+    int optValue = 1;
+    if( -1 == ::setsockopt(socket.GetNativeHandle(),
+                             SOL_SOCKET,
+                             SO_REUSEADDR,
+                             &optValue,
+                             sizeof(optValue))) {
+        throw SystemError{};
     }
-
-    int Release() {
-        int s = _s;
-        _s = -1;
-        return s;
-    }
-
-    operator int() const { return _s; }
-
-private:
-    int _s;
-};
-
-bool EnableAddressReuse(int socket) {
-    int opt = 1;
-    return -1 != ::setsockopt(socket, SOL_SOCKET, SO_REUSEADDR, &opt, sizeof(opt));
 }
 
-bool BindTo(int socket, const IPEndpoint& ep) {
+void BindTo(Socket& socket, const IPEndpoint& ep) {
     auto addr = ep.GetAddrInfo();
-    return -1 != ::bind(socket, reinterpret_cast<::sockaddr*>(addr.get()), sizeof(*addr));
+    auto paddr = reinterpret_cast<::sockaddr*>(addr.get());
+    if (-1 == ::bind(socket.GetNativeHandle(), paddr, sizeof(*addr)))
+        throw SystemError{};
+}
+
+void Listen(Socket& socket) {
+    if (-1 == ::listen(socket.GetNativeHandle(), SOMAXCONN))
+        throw SystemError{};
 }
 
 } // unnamed namespace
 
 TcpServer::TcpServer(const IPEndpoint& ep, std::shared_ptr<ThreadPool> tp) :
-    _endpoint(ep),
-    _threadPool(std::move(tp)),
-    _socket(-1),
-    _stop(true) {}
+    _endpoint{ep},
+    _threadPool{std::move(tp)},
+    _stop{true} {}
 
 TcpServer::~TcpServer() {
     Stop();
 }
 
-int TcpServer::CreateListenerSocket() const {
-    SocketGuard sock = ::socket(AF_INET, SOCK_STREAM | SOCK_CLOEXEC, 0);
+void TcpServer::ResetListenerSocket() {
+    _socket = Socket{};
 
-    if (sock == -1)
+    auto fd = ::socket(AF_INET, SOCK_STREAM | SOCK_CLOEXEC, 0);
+
+    if (fd == -1)
         throw SystemError();
 
-    if (!EnableAddressReuse(sock))
-        throw SystemError();
+    _socket = Socket{fd};
 
-    if (!BindTo(sock, _endpoint))
-        throw SystemError();
-
-    return sock.Release();
+    EnableAddressReuse(_socket);
+    BindTo(_socket, _endpoint);
+    Listen(_socket);
 }
 
 std::future<void> TcpServer::Start(ConnectionHandler ch) {
     if (!_stop || _thread.joinable())
         throw std::logic_error("Start() called when TCP server is already running");
 
-    _socket = CreateListenerSocket();
-
-    if (-1 == ::listen(_socket, SOMAXCONN))
-        throw SystemError();
-
     // reset state
+    ResetListenerSocket();
     _stop = false;
     _promise = std::promise<void>();
 
@@ -99,7 +85,9 @@ void TcpServer::AcceptLoop(ConnectionHandler connectionHandler) {
         ::socklen_t saddr_size = sizeof(saddr);
 
         // block until a new connection is accepted
-        int ret = ::accept(_socket, reinterpret_cast<::sockaddr*>(&saddr), &saddr_size);
+        int ret = ::accept(_socket.GetNativeHandle(),
+                            reinterpret_cast<::sockaddr*>(&saddr),
+                            &saddr_size);
 
         if (ret == -1) {
             if (_stop) {
@@ -132,10 +120,7 @@ void TcpServer::Stop() {
     if (!_stop.compare_exchange_strong(reentrance, true))
         return;
 
-    if (_socket != -1) {
-        ::shutdown(_socket, SHUT_RDWR);
-        ::close(_socket);
-    }
+    _socket = Socket{};
 
     if (_thread.joinable())
         _thread.join();

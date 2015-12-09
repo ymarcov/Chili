@@ -13,8 +13,9 @@ namespace {
 
 class StringOutputStream : public OutputStream {
 public:
-    void Write(const void* buffer, std::size_t bufferSize) override {
+    std::size_t Write(const void* buffer, std::size_t bufferSize) override {
         _stream.write(static_cast<const char*>(buffer), bufferSize);
+        return bufferSize;
     }
 
     std::string ToString() const {

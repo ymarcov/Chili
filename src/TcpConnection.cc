@@ -1,6 +1,8 @@
 #include "TcpConnection.h"
 #include "SystemError.h"
 
+#include <arpa/inet.h>
+#include <cerrno>
 #include <cstdint>
 #include <netinet/in.h>
 #include <netinet/tcp.h>
@@ -15,9 +17,12 @@ namespace Http {
 
 namespace {
 
-bool ConnectTo(int socket, const IPEndpoint& ep) {
+void Connect(Socket& socket, const IPEndpoint& ep) {
     auto addr = ep.GetAddrInfo();
-    return -1 != ::connect(socket, reinterpret_cast<::sockaddr*>(addr.get()), sizeof(*addr));
+    auto paddr = reinterpret_cast<::sockaddr*>(addr.get());
+    while (-1 == ::connect(socket.GetNativeHandle(), paddr, sizeof(*addr)))
+        if (errno != EINTR)
+            throw SystemError{};
 }
 
 } // unnamed namespace
@@ -54,37 +59,14 @@ std::string IPEndpoint::ToString() const {
 }
 
 TcpConnection::TcpConnection(const IPEndpoint& ep) :
-    _socket(::socket(AF_INET, SOCK_STREAM, 0)),
+    Socket{::socket(AF_INET, SOCK_STREAM, 0)},
     _endpoint{ep} {
-    if (_socket == -1)
-        throw SystemError();
-
-    if (!ConnectTo(_socket, _endpoint))
-        throw SystemError();
+    Connect(*this, _endpoint);
 }
 
-TcpConnection::TcpConnection(int socket, const IPEndpoint& ep) :
-    _socket(socket),
+TcpConnection::TcpConnection(Socket s, const IPEndpoint& ep) :
+    Socket{std::move(s)},
     _endpoint{ep} {}
-
-TcpConnection::~TcpConnection() {
-    if (_socket != -1)
-        ::close(_socket);
-}
-
-void TcpConnection::Write(const void* data, std::size_t size) {
-    if (-1 == ::send(_socket, data, size, MSG_NOSIGNAL))
-        throw SystemError();
-}
-
-std::size_t TcpConnection::Read(void* buffer, std::size_t size) {
-    int n = ::recv(_socket, buffer, size, 0);
-
-    if (n == -1)
-        throw SystemError();
-
-    return n;
-}
 
 } // namespace Http
 } // namespace Yam

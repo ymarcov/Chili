@@ -1,5 +1,4 @@
 * When stopping server, stop all active connections as well.
 * When parsing, suggest response codes on error
-* Add dedicated socket class. There are subtle bugs otherwise.
 * Add UrlEncode and UrlDecode functions
 * Add full Set-Cookie functionalit

@@ -2,6 +2,7 @@
 
 #include "InputStream.h"
 #include "OutputStream.h"
+#include "Socket.h"
 
 #include <array>
 #include <cstdint>
@@ -28,19 +29,14 @@ private:
     int _port;
 };
 
-class TcpConnection : public InputStream, public OutputStream {
+class TcpConnection : public Socket {
 public:
     TcpConnection(const IPEndpoint&);
-    TcpConnection(int socket, const IPEndpoint&);
-    ~TcpConnection();
+    TcpConnection(Socket, const IPEndpoint&);
 
-    void Write(const void*, std::size_t) override;
-    std::size_t Read(void*, std::size_t) override;
     const IPEndpoint& Endpoint() const noexcept;
-    int NativeHandle() const noexcept;
 
 private:
-    int _socket;
     IPEndpoint _endpoint;
 };
 
@@ -58,10 +54,6 @@ inline int IPEndpoint::GetPort() const noexcept {
 
 inline const IPEndpoint& TcpConnection::Endpoint() const noexcept {
     return _endpoint;
-}
-
-inline int TcpConnection::NativeHandle() const noexcept {
-    return _socket;
 }
 
 } // namespace Http

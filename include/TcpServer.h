@@ -1,5 +1,6 @@
 #pragma once
 
+#include "Socket.h"
 #include "TcpConnection.h"
 #include "ThreadPool.h"
 
@@ -22,12 +23,12 @@ public:
     void Stop();
 
 private:
-    int CreateListenerSocket() const;
+    void ResetListenerSocket();
     void AcceptLoop(ConnectionHandler);
 
     IPEndpoint _endpoint;
     std::shared_ptr<ThreadPool> _threadPool;
-    int _socket;
+    Socket _socket;
     std::promise<void> _promise;
     std::thread _thread;
     std::atomic_bool _stop;
