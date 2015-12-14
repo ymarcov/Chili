@@ -2,6 +2,7 @@
 
 #include "Responder.h"
 
+#include <chrono>
 #include <sstream>
 
 using namespace ::testing;
@@ -94,6 +95,27 @@ TEST_F(ResponderTest, simple_cookies) {
     auto expected = "HTTP/1.1 404 Not Found\r\n"
         "Set-Cookie: First=One\r\n"
         "Set-Cookie: Second=Two\r\n"
+        "\r\n";
+
+    EXPECT_EQ(expected, stream->ToString());
+}
+
+TEST_F(ResponderTest, cookie_with_simple_options) {
+    using namespace std::literals;
+
+    auto stream = MakeStream();
+    auto r = MakeResponder(stream);
+
+    CookieOptions opts;
+    opts.SetDomain("example.com");
+    opts.SetPath("/some/path");
+    opts.SetMaxAge(10min);
+
+    r->SetCookie("First", "One", opts);
+    r->Send(Status::Ok);
+
+    auto expected = "HTTP/1.1 200 OK\r\n"
+        "Set-Cookie: First=One; Domain=example.com; Path=/some/path; Max-Age=600\r\n"
         "\r\n";
 
     EXPECT_EQ(expected, stream->ToString());

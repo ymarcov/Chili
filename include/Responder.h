@@ -18,6 +18,7 @@ public:
     void Send(Status);
     void SetField(std::string name, std::string value);
     void SetCookie(std::string name, std::string value);
+    void SetCookie(std::string name, std::string value, const CookieOptions&);
     void SetBody(std::shared_ptr<std::vector<char>>);
 
 private:

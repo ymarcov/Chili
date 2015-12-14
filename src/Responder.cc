@@ -93,6 +93,23 @@ void Responder::SetCookie(std::string name, std::string value) {
     SetField("Set-Cookie", fmt::format("{}={}", std::move(name), std::move(value)));
 }
 
+void Responder::SetCookie(std::string name, std::string value, const CookieOptions& opts) {
+    fmt::MemoryWriter w;
+    std::string stringOpt;
+    std::chrono::seconds durationOpt;
+
+    if (opts.GetDomain(&stringOpt))
+        w << "; Domain=" << stringOpt;
+
+    if (opts.GetPath(&stringOpt))
+        w << "; Path=" << stringOpt;
+
+    if (opts.GetMaxAge(&durationOpt))
+        w << "; Max-Age=" << durationOpt.count();
+
+    SetField("Set-Cookie", fmt::format("{}={}{}", std::move(name), std::move(value), w.str()));
+}
+
 void Responder::SetBody(std::shared_ptr<std::vector<char>> body) {
     _body = std::move(body);
 }
