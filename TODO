@@ -1,4 +1,4 @@
 * When stopping server, stop all active connections as well.
 * When parsing, suggest response codes on error
 * Add UrlEncode and UrlDecode functions
-* Add full Set-Cookie functionalit
+* Add full Set-Cookie functionality
