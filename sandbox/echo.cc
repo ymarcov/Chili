@@ -32,7 +32,7 @@ ServerConfiguration CreateConfiguration(std::vector<std::string> argv) {
     if (argv.size() > 1)
         port = std::stoi(argv[1]);
 
-    auto endpoint = IPEndpoint{{127, 0, 0, 1}, port};
+    auto endpoint = IPEndpoint{{0, 0, 0, 0}, port};
 
     int threadCount = 1;
     if (argv.size() == 3)
