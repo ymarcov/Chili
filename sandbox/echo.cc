@@ -133,7 +133,6 @@ TcpServer::ConnectionHandler CreateHandler(ServerConfiguration config) {
                 std::cout << "\n";
             }
 
-            std::this_thread::sleep_for(1s);
             responder.Send(Status::Ok);
         } catch (const std::exception& e) {
             std::lock_guard<std::mutex> lock{_outputMutex};
