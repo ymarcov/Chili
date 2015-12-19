@@ -1,79 +1,94 @@
 #include "Socket.h"
 #include "SystemError.h"
 
-#include <algorithm>
-#include <cerrno>
-#include <stdexcept>
+#include <fcntl.h>
 #include <sys/socket.h>
-#include <unistd.h>
 
 namespace Yam {
 namespace Http {
 
-Socket::Socket(Socket::NativeHandle fd) :
-    _fd{fd},
-    _null{false} {
-    if (_fd == -1)
-        throw std::logic_error("Invalid socket");
+#define ENSURE(expr) \
+    while (-1 == (expr)) \
+        if (errno != EINTR) \
+            throw SystemError{};
+
+Socket& Socket::IncrementUseCount(Socket& s) {
+    if (s._nativeHandle != InvalidHandle)
+        ++*s._useCount;
+    return s;
 }
 
-Socket::Socket(Socket&& s) :
-    _fd{-1},
-    _null{true} {
-    std::swap(_fd, s._fd);
-    std::swap(_null, s._null);
+Socket::Socket() :
+    FileStream{} {}
+
+Socket::Socket(Socket::NativeHandle nh) :
+    FileStream{nh} {
+    if (_nativeHandle != InvalidHandle)
+        _useCount = std::make_shared<std::atomic_int>(1);
 }
 
-Socket::~Socket() {
-    if (_null)
-        return;
-
-    Close();
+Socket::Socket(const Socket& rhs) :
+    FileStream{rhs},
+    _useCount{rhs._useCount} {
+    if (_nativeHandle != InvalidHandle)
+        ++*_useCount;
 }
 
-void Socket::Close() {
-    ::shutdown(_fd, SHUT_RDWR);
-
-    while (-1 == ::close(_fd))
-        if (errno != EINTR)
-            return; // TODO log with SystemError
+Socket::Socket(Socket&& rhs) :
+    FileStream{std::move(IncrementUseCount(rhs))} {
+    _useCount = std::move(rhs._useCount);
+    --*_useCount;
 }
 
-Socket& Socket::operator=(Socket&& s) {
-    Close();
+Socket& Socket::operator=(const Socket& rhs) {
+    FileStream::operator=(rhs);
+    _useCount = rhs._useCount;
 
-    _fd = -1;
-    _null = true;
-    std::swap(_fd, s._fd);
-    std::swap(_null, s._null);
+    if (_nativeHandle != InvalidHandle)
+        ++*_useCount;
 
     return *this;
 }
 
-std::size_t Socket::Read(void* buffer, std::size_t bufferSize) {
-    if (_null)
-        throw std::logic_error("Read operation on null socket object");
+Socket& Socket::operator=(Socket&& rhs) {
+    if (rhs._nativeHandle == InvalidHandle) {
+        FileStream::operator=(std::move(rhs));
+    } else {
+        FileStream::operator=(std::move(IncrementUseCount(rhs)));
+        _useCount = std::move(rhs._useCount);
+        --*_useCount;
+    }
+    return *this;
+}
 
+std::size_t Socket::Write(const void* buffer, std::size_t maxBytes) {
     ::ssize_t result;
+    ENSURE(result = ::send(_nativeHandle, buffer, maxBytes, MSG_NOSIGNAL));
+    return result;
+}
 
-    while (-1 == (result = ::recv(_fd, buffer, bufferSize, 0)))
-        if (errno != EINTR)
-            throw SystemError{};
+std::size_t Socket::WriteTo(FileStream& fs, std::size_t maxBytes) {
+    ::ssize_t result = ::splice(_nativeHandle,
+                                nullptr,
+                                fs.GetNativeHandle(),
+                                nullptr,
+                                maxBytes,
+                                0);
+    if (result == -1)
+        throw SystemError{};
 
     return result;
 }
 
-std::size_t Socket::Write(const void* buffer, std::size_t bufferSize) {
-    if (_null)
-        throw std::logic_error("Read operation on null socket object");
+void Socket::Close() {
+    if ((_nativeHandle != InvalidHandle) && !--*_useCount)
+        Shutdown();
+    FileStream::Close();
+}
 
-    ::ssize_t result;
-
-    while (-1 == (result = ::send(_fd, buffer, bufferSize, MSG_NOSIGNAL)))
-        if (errno != EINTR)
-            throw SystemError{};
-
-    return result;
+void Socket::Shutdown() {
+    int result;
+    ENSURE(result = ::shutdown(_nativeHandle, SHUT_RDWR));
 }
 
 } // namespace Http
