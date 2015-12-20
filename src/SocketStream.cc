@@ -1,4 +1,4 @@
-#include "Socket.h"
+#include "SocketStream.h"
 #include "SystemError.h"
 
 #include <fcntl.h>

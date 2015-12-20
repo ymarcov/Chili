@@ -1,6 +1,6 @@
 #pragma once
 
-#include "Socket.h"
+#include "SocketStream.h"
 #include "TcpConnection.h"
 #include "ThreadPool.h"
 

@@ -1,8 +1,6 @@
 #pragma once
 
-#include "InputStream.h"
-#include "OutputStream.h"
-#include "Socket.h"
+#include "SocketStream.h"
 
 #include <array>
 #include <cstdint>
