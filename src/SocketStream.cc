@@ -12,35 +12,35 @@ namespace Http {
         if (errno != EINTR) \
             throw SystemError{};
 
-Socket& Socket::IncrementUseCount(Socket& s) {
+SocketStream& SocketStream::IncrementUseCount(SocketStream& s) {
     if (s._nativeHandle != InvalidHandle)
         ++*s._useCount;
     return s;
 }
 
-Socket::Socket() :
+SocketStream::SocketStream() :
     FileStream{} {}
 
-Socket::Socket(Socket::NativeHandle nh) :
+SocketStream::SocketStream(SocketStream::NativeHandle nh) :
     FileStream{nh} {
     if (_nativeHandle != InvalidHandle)
         _useCount = std::make_shared<std::atomic_int>(1);
 }
 
-Socket::Socket(const Socket& rhs) :
+SocketStream::SocketStream(const SocketStream& rhs) :
     FileStream{rhs},
     _useCount{rhs._useCount} {
     if (_nativeHandle != InvalidHandle)
         ++*_useCount;
 }
 
-Socket::Socket(Socket&& rhs) :
+SocketStream::SocketStream(SocketStream&& rhs) :
     FileStream{std::move(IncrementUseCount(rhs))} {
     _useCount = std::move(rhs._useCount);
     --*_useCount;
 }
 
-Socket& Socket::operator=(const Socket& rhs) {
+SocketStream& SocketStream::operator=(const SocketStream& rhs) {
     FileStream::operator=(rhs);
     _useCount = rhs._useCount;
 
@@ -50,7 +50,7 @@ Socket& Socket::operator=(const Socket& rhs) {
     return *this;
 }
 
-Socket& Socket::operator=(Socket&& rhs) {
+SocketStream& SocketStream::operator=(SocketStream&& rhs) {
     if (rhs._nativeHandle == InvalidHandle) {
         FileStream::operator=(std::move(rhs));
     } else {
@@ -61,13 +61,13 @@ Socket& Socket::operator=(Socket&& rhs) {
     return *this;
 }
 
-std::size_t Socket::Write(const void* buffer, std::size_t maxBytes) {
+std::size_t SocketStream::Write(const void* buffer, std::size_t maxBytes) {
     ::ssize_t result;
     ENSURE(result = ::send(_nativeHandle, buffer, maxBytes, MSG_NOSIGNAL));
     return result;
 }
 
-std::size_t Socket::WriteTo(FileStream& fs, std::size_t maxBytes) {
+std::size_t SocketStream::WriteTo(FileStream& fs, std::size_t maxBytes) {
     ::ssize_t result = ::splice(_nativeHandle,
                                 nullptr,
                                 fs.GetNativeHandle(),
@@ -80,13 +80,13 @@ std::size_t Socket::WriteTo(FileStream& fs, std::size_t maxBytes) {
     return result;
 }
 
-void Socket::Close() {
+void SocketStream::Close() {
     if ((_nativeHandle != InvalidHandle) && !--*_useCount)
         Shutdown();
     FileStream::Close();
 }
 
-void Socket::Shutdown() {
+void SocketStream::Shutdown() {
     int result;
     ENSURE(result = ::shutdown(_nativeHandle, SHUT_RDWR));
 }

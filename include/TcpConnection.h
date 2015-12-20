@@ -27,10 +27,10 @@ private:
     int _port;
 };
 
-class TcpConnection : public Socket {
+class TcpConnection : public SocketStream {
 public:
     TcpConnection(const IPEndpoint&);
-    TcpConnection(Socket, const IPEndpoint&);
+    TcpConnection(SocketStream, const IPEndpoint&);
 
     const IPEndpoint& Endpoint() const noexcept;
 

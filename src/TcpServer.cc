@@ -13,7 +13,7 @@ namespace Http {
 
 namespace {
 
-void EnableAddressReuse(Socket& socket) {
+void EnableAddressReuse(SocketStream& socket) {
     int optValue = 1;
     if( -1 == ::setsockopt(socket.GetNativeHandle(),
                              SOL_SOCKET,
@@ -24,14 +24,14 @@ void EnableAddressReuse(Socket& socket) {
     }
 }
 
-void BindTo(Socket& socket, const IPEndpoint& ep) {
+void BindTo(SocketStream& socket, const IPEndpoint& ep) {
     auto addr = ep.GetAddrInfo();
     auto paddr = reinterpret_cast<::sockaddr*>(addr.get());
     if (-1 == ::bind(socket.GetNativeHandle(), paddr, sizeof(*addr)))
         throw SystemError{};
 }
 
-void Listen(Socket& socket) {
+void Listen(SocketStream& socket) {
     if (-1 == ::listen(socket.GetNativeHandle(), SOMAXCONN))
         throw SystemError{};
 }
@@ -47,15 +47,15 @@ TcpServer::~TcpServer() {
     Stop();
 }
 
-void TcpServer::ResetListenerSocket() {
-    _socket = Socket{};
+void TcpServer::ResetListenerSocketStream() {
+    _socket = SocketStream{};
 
     auto fd = ::socket(AF_INET, SOCK_STREAM | SOCK_CLOEXEC, 0);
 
     if (fd == -1)
         throw SystemError();
 
-    _socket = Socket{fd};
+    _socket = SocketStream{fd};
 
     EnableAddressReuse(_socket);
     BindTo(_socket, _endpoint);
@@ -67,7 +67,7 @@ std::future<void> TcpServer::Start(ConnectionHandler ch) {
         throw std::logic_error("Start() called when TCP server is already running");
 
     // reset state
-    ResetListenerSocket();
+    ResetListenerSocketStream();
     _stop = false;
     _promise = std::promise<void>();
 
@@ -120,7 +120,7 @@ void TcpServer::Stop() {
     if (!_stop.compare_exchange_strong(reentrance, true))
         return;
 
-    _socket = Socket{};
+    _socket = SocketStream{};
 
     if (_thread.joinable())
         _thread.join();

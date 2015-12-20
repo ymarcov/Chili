@@ -8,21 +8,21 @@
 namespace Yam {
 namespace Http {
 
-class Socket : public FileStream {
+class SocketStream : public FileStream {
 public:
-    Socket();
-    Socket(NativeHandle);
-    Socket(const Socket&);
-    Socket(Socket&&);
+    SocketStream();
+    SocketStream(NativeHandle);
+    SocketStream(const SocketStream&);
+    SocketStream(SocketStream&&);
 
-    Socket& operator=(const Socket&);
-    Socket& operator=(Socket&&);
+    SocketStream& operator=(const SocketStream&);
+    SocketStream& operator=(SocketStream&&);
 
     std::size_t Write(const void* buffer, std::size_t maxBytes) override;
     std::size_t WriteTo(FileStream&, std::size_t maxBytes) override;
 
 protected:
-    static Socket& IncrementUseCount(Socket&);
+    static SocketStream& IncrementUseCount(SocketStream&);
 
     void Close() override;
     void Shutdown();

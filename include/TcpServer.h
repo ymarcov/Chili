@@ -23,12 +23,12 @@ public:
     void Stop();
 
 private:
-    void ResetListenerSocket();
+    void ResetListenerSocketStream();
     void AcceptLoop(ConnectionHandler);
 
     IPEndpoint _endpoint;
     std::shared_ptr<ThreadPool> _threadPool;
-    Socket _socket;
+    SocketStream _socket;
     std::promise<void> _promise;
     std::thread _thread;
     std::atomic_bool _stop;

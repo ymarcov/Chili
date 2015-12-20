@@ -17,7 +17,7 @@ namespace Http {
 
 namespace {
 
-void Connect(Socket& socket, const IPEndpoint& ep) {
+void Connect(SocketStream& socket, const IPEndpoint& ep) {
     auto addr = ep.GetAddrInfo();
     auto paddr = reinterpret_cast<::sockaddr*>(addr.get());
     while (-1 == ::connect(socket.GetNativeHandle(), paddr, sizeof(*addr)))
@@ -59,13 +59,13 @@ std::string IPEndpoint::ToString() const {
 }
 
 TcpConnection::TcpConnection(const IPEndpoint& ep) :
-    Socket{::socket(AF_INET, SOCK_STREAM, 0)},
+    SocketStream{::socket(AF_INET, SOCK_STREAM, 0)},
     _endpoint{ep} {
     Connect(*this, _endpoint);
 }
 
-TcpConnection::TcpConnection(Socket s, const IPEndpoint& ep) :
-    Socket{std::move(s)},
+TcpConnection::TcpConnection(SocketStream s, const IPEndpoint& ep) :
+    SocketStream{std::move(s)},
     _endpoint{ep} {}
 
 } // namespace Http
