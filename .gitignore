@@ -4,3 +4,5 @@ bin/*
 run.sh
 ROADMAP
 .tup
+/build-debug
+/build-release
