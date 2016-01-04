@@ -1,6 +1,5 @@
 * When stopping server, stop all active connections as well.
 * When parsing, suggest response codes on error
-* Add date formatting supporting cookie formats, and std::chrono
 * Add full Set-Cookie functionality
 * Design bandwidth throttling
 * Make integration test scripts
