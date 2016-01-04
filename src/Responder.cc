@@ -127,6 +127,12 @@ void Responder::SetCookie(std::string name, std::string value, const CookieOptio
     if (opts.GetExpiration(&expirationOpt))
         w << "; Expires=" << CookieDate(expirationOpt);
 
+    if (opts.IsHttpOnly())
+        w << "; HttpOnly";
+
+    if (opts.IsSecure())
+        w << "; Secure";
+
     SetField("Set-Cookie", fmt::format("{}={}{}", std::move(name), std::move(value), w.str()));
 }
 

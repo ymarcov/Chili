@@ -145,6 +145,24 @@ TEST_F(ResponderTest, cookie_with_expiration_date) {
     EXPECT_EQ(expected, stream->ToString());
 }
 
+TEST_F(ResponderTest, cookie_with_httponly_and_secure) {
+    auto stream = MakeStream();
+    auto r = MakeResponder(stream);
+
+    CookieOptions opts;
+    opts.SetHttpOnly();
+    opts.SetSecure();
+
+    r->SetCookie("First", "One", opts);
+    r->Send(Status::Ok);
+
+    auto expected = "HTTP/1.1 200 OK\r\n"
+        "Set-Cookie: First=One; HttpOnly; Secure\r\n"
+        "\r\n";
+
+    EXPECT_EQ(expected, stream->ToString());
+}
+
 } // namespace Http
 } // namespace Yam
 

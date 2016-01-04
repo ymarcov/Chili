@@ -75,17 +75,23 @@ public:
     void SetPath(const std::string&);
     void SetMaxAge(const std::chrono::seconds&);
     void SetExpiration(const std::time_t&);
+    void SetHttpOnly(bool = true);
+    void SetSecure(bool = true);
 
     bool GetDomain(std::string*) const;
     bool GetPath(std::string*) const;
     bool GetMaxAge(std::chrono::seconds*) const;
     bool GetExpiration(std::time_t*) const;
+    bool IsHttpOnly() const;
+    bool IsSecure() const;
 
 private:
     std::pair<bool, std::string> _domain;
     std::pair<bool, std::string> _path;
     std::pair<bool, std::chrono::seconds> _maxAge;
     std::pair<bool, std::time_t> _expiration;
+    bool _httpOnly = false;
+    bool _secure = false;
 };
 
 } // namespace Protocol

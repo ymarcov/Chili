@@ -19,6 +19,14 @@ void CookieOptions::SetExpiration(const std::time_t& expiration) {
     _expiration = std::make_pair(true, expiration);
 }
 
+void CookieOptions::SetHttpOnly(bool b) {
+    _httpOnly = b;
+}
+
+void CookieOptions::SetSecure(bool b) {
+    _secure = b;
+}
+
 bool CookieOptions::GetDomain(std::string* out) const {
     if (out && _domain.first)
         *out = _domain.second;
@@ -41,6 +49,14 @@ bool CookieOptions::GetExpiration(std::time_t* out) const {
     if (out && _expiration.first)
         *out = _expiration.second;
     return _expiration.first;
+}
+
+bool CookieOptions::IsHttpOnly() const {
+    return _httpOnly;
+}
+
+bool CookieOptions::IsSecure() const {
+    return _secure;
 }
 
 } // namespace Http
