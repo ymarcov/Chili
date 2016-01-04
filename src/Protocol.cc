@@ -11,8 +11,12 @@ void CookieOptions::SetPath(const std::string& path) {
     _path = std::make_pair(true, path);
 }
 
-void CookieOptions::SetMaxAge(std::chrono::seconds maxAge) {
+void CookieOptions::SetMaxAge(const std::chrono::seconds& maxAge) {
     _maxAge = std::make_pair(true, maxAge);
+}
+
+void CookieOptions::SetExpiration(const std::time_t& expiration) {
+    _expiration = std::make_pair(true, expiration);
 }
 
 bool CookieOptions::GetDomain(std::string* out) const {
@@ -31,6 +35,12 @@ bool CookieOptions::GetMaxAge(std::chrono::seconds* out) const {
     if (out && _maxAge.first)
         *out = _maxAge.second;
     return _maxAge.first;
+}
+
+bool CookieOptions::GetExpiration(std::time_t* out) const {
+    if (out && _expiration.first)
+        *out = _expiration.second;
+    return _expiration.first;
 }
 
 } // namespace Http

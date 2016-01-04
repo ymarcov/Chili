@@ -2,7 +2,10 @@
 
 #include <array>
 #include <cppformat/format.h>
+#include <cstring>
+#include <stdexcept>
 #include <string>
+#include <time.h>
 
 namespace Yam {
 namespace Http {
@@ -61,6 +64,19 @@ const char* ToString(Status s) {
     return reinterpret_cast<const char*>(pair.at(1));
 }
 
+std::string CookieDate(const std::time_t& t) {
+    char buffer[] = "Wdy, DD Mon YYYY HH:MM:SS GMT";
+    struct tm tm;
+
+    if (!::gmtime_r(&t, &tm))
+        throw std::runtime_error("gmtime() failed");
+
+    if(!std::strftime(buffer, sizeof(buffer), "%a, %d %b %Y %T GMT", &tm))
+        throw std::runtime_error("Failed to format specified time");
+
+    return buffer;
+}
+
 } // unnamed namespace
 
 Responder::Responder(std::shared_ptr<OutputStream> stream) :
@@ -97,6 +113,7 @@ void Responder::SetCookie(std::string name, std::string value, const CookieOptio
     fmt::MemoryWriter w;
     std::string stringOpt;
     std::chrono::seconds durationOpt;
+    std::time_t expirationOpt;
 
     if (opts.GetDomain(&stringOpt))
         w << "; Domain=" << stringOpt;
@@ -106,6 +123,9 @@ void Responder::SetCookie(std::string name, std::string value, const CookieOptio
 
     if (opts.GetMaxAge(&durationOpt))
         w << "; Max-Age=" << durationOpt.count();
+
+    if (opts.GetExpiration(&expirationOpt))
+        w << "; Expires=" << CookieDate(expirationOpt);
 
     SetField("Set-Cookie", fmt::format("{}={}{}", std::move(name), std::move(value), w.str()));
 }

@@ -1,6 +1,7 @@
 #pragma once
 
 #include <chrono>
+#include <ctime>
 #include <string>
 #include <utility>
 
@@ -72,16 +73,19 @@ class CookieOptions {
 public:
     void SetDomain(const std::string&);
     void SetPath(const std::string&);
-    void SetMaxAge(std::chrono::seconds);
+    void SetMaxAge(const std::chrono::seconds&);
+    void SetExpiration(const std::time_t&);
 
     bool GetDomain(std::string*) const;
     bool GetPath(std::string*) const;
     bool GetMaxAge(std::chrono::seconds*) const;
+    bool GetExpiration(std::time_t*) const;
 
 private:
     std::pair<bool, std::string> _domain;
     std::pair<bool, std::string> _path;
     std::pair<bool, std::chrono::seconds> _maxAge;
+    std::pair<bool, std::time_t> _expiration;
 };
 
 } // namespace Protocol

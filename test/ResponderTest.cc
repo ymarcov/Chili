@@ -3,7 +3,9 @@
 #include "Responder.h"
 
 #include <chrono>
+#include <ctime>
 #include <sstream>
+#include <time.h> // some functions aren't in <ctime>
 
 using namespace ::testing;
 
@@ -116,6 +118,28 @@ TEST_F(ResponderTest, cookie_with_simple_options) {
 
     auto expected = "HTTP/1.1 200 OK\r\n"
         "Set-Cookie: First=One; Domain=example.com; Path=/some/path; Max-Age=600\r\n"
+        "\r\n";
+
+    EXPECT_EQ(expected, stream->ToString());
+}
+
+TEST_F(ResponderTest, cookie_with_expiration_date) {
+    auto stream = MakeStream();
+    auto r = MakeResponder(stream);
+
+    struct tm tm;
+    if (!::strptime("2013-01-15 21:47:38", "%Y-%m-%d %T", &tm))
+        throw std::logic_error("Bad call to strptime()");
+    auto t = ::timegm(&tm);
+
+    CookieOptions opts;
+    opts.SetExpiration(t);
+
+    r->SetCookie("First", "One", opts);
+    r->Send(Status::Ok);
+
+    auto expected = "HTTP/1.1 200 OK\r\n"
+        "Set-Cookie: First=One; Expires=Tue, 15 Jan 2013 21:47:38 GMT\r\n"
         "\r\n";
 
     EXPECT_EQ(expected, stream->ToString());
