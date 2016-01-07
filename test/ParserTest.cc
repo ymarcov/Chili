@@ -171,13 +171,6 @@ TEST(ParserTest_Malformed, gibberish) {
     EXPECT_THROW(Parser::Parse(request, sizeof(request)), Parser::Error);
 }
 
-TEST(ParserTest_Malformed, request_line_method) {
-    const char request[] = "GETS /path/to/res HTTP/1.1\r\n\r\n";
-    EXPECT_THROW(Parser::Parse(request, sizeof(request)), Parser::Error);
-}
-
-
-
 } // namespace Http
 } // namespace Yam
 

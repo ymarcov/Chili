@@ -59,7 +59,7 @@ public:
     /*
      * Returns a pointer to the next token, along with its size.
      */
-    std::pair<const char*, std::size_t> Next(bool skipFollowingDelimeters = true);
+    std::pair<const char*, std::size_t> Lex(bool skipFollowingDelimeters = true);
 
 private:
     std::size_t DistanceToNextToken(const char* cursor, std::size_t consumed);

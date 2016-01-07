@@ -39,7 +39,7 @@ std::size_t Lexer::SkipDelimeters() {
     return stride;
 }
 
-std::pair<const char*, std::size_t> Lexer::Next(bool skipFollowingDelimeters) {
+std::pair<const char*, std::size_t> Lexer::Lex(bool skipFollowingDelimeters) {
     const char* startingPoint = _stream;
     const char* cursor = startingPoint;
     std::size_t wordLength = 0;

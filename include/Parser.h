@@ -19,8 +19,18 @@ namespace Http {
  */
 class Parser {
 public: // public types
-    struct Error : public std::runtime_error {
-        Error(const char* what) : runtime_error(what) {}
+    class Error : public std::runtime_error {
+    public:
+        enum class Type {
+            None,
+            Malformed,
+        };
+
+        Error(const char* what);
+        Error(Type, const char* what = nullptr);
+
+    private:
+        Type _type;
     };
 
     struct Field {

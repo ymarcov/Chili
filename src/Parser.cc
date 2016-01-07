@@ -1,8 +1,5 @@
 #include "Parser.h"
 
-#include <algorithm>
-#include <strings.h>
-
 namespace Yam {
 namespace Http {
 
@@ -16,6 +13,13 @@ static const std::string Version = "$req_version";
 
 } // namespace RequestField
 } // unnamed namespace
+
+Parser::Error::Error(const char* what) :
+    Error{Type::None, what} {}
+
+Parser::Error::Error(Parser::Error::Type t, const char* what) :
+    std::runtime_error{what},
+    _type{t} {}
 
 Parser Parser::Parse(const char* buf, std::size_t bufSize) {
     Parser p(buf, bufSize);
@@ -108,8 +112,8 @@ void Parser::ParseCookies() const {
 
     while (!lexer.EndOfStream()) {
 
-        auto name = lexer.Next();
-        auto value = lexer.Next();
+        auto name = lexer.Lex();
+        auto value = lexer.Lex();
 
         _cookies[{name.first, name.second}] = {value.first, value.second};
     }
@@ -132,49 +136,38 @@ Parser::Field Parser::GetVersion() const {
 void Parser::ParseRequestLine() {
     _lexer.SetDelimeters({" ", "\t"});
 
-    auto method = _lexer.Next();
+    auto method = _lexer.Lex();
     _fields[RequestField::Method] = {method.first, method.second};
 
-    { // verify method type, allow wrong case
-        auto supportedMethods = {"GET", "POST", "HEAD"};
-
-        auto ciCmp = [&](auto m) {
-            return !::strncasecmp(m, method.first, method.second);
-        };
-
-        if (!std::any_of(begin(supportedMethods), end(supportedMethods), ciCmp))
-            throw Error{"Unsupportd HTTP method"};
-    }
-
-    auto uri = _lexer.Next();
+    auto uri = _lexer.Lex();
     _fields[RequestField::Uri] = {uri.first, uri.second};
 
     _lexer.SetDelimeters({"\r\n", "\r", "\n"});
 
-    auto protocol = _lexer.Next(false);
+    auto protocol = _lexer.Lex(false);
     _fields[RequestField::Version] = {protocol.first, protocol.second};
 }
 
 bool Parser::EndOfHeader() {
     Lexer lexer = _lexer;
     lexer.SetDelimeters({"\r\n", "\r", "\n"});
-    return !lexer.Next(false).second;
+    return !lexer.Lex(false).second;
 }
 
 void Parser::SkipToBody() {
     _lexer.SetDelimeters({"\r\n", "\r", "\n"});
     auto c = _lexer.GetConsumption();
-    _lexer.Next(false);
+    _lexer.Lex(false);
     if (c == _lexer.GetConsumption())
-        throw Error{"Request header did not end in blank line"};
+        throw Error{Error::Type::Malformed, "Request header did not end in blank line"};
 }
 
 void Parser::ParseNextFieldLine() {
     _lexer.SetDelimeters({" ", "\t", ":"});
-    auto key = _lexer.Next();
+    auto key = _lexer.Lex();
 
     _lexer.SetDelimeters({"\r\n", "\r", "\n"});
-    auto value = _lexer.Next(false);
+    auto value = _lexer.Lex(false);
 
     _fields[{key.first, key.second}] = {value.first, value.second};
 }
