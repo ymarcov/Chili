@@ -1,4 +1,5 @@
 * When stopping server, stop all active connections as well.
 * When parsing, suggest response codes on error
+* Add epoll
 * Design bandwidth throttling
 * Make integration test scripts
