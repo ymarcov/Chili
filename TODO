@@ -1,5 +1,17 @@
 * When stopping server, stop all active connections as well.
 * When parsing, suggest response codes on error
-* Add epoll
 * Design bandwidth throttling
 * Make integration test scripts
+
+* Add Poller
+  - TcpServer connection handler gives fd to poller after subscribing to events
+  - Poller uses same thread pool (other than its own dedicated thread)
+  - It's ok because we're making TcpServer tasks very light (just relay to Poller),
+    while Poller tasks become heavy. So we
+    1. Accept fast
+    2. Detect IO events fast
+    3. React to events with heavy tasks in the right order (whichever
+       request was accepted first, it was the first to be posted to poller,
+       so it's also the first one to signal (epoll's supposed to work like this),
+       and then it's the first one to fire off a heavy task. So it's all fine.
+  - We also want to react to timeout with the proper HTTP response code.
