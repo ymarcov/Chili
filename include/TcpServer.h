@@ -22,6 +22,8 @@ public:
     std::future<void> Start(ConnectionHandler);
     void Stop();
 
+    const IPEndpoint& GetEndpoint() const;
+
 private:
     void ResetListenerSocketStream();
     void AcceptLoop(ConnectionHandler);
@@ -33,6 +35,10 @@ private:
     std::thread _thread;
     std::atomic_bool _stop;
 };
+
+inline const IPEndpoint& TcpServer::GetEndpoint() const {
+    return _endpoint;
+}
 
 } // namespace Http
 } // namespace Yam

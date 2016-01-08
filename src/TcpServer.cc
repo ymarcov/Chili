@@ -69,7 +69,7 @@ std::future<void> TcpServer::Start(ConnectionHandler ch) {
     // reset state
     ResetListenerSocketStream();
     _stop = false;
-    _promise = std::promise<void>();
+    _promise = std::promise<void>{};
 
     // dispatch background worker thread
     _thread = std::thread([=] {
