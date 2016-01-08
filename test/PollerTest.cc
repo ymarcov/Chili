@@ -39,12 +39,10 @@ private:
     }
 };
 
-TEST_F(PollerTest, serves_events) {
-    bool gotReadEvent = false;
+TEST_F(PollerTest, signals_shutdown_event) {
     bool gotShutdownEvent = false;
 
-    auto pollerTask = _poller.Start([&](std::shared_ptr<FileStream> fs, int events) {
-        gotReadEvent |= (events & Poller::Events::Readable);
+    auto pollerTask = _poller.Start([&](std::shared_ptr<FileStream>, int events) {
         gotShutdownEvent |= (events & Poller::Events::Shutdown);
     });
 
@@ -61,8 +59,39 @@ TEST_F(PollerTest, serves_events) {
     _poller.Stop();
     pollerTask.get();
 
-    EXPECT_TRUE(gotReadEvent);
     EXPECT_TRUE(gotShutdownEvent);
+}
+
+TEST_F(PollerTest, signals_read_events) {
+    unsigned countedReadEvents = 0;
+
+    auto pollerTask = _poller.Start([&](std::shared_ptr<FileStream>, int events) {
+        if (!(events & Poller::Events::Shutdown))
+            countedReadEvents += !!(events & Poller::Events::Readable);
+    });
+
+    auto serverTask = _server.Start([&](std::shared_ptr<TcpConnection> conn) {
+        _poller.Register(conn);
+    });
+
+    {
+        auto c1 = MakeConnection();
+        c1->Write("hello", 5);
+        auto c2 = MakeConnection();
+        c2->Write("hello", 5);
+        auto c3 = MakeConnection();
+        c3->Write("hello", 5);
+
+        std::this_thread::sleep_for(100ms);
+    }
+
+    _server.Stop();
+    serverTask.get();
+
+    _poller.Stop();
+    pollerTask.get();
+
+    EXPECT_EQ(3, countedReadEvents);
 }
 
 } // namespace Http

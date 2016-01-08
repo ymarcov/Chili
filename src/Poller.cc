@@ -59,11 +59,11 @@ void Poller::Stop() {
 }
 
 void Poller::PollLoop(const Poller::EventHandler& handler) {
-    constexpr int eventCount = 10;
-    struct epoll_event events[eventCount] = {};
+    constexpr int maxEvents = 10;
+    struct epoll_event events[maxEvents] = {};
 
     while (!_stop) {
-        int result = ::epoll_wait(_fd, events, eventCount, 100);
+        int result = ::epoll_wait(_fd, events, maxEvents, 100);
 
         if (result == -1) {
             _promise.set_exception(std::make_exception_ptr(SystemError{}));
