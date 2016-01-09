@@ -53,7 +53,7 @@ private:
     std::thread _thread;
     std::promise<void> _promise;
     std::map<const void*, std::shared_ptr<FileStream>> _files;
-    mutable std::mutex _filesMutex;
+    std::mutex _filesMutex;
 };
 
 } // namespace Http
