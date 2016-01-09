@@ -1,7 +1,7 @@
 #include "MemoryPool.h"
 #include "Request.h"
 #include "Responder.h"
-#include "ThreadedTcpServer.h"
+#include "TcpServer.h"
 
 #include <chrono>
 #include <iostream>
@@ -18,10 +18,11 @@ using namespace std::literals;
 struct ServerConfiguration {
     IPEndpoint _endpoint;
     std::shared_ptr<ThreadPool> _threadPool;
+    std::shared_ptr<Poller> _poller;
 };
 
-std::unique_ptr<ThreadedTcpServer> CreateServer(ServerConfiguration config) {
-    return std::make_unique<ThreadedTcpServer>(config._endpoint, config._threadPool);
+std::unique_ptr<TcpServer> CreateServer(ServerConfiguration config) {
+    return std::make_unique<TcpServer>(config._endpoint, config._poller);
 }
 
 ServerConfiguration CreateConfiguration(std::vector<std::string> argv) {
@@ -40,7 +41,7 @@ ServerConfiguration CreateConfiguration(std::vector<std::string> argv) {
 
     auto threadPool = std::make_shared<ThreadPool>(threadCount);
 
-    return {endpoint, threadPool};
+    return {endpoint, threadPool, std::make_shared<Poller>(threadPool)};
 }
 
 void PrintInfo(Request& request) {
@@ -114,11 +115,11 @@ void PrintInfo(Request& request) {
 
 std::mutex _outputMutex;
 
-ThreadedTcpServer::ConnectionHandler CreateHandler(ServerConfiguration config) {
+Poller::EventHandler CreateHandler(ServerConfiguration config) {
     auto totalPages = 2 * config._threadPool->GetThreadCount();
     auto memoryPool = MemoryPool<Request::Buffer>::Create(totalPages);
 
-    return [=](std::shared_ptr<TcpConnection> conn) {
+    return [=](std::shared_ptr<FileStream> conn, int events) {
         try {
             auto request = Request{memoryPool->New(), conn};
             auto responder = Responder{conn};
@@ -138,6 +139,8 @@ ThreadedTcpServer::ConnectionHandler CreateHandler(ServerConfiguration config) {
             std::lock_guard<std::mutex> lock{_outputMutex};
             std::cout << "E: " << e.what() << "\n";
         }
+
+        return Poller::Registration::Conclude;
     };
 }
 
@@ -147,6 +150,7 @@ std::vector<std::string> ArgsToVector(int argc, char* argv[]) {
 
 void TrapInterrupt(std::function<void()> handler) {
     static std::function<void()> signalHandler;
+
     signalHandler = handler;
     struct ::sigaction action;
     action.sa_handler = [](int) { signalHandler(); };
@@ -162,7 +166,8 @@ int main(int argc, char* argv[]) {
 
     TrapInterrupt([&] { server->Stop(); });
 
-    auto task = server->Start(handler);
+    auto pTask = config._poller->Start(handler);
+    auto task = server->Start();
     std::cout << "Echo server started.\n";
     task.get();
     std::cout << "\nEcho server exited.\n";
