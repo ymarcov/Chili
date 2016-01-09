@@ -37,7 +37,6 @@ void Poller::Register(std::shared_ptr<FileStream> fs) {
         _files.erase(fs.get());
         throw SystemError{};
     }
-
 }
 
 void Poller::Unregister(const FileStream& fs) {
