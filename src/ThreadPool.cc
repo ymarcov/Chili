@@ -38,12 +38,14 @@ private:
     }
 
     bool Execute() {
+        auto wc = std::move(_workContext);
+
         try {
-            _workContext->_work();
-            _workContext->_promise.set_value();
+            wc->_work();
+            wc->_promise.set_value();
             return true;
         } catch (...) {
-            _workContext->_promise.set_exception(std::current_exception());
+            wc->_promise.set_exception(std::current_exception());
             return false;
         }
     }
