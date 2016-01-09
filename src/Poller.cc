@@ -67,7 +67,7 @@ void Poller::Stop() {
 
 void Poller::PollLoop(const Poller::EventHandler& handler) {
     constexpr int maxEvents = 10;
-    struct epoll_event events[maxEvents] = {};
+    struct epoll_event events[maxEvents];
 
     while (!_stop) {
         int result = ::epoll_wait(_fd, events, maxEvents, 100);
