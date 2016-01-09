@@ -38,13 +38,13 @@ public:
 
     std::size_t GetWatchedCount();
     void Register(std::shared_ptr<FileStream>);
-    void Unregister(const FileStream&);
 
     std::future<void> Start(EventHandler);
     void Stop();
 
 private:
     void PollLoop(const EventHandler&);
+    void Unregister(const FileStream&);
     int ConvertMask(int);
 
     std::shared_ptr<ThreadPool> _threadPool;
