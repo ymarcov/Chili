@@ -44,6 +44,7 @@ TEST_F(PollerTest, signals_shutdown_event) {
 
     auto pollerTask = _poller->Start([&](std::shared_ptr<FileStream>, int events) {
         gotShutdownEvent |= (events & Poller::Events::Shutdown);
+        return Poller::Registration::Continue;
     });
 
     auto serverTask = _server.Start();
@@ -66,6 +67,7 @@ TEST_F(PollerTest, signals_read_events) {
     auto pollerTask = _poller->Start([&](std::shared_ptr<FileStream>, int events) {
         if (!(events & Poller::Events::Shutdown))
             countedReadEvents += !!(events & Poller::Events::Readable);
+        return Poller::Registration::Continue;
     });
 
     auto serverTask = _server.Start();
@@ -91,7 +93,10 @@ TEST_F(PollerTest, signals_read_events) {
 }
 
 TEST_F(PollerTest, reaps_connections) {
-    auto pollerTask = _poller->Start([](std::shared_ptr<FileStream>, int) {});
+    auto pollerTask = _poller->Start([](std::shared_ptr<FileStream>, int) {
+        return Poller::Registration::Conclude;
+    });
+
     auto serverTask = _server.Start();
 
     EXPECT_EQ(0, _poller->GetWatchedCount());

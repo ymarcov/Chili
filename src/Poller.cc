@@ -19,6 +19,7 @@ Poller::~Poller() {
 }
 
 std::size_t Poller::GetWatchedCount() {
+    std::lock_guard<std::mutex> lock{_filesMutex};
     return _files.size();
 }
 
@@ -27,6 +28,8 @@ void Poller::Register(std::shared_ptr<FileStream> fs) {
 
     ev.events = EPOLLET | EPOLLIN | EPOLLHUP | EPOLLRDHUP;
     ev.data.ptr = fs.get();
+
+    std::lock_guard<std::mutex> lock{_filesMutex};
 
     _files[fs.get()] = fs;
 
@@ -41,6 +44,7 @@ void Poller::Unregister(std::shared_ptr<FileStream> fs) {
     if (-1 == ::epoll_ctl(_fd, EPOLL_CTL_DEL, fs->GetNativeHandle(), nullptr))
         throw SystemError{};
 
+    std::lock_guard<std::mutex> lock{_filesMutex};
     _files.erase(fs.get());
 }
 
@@ -75,21 +79,20 @@ void Poller::PollLoop(const Poller::EventHandler& handler) {
         }
 
         for (int i = 0; i < result; ++i) {
-            auto fs = _files.at(events[i].data.ptr);
             auto eventMask = events[i].events;
+            std::shared_ptr<FileStream> fs;
+
+            {
+                std::lock_guard<std::mutex> lock{_filesMutex};
+                fs = _files.at(events[i].data.ptr);
+            }
 
             _threadPool->Post([=] {
-                handler(fs, ConvertMask(eventMask));
+                auto result = handler(fs, ConvertMask(eventMask));
+
+                if (result == Registration::Conclude)
+                    Unregister(fs);
             });
-
-            if (eventMask & (EPOLLERR | EPOLLHUP | EPOLLRDHUP)) {
-                if (-1 == ::epoll_ctl(_fd, EPOLL_CTL_DEL, fs->GetNativeHandle(), nullptr)) {
-                    _promise.set_exception(std::make_exception_ptr(SystemError{}));
-                    return;
-                }
-
-                _files.erase(fs.get());
-            }
         }
     }
 
