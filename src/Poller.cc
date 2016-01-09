@@ -18,6 +18,10 @@ Poller::~Poller() {
     ::close(_fd);
 }
 
+std::size_t Poller::GetWatchedCount() {
+    return _files.size();
+}
+
 void Poller::Register(std::shared_ptr<FileStream> fs) {
     struct epoll_event ev;
 

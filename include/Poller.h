@@ -30,6 +30,7 @@ public:
     Poller(const Poller&) = delete;
     ~Poller();
 
+    std::size_t GetWatchedCount();
     void Register(std::shared_ptr<FileStream>);
     void Unregister(std::shared_ptr<FileStream>);
 
