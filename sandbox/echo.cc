@@ -1,7 +1,7 @@
 #include "MemoryPool.h"
 #include "Request.h"
 #include "Responder.h"
-#include "TcpServer.h"
+#include "ThreadedTcpServer.h"
 
 #include <chrono>
 #include <iostream>
@@ -20,8 +20,8 @@ struct ServerConfiguration {
     std::shared_ptr<ThreadPool> _threadPool;
 };
 
-std::unique_ptr<TcpServer> CreateServer(ServerConfiguration config) {
-    return std::make_unique<TcpServer>(config._endpoint, config._threadPool);
+std::unique_ptr<ThreadedTcpServer> CreateServer(ServerConfiguration config) {
+    return std::make_unique<ThreadedTcpServer>(config._endpoint, config._threadPool);
 }
 
 ServerConfiguration CreateConfiguration(std::vector<std::string> argv) {
@@ -114,7 +114,7 @@ void PrintInfo(Request& request) {
 
 std::mutex _outputMutex;
 
-TcpServer::ConnectionHandler CreateHandler(ServerConfiguration config) {
+ThreadedTcpServer::ConnectionHandler CreateHandler(ServerConfiguration config) {
     auto totalPages = 2 * config._threadPool->GetThreadCount();
     auto memoryPool = MemoryPool<Request::Buffer>::Create(totalPages);
 

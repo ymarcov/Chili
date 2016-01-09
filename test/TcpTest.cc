@@ -1,7 +1,7 @@
 #include <gmock/gmock.h>
 
 #include "TcpConnection.h"
-#include "TcpServer.h"
+#include "ThreadedTcpServer.h"
 
 using namespace ::testing;
 
@@ -19,15 +19,15 @@ ThreadCount operator "" _threads(unsigned long long n) {
 
 class TcpTest : public Test {
 protected:
-    std::unique_ptr<TcpServer> CreateServer(ThreadCount tc = ThreadCount{}) {
-        return std::make_unique<TcpServer>(_testEp, std::make_shared<ThreadPool>(tc._n));
+    std::unique_ptr<ThreadedTcpServer> CreateServer(ThreadCount tc = ThreadCount{}) {
+        return std::make_unique<ThreadedTcpServer>(_testEp, std::make_shared<ThreadPool>(tc._n));
     }
 
     std::unique_ptr<TcpConnection> CreateClient() {
         return std::make_unique<TcpConnection>(_testEp);
     }
 
-    TcpServer::ConnectionHandler SayGoodbyeAndClose() {
+    ThreadedTcpServer::ConnectionHandler SayGoodbyeAndClose() {
         return [](std::shared_ptr<TcpConnection> conn) {
             char buffer[0x100] = {0};
             auto n = conn->Read(buffer, sizeof(buffer));

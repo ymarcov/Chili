@@ -2,7 +2,7 @@
 
 #include "Poller.h"
 #include "TcpConnection.h"
-#include "TcpServer.h"
+#include "ThreadedTcpServer.h"
 #include "ThreadPool.h"
 
 #include <chrono>
@@ -27,7 +27,7 @@ protected:
     }
 
     Poller _poller;
-    TcpServer _server;
+    ThreadedTcpServer _server;
 
 private:
     IPEndpoint MakeEndpoint() {

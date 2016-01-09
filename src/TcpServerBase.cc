@@ -1,4 +1,4 @@
-#include "TcpServer.h"
+#include "TcpServerBase.h"
 #include "SystemError.h"
 
 #include <netinet/in.h>
@@ -38,16 +38,15 @@ void Listen(SocketStream& socket) {
 
 } // unnamed namespace
 
-TcpServer::TcpServer(const IPEndpoint& ep, std::shared_ptr<ThreadPool> tp) :
+TcpServerBase::TcpServerBase(const IPEndpoint& ep) :
     _endpoint{ep},
-    _threadPool{std::move(tp)},
     _stop{true} {}
 
-TcpServer::~TcpServer() {
+TcpServerBase::~TcpServerBase() {
     Stop();
 }
 
-void TcpServer::ResetListenerSocketStream() {
+void TcpServerBase::ResetListenerSocket() {
     _socket = SocketStream{};
 
     auto fd = ::socket(AF_INET, SOCK_STREAM | SOCK_CLOEXEC, 0);
@@ -62,24 +61,21 @@ void TcpServer::ResetListenerSocketStream() {
     Listen(_socket);
 }
 
-std::future<void> TcpServer::Start(ConnectionHandler ch) {
+std::future<void> TcpServerBase::Start() {
     if (!_stop || _thread.joinable())
         throw std::logic_error("Start() called when TCP server is already running");
 
     // reset state
-    ResetListenerSocketStream();
+    ResetListenerSocket();
     _stop = false;
     _promise = std::promise<void>{};
 
-    // dispatch background worker thread
-    _thread = std::thread([=] {
-        AcceptLoop(std::move(ch));
-    });
+    _thread = std::thread([this] { AcceptLoop(); });
 
     return _promise.get_future();
 }
 
-void TcpServer::AcceptLoop(ConnectionHandler connectionHandler) {
+void TcpServerBase::AcceptLoop() {
     while (!_stop) {
         ::sockaddr_in saddr{0};
         ::socklen_t saddr_size = sizeof(saddr);
@@ -101,21 +97,14 @@ void TcpServer::AcceptLoop(ConnectionHandler connectionHandler) {
             return;
         }
 
-        // we've got a new connection at hand;
-        // trigger connection handler callback.
-
-        _threadPool->Post([=] {
-            IPEndpoint endpoint{saddr};
-            auto conn = std::make_shared<TcpConnection>(ret, endpoint);
-            connectionHandler(std::move(conn));
-        });
+        OnAccepted(std::make_shared<TcpConnection>(ret, IPEndpoint{saddr}));
     }
 
     // all work is done. notify future.
     _promise.set_value();
 }
 
-void TcpServer::Stop() {
+void TcpServerBase::Stop() {
     bool reentrance = false;
     if (!_stop.compare_exchange_strong(reentrance, true))
         return;

@@ -2,7 +2,6 @@
 
 #include "SocketStream.h"
 #include "TcpConnection.h"
-#include "ThreadPool.h"
 
 #include <atomic>
 #include <future>
@@ -12,31 +11,31 @@
 namespace Yam {
 namespace Http {
 
-class TcpServer {
+class TcpServerBase {
 public:
-    using ConnectionHandler = std::function<void(std::shared_ptr<TcpConnection>)>;
+    TcpServerBase(const IPEndpoint&);
+    virtual ~TcpServerBase();
 
-    TcpServer(const IPEndpoint&, std::shared_ptr<ThreadPool>);
-    ~TcpServer();
-
-    std::future<void> Start(ConnectionHandler);
+    std::future<void> Start();
     void Stop();
 
     const IPEndpoint& GetEndpoint() const;
 
+protected:
+    virtual void OnAccepted(std::shared_ptr<TcpConnection>) = 0;
+
 private:
-    void ResetListenerSocketStream();
-    void AcceptLoop(ConnectionHandler);
+    void ResetListenerSocket();
+    void AcceptLoop();
 
     IPEndpoint _endpoint;
-    std::shared_ptr<ThreadPool> _threadPool;
     SocketStream _socket;
     std::promise<void> _promise;
     std::thread _thread;
     std::atomic_bool _stop;
 };
 
-inline const IPEndpoint& TcpServer::GetEndpoint() const {
+inline const IPEndpoint& TcpServerBase::GetEndpoint() const {
     return _endpoint;
 }
 
