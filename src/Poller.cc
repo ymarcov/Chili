@@ -40,12 +40,12 @@ void Poller::Register(std::shared_ptr<FileStream> fs) {
 
 }
 
-void Poller::Unregister(std::shared_ptr<FileStream> fs) {
-    if (-1 == ::epoll_ctl(_fd, EPOLL_CTL_DEL, fs->GetNativeHandle(), nullptr))
+void Poller::Unregister(const FileStream& fs) {
+    if (-1 == ::epoll_ctl(_fd, EPOLL_CTL_DEL, fs.GetNativeHandle(), nullptr))
         throw SystemError{};
 
     std::lock_guard<std::mutex> lock{_filesMutex};
-    _files.erase(fs.get());
+    _files.erase(&fs);
 }
 
 std::future<void> Poller::Start(EventHandler handler) {
@@ -91,7 +91,7 @@ void Poller::PollLoop(const Poller::EventHandler& handler) {
                 auto result = handler(fs, ConvertMask(eventMask));
 
                 if (result == Registration::Conclude)
-                    Unregister(fs);
+                    Unregister(*fs);
             });
         }
     }

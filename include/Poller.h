@@ -38,7 +38,7 @@ public:
 
     std::size_t GetWatchedCount();
     void Register(std::shared_ptr<FileStream>);
-    void Unregister(std::shared_ptr<FileStream>);
+    void Unregister(const FileStream&);
 
     std::future<void> Start(EventHandler);
     void Stop();
@@ -52,7 +52,7 @@ private:
     std::atomic_bool _stop;
     std::thread _thread;
     std::promise<void> _promise;
-    std::map<void*, std::shared_ptr<FileStream>> _files;
+    std::map<const void*, std::shared_ptr<FileStream>> _files;
     mutable std::mutex _filesMutex;
 };
 
