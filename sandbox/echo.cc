@@ -164,11 +164,20 @@ int main(int argc, char* argv[]) {
     auto server = CreateServer(config);
     auto handler = CreateHandler(config);
 
-    TrapInterrupt([&] { server->Stop(); });
+    TrapInterrupt([&] {
+        server->Stop();
+        config._poller->Stop();
+    });
 
-    auto pTask = config._poller->Start(handler);
-    auto task = server->Start();
-    std::cout << "Echo server started.\n";
-    task.get();
-    std::cout << "\nEcho server exited.\n";
+    auto pollerTask = config._poller->Start(handler);
+    auto serverTask = server->Start();
+
+    try {
+        std::cout << "Echo server started.\n";
+        serverTask.get();
+        pollerTask.get();
+        std::cout << "\nEcho server exited.\n";
+    } catch (const std::exception& e) {
+        std::cerr << "\nERROR: " << e.what() << std::endl;
+    }
 }

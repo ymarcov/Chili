@@ -1,6 +1,7 @@
 #pragma once
 
 #include "FileStream.h"
+#include "Signal.h"
 #include "ThreadPool.h"
 
 #include <atomic>
@@ -41,6 +42,8 @@ public:
 
     std::future<void> Start(EventHandler);
     void Stop();
+
+    Signal<> OnStop;
 
 private:
     void PollLoop(const EventHandler&);

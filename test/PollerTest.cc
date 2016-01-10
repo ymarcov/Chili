@@ -120,6 +120,21 @@ TEST_F(PollerTest, reaps_connections) {
     pollerTask.get();
 }
 
+TEST_F(PollerTest, notifies_on_stop) {
+    auto pollerTask = _poller->Start([](std::shared_ptr<FileStream>, int) {
+        return Poller::Registration::Conclude;
+    });
+
+    bool notified = false;
+
+    _poller->OnStop += [&] { notified = true; };
+
+    _poller->Stop();
+
+    EXPECT_EQ(std::future_status::ready, pollerTask.wait_for(100ms));
+    EXPECT_TRUE(notified);
+}
+
 } // namespace Http
 } // namespace Yam
 

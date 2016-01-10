@@ -74,6 +74,7 @@ void Poller::PollLoop(const Poller::EventHandler& handler) {
 
         if (result == -1) {
             _promise.set_exception(std::make_exception_ptr(SystemError{}));
+            OnStop();
             return;
         }
 
@@ -83,7 +84,13 @@ void Poller::PollLoop(const Poller::EventHandler& handler) {
 
             {
                 std::lock_guard<std::mutex> lock{_filesMutex};
-                fs = _files.at(events[i].data.ptr);
+
+                auto it = _files.find(events[i].data.ptr);
+
+                if (it == _files.end())
+                    continue;
+
+                fs = it->second;
             }
 
             _threadPool->Post([=] {
@@ -96,6 +103,7 @@ void Poller::PollLoop(const Poller::EventHandler& handler) {
     }
 
     _promise.set_value();
+    OnStop();
 }
 
 int Poller::ConvertMask(int m) {
