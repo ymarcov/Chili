@@ -5,4 +5,4 @@ CXXFLAGS=-std=c++1y -I$(ROOT)/include -Wall -Werror -pedantic
 CXXFLAGS+=-isystem $(ROOT)/ext
 
 !c++ = |> $(CXX) $(CXXFLAGS) @(CXXFLAGS) -c %f -o %o |>
-!link = |> $(CXX) %f -o %o -lpthread -lcurl |>
+!link = |> $(CXX) %f -o %o -lpthread -lcurl -lunwind |>
