@@ -15,6 +15,7 @@ Poller::Poller(std::shared_ptr<ThreadPool> threadPool) :
 }
 
 Poller::~Poller() {
+    Stop();
     ::close(_fd);
 }
 
@@ -70,7 +71,11 @@ void Poller::PollLoop(const Poller::EventHandler& handler) {
     struct epoll_event events[maxEvents];
 
     while (!_stop) {
-        int result = ::epoll_wait(_fd, events, maxEvents, 100);
+        int result;
+
+        while (-1 == (result = ::epoll_wait(_fd, events, maxEvents, 100)))
+            if (errno != EINTR)
+                break;
 
         if (result == -1) {
             _promise.set_exception(std::make_exception_ptr(SystemError{}));
@@ -94,9 +99,15 @@ void Poller::PollLoop(const Poller::EventHandler& handler) {
             }
 
             _threadPool->Post([=] {
-                auto result = handler(fs, ConvertMask(eventMask));
+                Registration r;
 
-                if (result == Registration::Conclude)
+                try {
+                    r = handler(fs, ConvertMask(eventMask));
+                } catch (...) {
+                    r = Registration::Conclude;
+                }
+
+                if (r == Registration::Conclude)
                     Unregister(*fs);
             });
         }
