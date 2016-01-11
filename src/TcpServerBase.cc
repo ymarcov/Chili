@@ -105,10 +105,7 @@ void TcpServerBase::AcceptLoop() {
 }
 
 void TcpServerBase::Stop() {
-    bool reentrance = false;
-    if (!_stop.compare_exchange_strong(reentrance, true))
-        return;
-
+    _stop = true;
     _socket = SocketStream{};
 
     if (_thread.joinable())
