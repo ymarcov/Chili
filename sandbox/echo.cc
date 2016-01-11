@@ -148,13 +148,14 @@ std::vector<std::string> ArgsToVector(int argc, char* argv[]) {
     return std::vector<std::string>{argv, argv + argc};
 }
 
-void TrapInterrupt(std::function<void()> handler) {
+template <int Signal>
+void Trap(std::function<void()> handler) {
     static std::function<void()> signalHandler;
 
     signalHandler = handler;
     struct ::sigaction action;
     action.sa_handler = [](int) { signalHandler(); };
-    ::sigaction(SIGINT, &action, nullptr);
+    ::sigaction(Signal, &action, nullptr);
 }
 
 int main(int argc, char* argv[]) {
@@ -164,9 +165,13 @@ int main(int argc, char* argv[]) {
     auto server = CreateServer(config);
     auto handler = CreateHandler(config);
 
-    TrapInterrupt([&] {
+    Trap<SIGINT>([&] {
         server->Stop();
         config._poller->Stop();
+    });
+
+    Trap<SIGSEGV>([&] {
+        std::cerr << BackTrace{};
     });
 
     auto pollerTask = config._poller->Start(handler);
@@ -177,6 +182,10 @@ int main(int argc, char* argv[]) {
         serverTask.get();
         pollerTask.get();
         std::cout << "\nEcho server exited.\n";
+    } catch (const SystemError& e) {
+        std::cerr << "\nSYSTEM ERROR: " << e.what() << std::endl;
+        std::cerr << e.GetBackTrace();
+
     } catch (const std::exception& e) {
         std::cerr << "\nERROR: " << e.what() << std::endl;
     }
