@@ -1,10 +1,10 @@
 #pragma once
 
 #include "InputStream.h"
-#include "MemoryPool.h"
 #include "Parser.h"
 #include "Protocol.h"
 
+#include <memory>
 #include <string>
 #include <utility>
 #include <vector>
@@ -16,7 +16,7 @@ class Request {
 public:
     using Buffer = char[8192];
 
-    Request(MemorySlot<Buffer> emptyBuffer, std::shared_ptr<InputStream> input);
+    Request(std::shared_ptr<void> emptyBuffer, std::shared_ptr<InputStream> input);
 
     /*
      * Gets the HTTP method of the request.
@@ -77,7 +77,7 @@ public:
     std::size_t ReadNextBodyChunk(void* buffer, std::size_t bufferSize);
 
 private:
-    MemorySlot<Buffer> _buffer;
+    std::shared_ptr<void> _buffer;
     std::shared_ptr<InputStream> _input;
     Parser _parser;
     std::size_t _contentBytesReadFromInitialBuffer = 0;

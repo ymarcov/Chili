@@ -1,7 +1,6 @@
 #include <gmock/gmock.h>
 
 #include "Request.h"
-#include "MemoryPool.h"
 
 #include <array>
 #include <cstring>
@@ -99,13 +98,9 @@ private:
 } // unnamed namespace
 
 class RequestTest : public Test {
-public:
-    RequestTest() :
-        _memoryPool{MemoryPool<Request::Buffer>::Create()} {}
-
 protected:
     auto MakeRequest(std::shared_ptr<InputStream>&& s) {
-        return std::make_unique<Request>(_memoryPool->New(), std::move(s));
+        return std::make_unique<Request>(std::shared_ptr<void>(new Request::Buffer), std::move(s));
     }
 
     template <std::size_t N>
@@ -121,8 +116,6 @@ protected:
         auto streams = { ToString(requestHeaderData), ToString(requestBodyData) };
         return std::make_shared<NonContiguousInputStream>(streams);
     }
-
-    std::shared_ptr<MemoryPool<Request::Buffer>> _memoryPool;
 };
 
 TEST_F(RequestTest, header_getters) {

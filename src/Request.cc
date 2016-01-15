@@ -8,11 +8,11 @@
 namespace Yam {
 namespace Http {
 
-Request::Request(MemorySlot<Buffer> emptyBuffer, std::shared_ptr<InputStream> input) :
+Request::Request(std::shared_ptr<void> emptyBuffer, std::shared_ptr<InputStream> input) :
     _buffer{std::move(emptyBuffer)},
     _input{std::move(input)} {
     auto bytesRead = _input->Read(_buffer.get(), sizeof(Buffer));
-    _parser = Parser::Parse(_buffer.get(), bytesRead);
+    _parser = Parser::Parse(static_cast<char*>(_buffer.get()), bytesRead);
     _onlySentHeaderFirst = (bytesRead == _parser.GetHeaderLength());
 }
 
