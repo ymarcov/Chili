@@ -52,6 +52,7 @@ private:
 
     std::shared_ptr<ThreadPool> _threadPool;
     int _fd;
+    std::atomic_int _fdCount;
     std::atomic_bool _stop;
     std::thread _thread;
     std::promise<void> _promise;

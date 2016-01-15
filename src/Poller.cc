@@ -38,11 +38,15 @@ void Poller::Register(std::shared_ptr<FileStream> fs) {
         _files.erase(fs.get());
         throw SystemError{};
     }
+
+    ++_fdCount;
 }
 
 void Poller::Unregister(const FileStream& fs) {
     if (-1 == ::epoll_ctl(_fd, EPOLL_CTL_DEL, fs.GetNativeHandle(), nullptr))
-        throw SystemError{};
+        return;
+
+    --_fdCount;
 
     std::lock_guard<std::mutex> lock{_filesMutex};
     _files.erase(&fs);
