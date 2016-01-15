@@ -229,7 +229,7 @@ TEST_F(MemoryPoolTest, concurrent_alloc_dealloc_randomly) {
     EXPECT_EQ(mp->GetCapacity(), mp->GetFreeSlots());
 }
 
-TEST_F(MemoryPoolTest, load_test_alloc_dealloc) {
+TEST_F(MemoryPoolTest, DISABLED_load_test_alloc_dealloc) {
     auto mp = MemoryPool<Type>::Create();
 
     std::vector<std::unique_ptr<std::thread>> threads;
@@ -246,7 +246,7 @@ TEST_F(MemoryPoolTest, load_test_alloc_dealloc) {
     EXPECT_EQ(mp->GetCapacity(), mp->GetFreeSlots());
 }
 
-TEST_F(MemoryPoolTest, load_test_alloc__use_mem__dealloc) {
+TEST_F(MemoryPoolTest, DISABLED_load_test_alloc__use_mem__dealloc) {
     auto mp = MemoryPool<Type>::Create();
 
     std::vector<std::unique_ptr<std::thread>> threads;
@@ -266,7 +266,7 @@ TEST_F(MemoryPoolTest, load_test_alloc__use_mem__dealloc) {
     EXPECT_EQ(mp->GetCapacity(), mp->GetFreeSlots());
 }
 
-TEST_F(MemoryPoolTest, load_test_smart_ptr) {
+TEST_F(MemoryPoolTest, DISABLED_load_test_smart_ptr) {
     auto mp = MemoryPool<Type>::Create();
 
     std::vector<std::unique_ptr<std::thread>> threads;
