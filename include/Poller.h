@@ -47,6 +47,8 @@ public:
 
 private:
     void PollLoop(const EventHandler&);
+    void DispatchEvents(void* events, std::size_t n, const EventHandler&);
+    std::shared_ptr<FileStream> GetFileStreamFromPtr(void*);
     void Unregister(const FileStream&);
     int ConvertMask(int);
 

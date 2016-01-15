@@ -43,18 +43,28 @@ void Poller::Register(std::shared_ptr<FileStream> fs) {
 }
 
 void Poller::Unregister(const FileStream& fs) {
-    // TODO Fix race: Only delete this fd if it points to the provided fs
-    if (-1 == ::epoll_ctl(_fd, EPOLL_CTL_DEL, fs.GetNativeHandle(), nullptr))
-        return;
-
-    --_fdCount;
-
     std::lock_guard<std::mutex> lock{_filesMutex};
 
     auto it = _files.find(&fs);
 
-    if (it != _files.end())
+    /*
+     * We can enter here twice if epoll
+     * shot more than one event, which
+     * queued more than one task which
+     * either requested to conclude the
+     * registration, or errored out.
+     */
+    if (it != _files.end()) {
+        auto streamFd = fs.GetNativeHandle();
+
         _files.erase(it);
+
+        if (!::epoll_ctl(_fd, EPOLL_CTL_DEL, streamFd, nullptr))
+            --_fdCount;
+        else
+            ; // TODO Log this!
+
+    }
 }
 
 std::future<void> Poller::Start(EventHandler handler) {
@@ -92,38 +102,39 @@ void Poller::PollLoop(const Poller::EventHandler& handler) {
             return;
         }
 
-        for (int i = 0; i < result; ++i) {
-            auto eventMask = events[i].events;
-            std::shared_ptr<FileStream> fs;
-
-            {
-                std::lock_guard<std::mutex> lock{_filesMutex};
-
-                auto it = _files.find(events[i].data.ptr);
-
-                if (it == _files.end())
-                    continue;
-
-                fs = it->second;
-            }
-
-            _threadPool->Post([=] {
-                Registration r;
-
-                try {
-                    r = handler(fs, ConvertMask(eventMask));
-                } catch (...) {
-                    r = Registration::Conclude;
-                }
-
-                if (r == Registration::Conclude)
-                    Unregister(*fs);
-            });
-        }
+        DispatchEvents(events, result, handler);
     }
 
     _promise.set_value();
     OnStop();
+}
+
+void Poller::DispatchEvents(void* eventsPtr, std::size_t n, const Poller::EventHandler& handler) {
+    auto events = static_cast<struct epoll_event*>(eventsPtr);
+
+    for (std::size_t i = 0; i < n; ++i) {
+        auto eventMask = events[i].events;
+        auto fs = GetFileStreamFromPtr(events[i].data.ptr);
+
+        _threadPool->Post([=] {
+            Registration r;
+
+            try {
+                r = handler(fs, ConvertMask(eventMask));
+            } catch (...) {
+                r = Registration::Conclude;
+            }
+
+            if (r == Registration::Conclude)
+                Unregister(*fs);
+        });
+    }
+}
+
+std::shared_ptr<FileStream> Poller::GetFileStreamFromPtr(void* ptr) {
+    std::lock_guard<std::mutex> lock{_filesMutex};
+    auto it = _files.find(ptr);
+    return it == _files.end() ? nullptr : it->second;
 }
 
 int Poller::ConvertMask(int m) {
