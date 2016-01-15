@@ -1,3 +1,4 @@
+#include "MemoryPool.h"
 #include "Request.h"
 #include "Responder.h"
 #include "SystemError.h"
@@ -18,6 +19,7 @@ using namespace std::literals;
 struct ServerConfiguration {
     IPEndpoint _endpoint;
     std::shared_ptr<ThreadPool> _threadPool;
+    std::size_t _totalPoolPages;
     std::shared_ptr<Poller> _poller;
     bool _verbose;
 };
@@ -41,8 +43,9 @@ ServerConfiguration CreateConfiguration(std::vector<std::string> argv) {
         threadCount = std::stoi(argv[2]);
 
     auto threadPool = std::make_shared<ThreadPool>(threadCount);
+    auto totalPoolPages = (sizeof(Request::Buffer) / ::getpagesize()) * threadCount;
 
-    return {endpoint, threadPool, std::make_shared<Poller>(threadPool), false};
+    return {endpoint, threadPool, totalPoolPages, std::make_shared<Poller>(threadPool), false};
 }
 
 void PrintInfo(Request& request) {
@@ -117,11 +120,12 @@ void PrintInfo(Request& request) {
 std::mutex _outputMutex;
 
 Poller::EventHandler CreateHandler(ServerConfiguration config) {
+    auto memoryPool = MemoryPool<Request::Buffer>::Create(config._totalPoolPages);
     auto verbose = config._verbose;
 
     return [=](std::shared_ptr<FileStream> conn, int events) {
         try {
-            auto request = Request{std::shared_ptr<void>{new Request::Buffer}, conn};
+            auto request = Request{memoryPool->New(), conn};
             auto responder = Responder{conn};
 
             if (request.GetField("Expect", nullptr))
