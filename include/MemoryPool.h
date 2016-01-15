@@ -42,8 +42,17 @@ public: // public types
 
     using Ptr = std::unique_ptr<T, Deleter>;
 
+    template <class U>
+    friend class MemoryPool;
+
+protected: // protected types
+    union Slot {
+        char _data[sizeof(T)];
+        Slot* _next;
+    };
+
 public: // public functions
-    static std::shared_ptr<MemoryPool> Create(std::size_t pages = Detail::MinPagesFor(sizeof(T))) {
+    static std::shared_ptr<MemoryPool> Create(std::size_t pages = Detail::MinPagesFor(sizeof(Slot))) {
         return std::shared_ptr<MemoryPool>{new MemoryPool{pages}};
     }
 
@@ -116,14 +125,6 @@ public: // public functions
     }
 
 private:
-    template <class U>
-    friend class MemoryPool;
-
-    union Slot {
-        char _data[sizeof(T)];
-        Slot* _next;
-    };
-
     static bool IsPageAligned(void* mem) noexcept {
         return 0 == reinterpret_cast<std::uintptr_t>(mem) % ::getpagesize();
     }
@@ -208,7 +209,8 @@ public: // public types
     using Ptr = std::unique_ptr<T[], Deleter>;
 
 public: // public functions
-    static std::shared_ptr<MemoryPool> Create(std::size_t pages = Detail::MinPagesFor(sizeof(std::array<T, N>))) {
+    static std::shared_ptr<MemoryPool> Create(std::size_t pages =
+            Detail::MinPagesFor(sizeof(std::array<typename InternalPool::Slot, N>))) {
         return std::shared_ptr<MemoryPool>{new MemoryPool{pages}};
     }
 
