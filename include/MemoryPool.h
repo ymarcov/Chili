@@ -200,7 +200,7 @@ public: // public types
         }
 
     private:
-        typename InternalPool::Ptr _ptr;
+        std::shared_ptr<void> _ptr;
     };
 
     using Ptr = std::unique_ptr<T[], Deleter>;
