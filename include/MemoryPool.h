@@ -79,7 +79,7 @@ public: // public functions
         while (!_head.compare_exchange_weak(currentHead, currentHead->_next)) {
             // try to replace _head (assuming it still equals currentHead)
             // with the next one, thereby releasing its node for external use.
-            if (!(currentHead = _head)) {
+            if (!currentHead) {
                 // Oops: out of memory!
                 return nullptr;
             }
@@ -103,7 +103,7 @@ public: // public functions
         while (!_head.compare_exchange_weak(currentHead, correspondingSlot)) {
             // we should be setting up the corresponding slot
             // as the new _head. keep trying till we get it right.
-            correspondingSlot->_next = currentHead = _head;
+            correspondingSlot->_next = currentHead;
         }
 
         // deallocation successful
