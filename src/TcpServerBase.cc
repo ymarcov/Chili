@@ -97,7 +97,12 @@ void TcpServerBase::AcceptLoop() {
             return;
         }
 
-        OnAccepted(std::make_shared<TcpConnection>(ret, IPEndpoint{saddr}));
+        try {
+            OnAccepted(std::make_shared<TcpConnection>(ret, IPEndpoint{saddr}));
+        } catch (...) {
+            _stop = true;
+            _promise.set_exception(std::current_exception());
+        }
     }
 
     // all work is done. notify future.
