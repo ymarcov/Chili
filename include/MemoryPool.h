@@ -69,42 +69,31 @@ public: // public functions
     }
 
     void* Allocate() {
-        Slot* currentHead = _head;
+        Slot* candidate = _head;
 
-        if (!currentHead) {
-            // Oops: out of memory!
-            return nullptr;
-        }
+        if (!candidate)
+            return nullptr; // out of memory
 
-        while (!_head.compare_exchange_weak(currentHead, currentHead->_next)) {
-            // try to replace _head (assuming it still equals currentHead)
-            // with the next one, thereby releasing its node for external use.
-            if (!currentHead) {
-                // Oops: out of memory!
-                return nullptr;
-            }
-        }
+        while (!_head.compare_exchange_weak(candidate, candidate->_next))
+            if (!candidate)
+                return nullptr; // out of memory
 
-        // allocation successful
-        --_freeSlots;
+        if (candidate)
+            --_freeSlots; // allocation successful
 
-        return currentHead;
+        return candidate;
     }
 
     void Deallocate(void* mem) {
         if (!mem)
             return;
 
-        auto correspondingSlot = static_cast<Slot*>(mem);
+        auto slot = static_cast<Slot*>(mem);
 
-        Slot* currentHead = _head;
-        correspondingSlot->_next = currentHead;
+        slot->_next = _head;
 
-        while (!_head.compare_exchange_weak(currentHead, correspondingSlot)) {
-            // we should be setting up the corresponding slot
-            // as the new _head. keep trying till we get it right.
-            correspondingSlot->_next = currentHead;
-        }
+        while (!_head.compare_exchange_weak(slot->_next, slot))
+            ;
 
         // deallocation successful
         ++_freeSlots;
