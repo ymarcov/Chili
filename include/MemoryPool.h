@@ -3,8 +3,8 @@
 #include "SystemError.h"
 
 #include <array>
-#include <atomic>
 #include <memory>
+#include <mutex>
 #include <new>
 #include <stdexcept>
 #include <sys/mman.h>
@@ -78,33 +78,29 @@ public: // public functions
     }
 
     void* Allocate() {
-        Slot* candidate = _head;
+        std::lock_guard<decltype(_mutex)> lock{_mutex};
 
-        if (!candidate)
+        Slot* slot = _head;
+
+        if (!slot)
             return nullptr; // out of memory
 
-        while (!_head.compare_exchange_weak(candidate, candidate->_next))
-            if (!candidate)
-                return nullptr; // out of memory
+        _head = slot->_next;
+        --_freeSlots;
 
-        if (candidate)
-            --_freeSlots; // allocation successful
-
-        return candidate;
+        return slot;
     }
 
     void Deallocate(void* mem) {
-        if (!mem)
-            return;
-
         auto slot = static_cast<Slot*>(mem);
 
+        if (!slot)
+            return;
+
+        std::lock_guard<decltype(_mutex)> lock{_mutex};
+
         slot->_next = _head;
-
-        while (!_head.compare_exchange_weak(slot->_next, slot))
-            ;
-
-        // deallocation successful
+        _head = slot;
         ++_freeSlots;
     }
 
@@ -179,8 +175,9 @@ private:
 
     std::size_t _pages;
     Slot* _buffer;
-    std::atomic<Slot*> _head;
-    std::atomic_size_t _freeSlots;
+    Slot* _head;
+    std::mutex _mutex;
+    std::size_t _freeSlots;
 };
 
 // some wizardry to allow MemoryPool<T[N]>,
