@@ -128,21 +128,6 @@ TEST_F(ParserTest, cookie_get_specific) {
 
     ASSERT_THROW(p.GetCookie("unspecified"), std::runtime_error);
 }
-    const char ____request[] =
-        "GET /path/to/res HTTP/1.1\r\n"
-        "Accept: text/html,application/xhtml+xml,application/xml;q=0.9,*/*;q=0.8\r\n"
-        "Accept-encoding: gzip, deflate\r\n"
-        "Accept-language: en-US,en;q=0.5\r\n"
-        "Connection: close\r\n"
-        "Host: request.urih.com\r\n"
-        "Referer: http://www.google.com/?url=http%3A%2F%2Frequest.urih.com\r\n"
-        "User-agent: Mozilla/5.0 (X11; Linux x86_64; rv:31.0) Gecko/20100101 Firefox/31.0 Iceweasel/31.8.0\r\n"
-        "Cookie: Session=abcd1234; User=Yam\r\n"
-        "X-http-proto: HTTP/1.1\r\n"
-        "X-log-7527: 95.35.33.46\r\n"
-        "X-real-ip: 95.35.33.46\r\n"
-        "\r\n"
-        "Request body!";
 
 TEST(ParserTest_EdgeCase, only_request_line) {
     const char request[] = "GET /path/to/res HTTP/1.1\r\n\r\n";
