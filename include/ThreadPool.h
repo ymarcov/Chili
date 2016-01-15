@@ -32,7 +32,6 @@ private:
         Work _work;
     };
 
-    int _capacity;
     std::vector<std::unique_ptr<std::thread>> _threads;
     std::queue<std::unique_ptr<WorkContext>> _pending;
     std::mutex _mutex;

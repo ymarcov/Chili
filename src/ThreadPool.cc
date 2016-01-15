@@ -54,8 +54,7 @@ private:
     std::unique_ptr<ThreadPool::WorkContext> _workContext;
 };
 
-ThreadPool::ThreadPool(int capacity) :
-    _capacity{capacity} {
+ThreadPool::ThreadPool(int capacity) {
     // create workers
     _threads.resize(capacity);
     for (auto& t : _threads)
