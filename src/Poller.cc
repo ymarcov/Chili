@@ -49,7 +49,11 @@ void Poller::Unregister(const FileStream& fs) {
     --_fdCount;
 
     std::lock_guard<std::mutex> lock{_filesMutex};
-    _files.erase(&fs);
+
+    auto it = _files.find(&fs);
+
+    if (it != _files.end())
+        _files.erase(it);
 }
 
 std::future<void> Poller::Start(EventHandler handler) {
