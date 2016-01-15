@@ -43,6 +43,7 @@ void Poller::Register(std::shared_ptr<FileStream> fs) {
 }
 
 void Poller::Unregister(const FileStream& fs) {
+    // TODO Fix race: Only delete this fd if it points to the provided fs
     if (-1 == ::epoll_ctl(_fd, EPOLL_CTL_DEL, fs.GetNativeHandle(), nullptr))
         return;
 
