@@ -1,6 +1,6 @@
-#include "MemoryPool.h"
 #include "Request.h"
 #include "Responder.h"
+#include "SystemError.h"
 #include "TcpServer.h"
 
 #include <chrono>
@@ -19,6 +19,7 @@ struct ServerConfiguration {
     IPEndpoint _endpoint;
     std::shared_ptr<ThreadPool> _threadPool;
     std::shared_ptr<Poller> _poller;
+    bool _verbose;
 };
 
 std::unique_ptr<TcpServer> CreateServer(ServerConfiguration config) {
@@ -41,7 +42,7 @@ ServerConfiguration CreateConfiguration(std::vector<std::string> argv) {
 
     auto threadPool = std::make_shared<ThreadPool>(threadCount);
 
-    return {endpoint, threadPool, std::make_shared<Poller>(threadPool)};
+    return {endpoint, threadPool, std::make_shared<Poller>(threadPool), false};
 }
 
 void PrintInfo(Request& request) {
@@ -116,18 +117,17 @@ void PrintInfo(Request& request) {
 std::mutex _outputMutex;
 
 Poller::EventHandler CreateHandler(ServerConfiguration config) {
-    auto totalPages = 2 * config._threadPool->GetThreadCount();
-    auto memoryPool = MemoryPool<Request::Buffer>::Create(totalPages);
+    auto verbose = config._verbose;
 
     return [=](std::shared_ptr<FileStream> conn, int events) {
         try {
-            auto request = Request{memoryPool->New(), conn};
+            auto request = Request{std::shared_ptr<void>{new Request::Buffer}, conn};
             auto responder = Responder{conn};
 
             if (request.GetField("Expect", nullptr))
                 responder.Send(Status::Continue);
 
-            {
+            if (verbose) {
                 std::lock_guard<std::mutex> lock{_outputMutex};
                 std::cout << "\n";
                 PrintInfo(request);
@@ -184,7 +184,8 @@ int main(int argc, char* argv[]) {
         std::cout << "\nEcho server exited.\n";
     } catch (const SystemError& e) {
         std::cerr << "\nSYSTEM ERROR: " << e.what() << std::endl;
-        std::cerr << e.GetBackTrace();
+        std::cerr << e.GetBackTrace() << std::endl;
+        std::terminate();
 
     } catch (const std::exception& e) {
         std::cerr << "\nERROR: " << e.what() << std::endl;
