@@ -3,6 +3,7 @@
 #include "MemoryPool.h"
 
 #include <array>
+#include <cstring>
 #include <random>
 #include <thread>
 #include <type_traits>
@@ -220,6 +221,60 @@ TEST_F(MemoryPoolTest, concurrent_alloc_dealloc_randomly) {
     for (int i = 0; i < 5; i++)
         threads.emplace_back(new std::thread{[&] {
                 AllocDeallocRandomly(*mp);
+        }});
+
+    for (auto& t : threads)
+        t->join();
+
+    EXPECT_EQ(mp->GetCapacity(), mp->GetFreeSlots());
+}
+
+TEST_F(MemoryPoolTest, load_test_alloc_dealloc) {
+    auto mp = MemoryPool<Type>::Create();
+
+    std::vector<std::unique_ptr<std::thread>> threads;
+
+    for (int i = 0; i < 5; i++)
+        threads.emplace_back(new std::thread{[&] {
+            for (int i = 0; i < 1000000; ++i)
+                mp->Deallocate(mp->Allocate());
+        }});
+
+    for (auto& t : threads)
+        t->join();
+
+    EXPECT_EQ(mp->GetCapacity(), mp->GetFreeSlots());
+}
+
+TEST_F(MemoryPoolTest, load_test_alloc__use_mem__dealloc) {
+    auto mp = MemoryPool<Type>::Create();
+
+    std::vector<std::unique_ptr<std::thread>> threads;
+
+    for (int i = 0; i < 5; i++)
+        threads.emplace_back(new std::thread{[&] {
+            for (int i = 0; i < 1000000; ++i) {
+                auto ptr = static_cast<Type*>(mp->Allocate());
+                ptr->x = 0;
+                mp->Deallocate(ptr);
+            }
+        }});
+
+    for (auto& t : threads)
+        t->join();
+
+    EXPECT_EQ(mp->GetCapacity(), mp->GetFreeSlots());
+}
+
+TEST_F(MemoryPoolTest, load_test_smart_ptr) {
+    auto mp = MemoryPool<Type>::Create();
+
+    std::vector<std::unique_ptr<std::thread>> threads;
+
+    for (int i = 0; i < 5; i++)
+        threads.emplace_back(new std::thread{[&] {
+            for (int i = 0; i < 1000000; ++i)
+                mp->New();
         }});
 
     for (auto& t : threads)
