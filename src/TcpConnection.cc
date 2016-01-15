@@ -30,7 +30,7 @@ void Connect(SocketStream& socket, const IPEndpoint& ep) {
 IPEndpoint::IPEndpoint(const ::sockaddr_in& sa) {
     int port = ntohs(sa.sin_port);
     auto ip = reinterpret_cast<const std::uint8_t*>(&sa.sin_addr.s_addr);
-    _address = {ip[0], ip[1], ip[2], ip[3]};
+    _address = {{ip[0], ip[1], ip[2], ip[3]}};
     _port = port;
 }
 

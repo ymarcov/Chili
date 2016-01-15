@@ -31,7 +31,7 @@ protected:
 
 private:
     IPEndpoint MakeEndpoint() {
-        return IPEndpoint{{127, 0, 0, 1}, 5555};
+        return IPEndpoint{{{127, 0, 0, 1}}, 5555};
     }
 
     std::shared_ptr<ThreadPool> MakeThreadPool() {

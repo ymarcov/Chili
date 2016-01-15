@@ -12,7 +12,7 @@ namespace Http {
 
 namespace {
 #define UPTR_PAIR(a, b) \
-    { static_cast<std::uintptr_t>(a), reinterpret_cast<std::uintptr_t>(b) }
+    {{ static_cast<std::uintptr_t>(a), reinterpret_cast<std::uintptr_t>(b) }}
 
 std::string HttpVersion = "HTTP/1.1";
 std::array<std::array<std::uintptr_t, 2>, 39> HttpStatusStrings = {{
