@@ -1,3 +1,4 @@
+* Timeout when reading request if no data in time
 * When stopping server, stop all active connections as well.
 * Design bandwidth throttling
 * Make integration test scripts
