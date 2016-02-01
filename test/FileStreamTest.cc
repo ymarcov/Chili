@@ -4,11 +4,13 @@
 #include "SystemError.h"
 
 #include <array>
+#include <chrono>
 #include <cstdio>
 #include <fcntl.h>
 #include <string>
 
 using namespace ::testing;
+using namespace std::literals;
 
 namespace Yam {
 namespace Http {
@@ -82,6 +84,14 @@ TEST_F(FileStreamTest, reads) {
     auto buffer = std::array<char, 0x100>{};
 
     ASSERT_EQ(_textInFile.size(), fs.Read(buffer.data(), buffer.size()));
+    EXPECT_EQ(_textInFile, std::string(buffer.data(), _textInFile.size()));
+}
+
+TEST_F(FileStreamTest, reads_with_timeout_param) {
+    auto fs = FileStream{_fd};
+    auto buffer = std::array<char, 0x100>{};
+
+    ASSERT_EQ(_textInFile.size(), fs.Read(buffer.data(), buffer.size(), 10ms));
     EXPECT_EQ(_textInFile, std::string(buffer.data(), _textInFile.size()));
 }
 

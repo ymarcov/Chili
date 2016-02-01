@@ -2,8 +2,12 @@
 
 #include "TcpConnection.h"
 #include "ThreadedTcpServer.h"
+#include "Timeout.h"
+
+#include <chrono>
 
 using namespace ::testing;
+using namespace std::literals;
 
 namespace Yam {
 namespace Http {
@@ -57,6 +61,26 @@ TEST_F(TcpTest, hello_goodbye) {
     auto client = CreateClient();
     SayHello(*client);
     WaitForGoodbye(*client);
+
+    server->Stop();
+    task.get();
+}
+
+TEST_F(TcpTest, timeout_on_read) {
+    auto server = CreateServer();
+    auto task = server->Start([=](std::shared_ptr<TcpConnection> conn) {
+        std::this_thread::sleep_for(30ms);
+        conn->Write("hello", 5);
+    });
+
+    auto client = CreateClient();
+    char buffer[0x10];
+    EXPECT_THROW(client->Read(buffer, sizeof(buffer), 10ms), Timeout);
+
+    // now let's make sure that we *are* getting the reply,
+    // so that we're not missing something important.
+    std::this_thread::sleep_for(40ms);
+    EXPECT_EQ(5, client->Read(buffer, sizeof(buffer)));
 
     server->Stop();
     task.get();

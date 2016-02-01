@@ -1,6 +1,8 @@
 #include "FileStream.h"
 #include "SystemError.h"
+#include "Timeout.h"
 
+#include <poll.h>
 #include <sys/sendfile.h>
 #include <unistd.h>
 
@@ -67,6 +69,22 @@ std::size_t FileStream::Read(void* buffer, std::size_t maxBytes) {
     ::ssize_t result;
     ENSURE(result = ::read(_nativeHandle, buffer, maxBytes));
     return result;
+}
+
+std::size_t FileStream::Read(void* buffer, std::size_t maxBytes, std::chrono::milliseconds timeout) {
+    struct pollfd pfd;
+    pfd.fd = _nativeHandle;
+    pfd.events = POLLIN;
+
+    int result = ::poll(&pfd, 1, timeout.count());
+
+    if (result  == -1)
+        throw SystemError{};
+
+    if (result == 0)
+        throw Timeout{};
+
+    return Read(buffer, maxBytes);
 }
 
 std::size_t FileStream::Write(const void* buffer, std::size_t maxBytes) {

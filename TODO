@@ -1,5 +1,3 @@
-* Move to non blocking reads/writes to allow for timeouts
-* Timeout when reading request if no data in time
 * Design sessions
 * When stopping server, stop all active connections as well.
 * Design bandwidth throttling
