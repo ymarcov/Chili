@@ -77,6 +77,8 @@ public:
     std::size_t ReadNextBodyChunk(void* buffer, std::size_t bufferSize);
 
 private:
+    void ReadAndParse();
+
     std::shared_ptr<void> _buffer;
     std::shared_ptr<InputStream> _input;
     Parser _parser;

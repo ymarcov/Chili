@@ -2,8 +2,11 @@
 #include "SystemError.h"
 
 #include <algorithm>
+#include <chrono>
 #include <cstring>
 #include <strings.h>
+
+auto READ_TIMEOUT = std::chrono::seconds{1};
 
 namespace Yam {
 namespace Http {
@@ -11,7 +14,11 @@ namespace Http {
 Request::Request(std::shared_ptr<void> emptyBuffer, std::shared_ptr<InputStream> input) :
     _buffer{std::move(emptyBuffer)},
     _input{std::move(input)} {
-    auto bytesRead = _input->Read(_buffer.get(), sizeof(Buffer));
+    ReadAndParse();
+}
+
+void Request::ReadAndParse() {
+    auto bytesRead = _input->Read(_buffer.get(), sizeof(Buffer), READ_TIMEOUT);
     _parser = Parser::Parse(static_cast<char*>(_buffer.get()), bytesRead);
     _onlySentHeaderFirst = (bytesRead == _parser.GetHeaderLength());
 }
@@ -145,7 +152,7 @@ std::size_t Request::ReadNextBodyChunk(void* buffer, std::size_t bufferSize) {
         }
     }
 
-    return _input->Read(buffer, std::min(bufferSize, contentLength));
+    return _input->Read(buffer, std::min(bufferSize, contentLength), READ_TIMEOUT);
 }
 
 } // namespace Http
