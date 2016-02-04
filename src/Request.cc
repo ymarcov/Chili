@@ -6,7 +6,7 @@
 #include <cstring>
 #include <strings.h>
 
-auto READ_TIMEOUT = std::chrono::seconds{10};
+namespace { auto ReadTimeout = std::chrono::seconds{10}; }
 
 namespace Yam {
 namespace Http {
@@ -18,7 +18,7 @@ Request::Request(std::shared_ptr<void> emptyBuffer, std::shared_ptr<InputStream>
 }
 
 void Request::ReadAndParse() {
-    auto bytesRead = _input->Read(_buffer.get(), sizeof(Buffer), READ_TIMEOUT);
+    auto bytesRead = _input->Read(_buffer.get(), sizeof(Buffer), ReadTimeout);
     _parser = Parser::Parse(static_cast<char*>(_buffer.get()), bytesRead);
     _onlySentHeaderFirst = (bytesRead == _parser.GetHeaderLength());
 }
@@ -152,7 +152,7 @@ std::size_t Request::ReadNextBodyChunk(void* buffer, std::size_t bufferSize) {
         }
     }
 
-    return _input->Read(buffer, std::min(bufferSize, contentLength), READ_TIMEOUT);
+    return _input->Read(buffer, std::min(bufferSize, contentLength), ReadTimeout);
 }
 
 } // namespace Http
