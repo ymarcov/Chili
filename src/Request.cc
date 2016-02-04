@@ -6,7 +6,7 @@
 #include <cstring>
 #include <strings.h>
 
-auto READ_TIMEOUT = std::chrono::seconds{1};
+auto READ_TIMEOUT = std::chrono::seconds{10};
 
 namespace Yam {
 namespace Http {
