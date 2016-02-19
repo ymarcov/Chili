@@ -1,4 +1,4 @@
-#include "TcpServerBase.h"
+#include "TcpServer.h"
 #include "SystemError.h"
 
 #include <netinet/in.h>
@@ -38,15 +38,15 @@ void Listen(SocketStream& socket) {
 
 } // unnamed namespace
 
-TcpServerBase::TcpServerBase(const IPEndpoint& ep) :
+TcpServer::TcpServer(const IPEndpoint& ep) :
     _endpoint{ep},
     _stop{true} {}
 
-TcpServerBase::~TcpServerBase() {
+TcpServer::~TcpServer() {
     Stop();
 }
 
-void TcpServerBase::ResetListenerSocket() {
+void TcpServer::ResetListenerSocket() {
     _socket = SocketStream{};
 
     auto fd = ::socket(AF_INET, SOCK_STREAM | SOCK_CLOEXEC, 0);
@@ -61,7 +61,7 @@ void TcpServerBase::ResetListenerSocket() {
     Listen(_socket);
 }
 
-std::future<void> TcpServerBase::Start() {
+std::future<void> TcpServer::Start() {
     if (!_stop || _thread.joinable())
         throw std::logic_error("Start() called when TCP server is already running");
 
@@ -75,7 +75,7 @@ std::future<void> TcpServerBase::Start() {
     return _promise.get_future();
 }
 
-void TcpServerBase::AcceptLoop() {
+void TcpServer::AcceptLoop() {
     while (!_stop) {
         ::sockaddr_in saddr{0};
         ::socklen_t saddr_size = sizeof(saddr);
@@ -109,7 +109,7 @@ void TcpServerBase::AcceptLoop() {
     _promise.set_value();
 }
 
-void TcpServerBase::Stop() {
+void TcpServer::Stop() {
     _stop = true;
     _socket = SocketStream{};
 

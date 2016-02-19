@@ -1,6 +1,6 @@
 #pragma once
 
-#include "TcpServerBase.h"
+#include "TcpServer.h"
 #include "ThreadPool.h"
 
 #include <functional>
@@ -9,7 +9,7 @@
 namespace Yam {
 namespace Http {
 
-class ThreadedTcpServer : public TcpServerBase {
+class ThreadedTcpServer : public TcpServer {
 public:
     using ConnectionHandler = std::function<void(std::shared_ptr<TcpConnection>)>;
 

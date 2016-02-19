@@ -1,6 +1,6 @@
 #pragma once
 
-#include "TcpServerBase.h"
+#include "TcpServer.h"
 #include "Poller.h"
 
 #include <memory>
@@ -8,7 +8,7 @@
 namespace Yam {
 namespace Http {
 
-class PolledTcpServer : public TcpServerBase {
+class PolledTcpServer : public TcpServer{
 public:
     PolledTcpServer(const IPEndpoint&, std::shared_ptr<Poller>);
 

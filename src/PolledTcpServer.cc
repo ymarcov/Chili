@@ -4,7 +4,7 @@ namespace Yam {
 namespace Http {
 
 PolledTcpServer::PolledTcpServer(const IPEndpoint& ep, std::shared_ptr<Poller> poller) :
-    TcpServerBase{ep},
+    TcpServer{ep},
     _poller{std::move(poller)} {
     _poller->OnStop += [this] { Stop(); };
 }

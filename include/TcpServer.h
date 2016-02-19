@@ -11,10 +11,10 @@
 namespace Yam {
 namespace Http {
 
-class TcpServerBase {
+class TcpServer {
 public:
-    TcpServerBase(const IPEndpoint&);
-    virtual ~TcpServerBase();
+    TcpServer(const IPEndpoint&);
+    virtual ~TcpServer();
 
     std::future<void> Start();
     void Stop();
@@ -35,7 +35,7 @@ private:
     std::atomic_bool _stop;
 };
 
-inline const IPEndpoint& TcpServerBase::GetEndpoint() const {
+inline const IPEndpoint& TcpServer::GetEndpoint() const {
     return _endpoint;
 }
 
