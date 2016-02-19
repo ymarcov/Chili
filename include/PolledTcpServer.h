@@ -8,9 +8,9 @@
 namespace Yam {
 namespace Http {
 
-class TcpServer : public TcpServerBase {
+class PolledTcpServer : public TcpServerBase {
 public:
-    TcpServer(const IPEndpoint&, std::shared_ptr<Poller>);
+    PolledTcpServer(const IPEndpoint&, std::shared_ptr<Poller>);
 
 protected:
     void OnAccepted(std::shared_ptr<TcpConnection>);

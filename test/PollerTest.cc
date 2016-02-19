@@ -2,7 +2,7 @@
 
 #include "Poller.h"
 #include "TcpConnection.h"
-#include "TcpServer.h"
+#include "PolledTcpServer.h"
 #include "ThreadPool.h"
 
 #include <chrono>
@@ -27,7 +27,7 @@ protected:
     }
 
     std::shared_ptr<Poller> _poller;
-    TcpServer _server;
+    PolledTcpServer _server;
 
 private:
     IPEndpoint MakeEndpoint() {

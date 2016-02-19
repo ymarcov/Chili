@@ -2,7 +2,7 @@
 #include "Request.h"
 #include "Responder.h"
 #include "SystemError.h"
-#include "TcpServer.h"
+#include "PolledTcpServer.h"
 
 #include <chrono>
 #include <iostream>
@@ -24,8 +24,8 @@ struct ServerConfiguration {
     bool _verbose;
 };
 
-std::unique_ptr<TcpServer> CreateServer(ServerConfiguration config) {
-    return std::make_unique<TcpServer>(config._endpoint, config._poller);
+std::unique_ptr<PolledTcpServer> CreateServer(ServerConfiguration config) {
+    return std::make_unique<PolledTcpServer>(config._endpoint, config._poller);
 }
 
 ServerConfiguration CreateConfiguration(std::vector<std::string> argv) {
