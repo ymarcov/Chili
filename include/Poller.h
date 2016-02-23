@@ -28,7 +28,7 @@ public:
         Writable = 0x2,
         Readable = 0x4,
         Hangup = 0x8,
-        Error  =0x10
+        Error  = 0x10
     };
 
     using EventHandler = std::function<Registration(std::shared_ptr<FileStream>, int events)>;
