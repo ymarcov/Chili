@@ -29,7 +29,7 @@ std::unique_ptr<PolledTcpServer> CreateServer(ServerConfiguration config) {
 }
 
 ServerConfiguration CreateConfiguration(std::vector<std::string> argv) {
-    if (argv.size() > 3)
+    if (argv.size() > 4)
         throw std::runtime_error("Invalid command line arguments");
 
     auto port = 3000;
@@ -39,13 +39,18 @@ ServerConfiguration CreateConfiguration(std::vector<std::string> argv) {
     auto endpoint = IPEndpoint{{{0, 0, 0, 0}}, port};
 
     int threadCount = 1;
-    if (argv.size() == 3)
+    if (argv.size() >= 3)
         threadCount = std::stoi(argv[2]);
 
     auto threadPool = std::make_shared<ThreadPool>(threadCount);
     auto totalPoolPages = (sizeof(Request::Buffer) / ::getpagesize()) * threadCount;
 
-    return {endpoint, threadPool, totalPoolPages, std::make_shared<Poller>(threadPool), false};
+    auto verbose = false;
+
+    if (argv.size() >= 4)
+        verbose = std::stoi(argv[3]);
+
+    return {endpoint, threadPool, totalPoolPages, std::make_shared<Poller>(threadPool), verbose};
 }
 
 void PrintInfo(Request& request) {
