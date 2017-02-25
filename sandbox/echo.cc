@@ -45,7 +45,7 @@ ServerConfiguration CreateConfiguration(std::vector<std::string> argv) {
     auto threadPool = std::make_shared<ThreadPool>(threadCount);
     auto totalPoolPages = (sizeof(Request::Buffer) / ::getpagesize()) * threadCount;
 
-    auto verbose = false;
+    auto verbose = true;
 
     if (argv.size() >= 4)
         verbose = std::stoi(argv[3]);
