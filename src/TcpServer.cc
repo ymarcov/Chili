@@ -3,9 +3,6 @@
 
 #include <netinet/in.h>
 #include <netinet/tcp.h>
-#include <sys/socket.h>
-#include <sys/types.h>
-#include <unistd.h>
 #include <arpa/inet.h>
 
 namespace Yam {
