@@ -40,6 +40,8 @@ void SocketServer::AcceptLoop() {
                 _promise.set_value();
                 return;
             } else {
+                // Oops: something bad happened
+
                 auto ignored = {
                     ECONNABORTED,
                     EMFILE,
@@ -51,7 +53,6 @@ void SocketServer::AcceptLoop() {
                 };
 
                 if (std::find(begin(ignored), end(ignored), ret) == end(ignored)) {
-                    // Oops: something bad happened
                     _stop = true;
                     _promise.set_exception(std::make_exception_ptr(SystemError{}));
                     return;
