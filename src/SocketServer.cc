@@ -31,8 +31,8 @@ void SocketServer::AcceptLoop() {
     while (!_stop) {
         // block until a new connection is accepted
         int ret = ::accept(_socket.GetNativeHandle(),
-                            reinterpret_cast<::sockaddr*>(AddressBuffer()),
-                            reinterpret_cast<::socklen_t*>(AddressBufferSize()));
+                           reinterpret_cast<::sockaddr*>(AddressBuffer()),
+                           reinterpret_cast<::socklen_t*>(AddressBufferSize()));
 
         if (ret == -1) {
             if (_stop) {
