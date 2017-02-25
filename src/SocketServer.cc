@@ -40,7 +40,7 @@ void SocketServer::AcceptLoop() {
                 _promise.set_value();
                 return;
             } else {
-                auto skippedErrors = {
+                auto ignored = {
                     ECONNABORTED,
                     EMFILE,
                     ENFILE,
@@ -50,7 +50,7 @@ void SocketServer::AcceptLoop() {
                     EPERM
                 };
 
-                if (std::find(begin(skippedErrors), end(skippedErrors), ret) == end(skippedErrors)) {
+                if (std::find(begin(ignored), end(ignored), ret) == end(ignored)) {
                     // Oops: something bad happened
                     _stop = true;
                     _promise.set_exception(std::make_exception_ptr(SystemError{}));
