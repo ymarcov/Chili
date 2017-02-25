@@ -64,8 +64,7 @@ void SocketServer::AcceptLoop() {
         try {
             OnAccepted(ret);
         } catch (...) {
-            _stop = true;
-            _promise.set_exception(std::current_exception());
+            // TODO: log this
         }
     }
 
