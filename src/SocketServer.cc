@@ -55,6 +55,8 @@ void SocketServer::AcceptLoop() {
                     _stop = true;
                     _promise.set_exception(std::make_exception_ptr(SystemError{}));
                     return;
+                } else {
+                    continue;
                 }
             }
         }
