@@ -55,7 +55,7 @@ void SocketServer::AcceptLoop() {
                 if (std::find(begin(ignored), end(ignored), ret) == end(ignored)) {
                     _stop = true;
                     _promise.set_exception(std::make_exception_ptr(SystemError{}));
-                    return;
+                    return; // TODO: log this
                 } else {
                     continue;
                 }
