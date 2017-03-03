@@ -8,7 +8,7 @@
 namespace Yam {
 namespace Http {
 
-class PolledTcpServer : public TcpServer{
+class PolledTcpServer : public TcpServer {
 public:
     PolledTcpServer(const IPEndpoint&, std::shared_ptr<Poller>);
 
