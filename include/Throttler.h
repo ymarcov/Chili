@@ -10,6 +10,7 @@ class Throttler {
 public:
     using Clock = std::chrono::steady_clock;
 
+    Throttler();
     Throttler(std::size_t capacity, std::chrono::milliseconds interval);
 
     std::chrono::time_point<Clock> GetFillTimePoint() const;
@@ -19,6 +20,7 @@ public:
 private:
     std::size_t UpdateCurrentQuota() const;
 
+    bool _enabled = false;
     std::size_t _capacity;
     std::chrono::milliseconds _interval;
     std::chrono::time_point<Clock> _lastConsumption;
