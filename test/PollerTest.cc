@@ -4,8 +4,10 @@
 #include "TcpConnection.h"
 #include "PolledTcpServer.h"
 #include "ThreadPool.h"
+#include "WaitEvent.h"
 
 #include <chrono>
+#include <condition_variable>
 #include <thread>
 
 using namespace ::testing;
@@ -59,6 +61,47 @@ TEST_F(PollerTest, signals_shutdown_event) {
     pollerTask.get();
 
     EXPECT_TRUE(gotShutdownEvent);
+}
+
+TEST_F(PollerTest, registered_file_does_not_block) {
+    WaitEvent firstPartDone, secondPartDone;
+    std::size_t totalBytesRemaining = 10;
+
+    auto pollerTask = _poller->Start([&](std::shared_ptr<FileStream> f, int events) {
+        std::size_t bytesRead;
+        char buffer[1];
+
+        while (f->Read(buffer, sizeof(buffer), bytesRead))
+            totalBytesRemaining -= bytesRead;
+
+        firstPartDone.Signal();
+
+        if (totalBytesRemaining > 0) {
+            return Poller::Registration::Continue;
+        } else {
+            secondPartDone.Signal();
+            return Poller::Registration::Conclude;
+        }
+    });
+
+    auto serverTask = _server.Start();
+
+    {
+        auto conn = MakeConnection();
+        conn->Write("hello", 5);
+        firstPartDone.Wait();
+        std::this_thread::sleep_for(20ms);
+        conn->Write("world", 5);
+        secondPartDone.Wait();
+    }
+
+    _server.Stop();
+    serverTask.get();
+
+    _poller->Stop();
+    pollerTask.get();
+
+    EXPECT_EQ(0, totalBytesRemaining);
 }
 
 TEST_F(PollerTest, signals_read_events) {

@@ -25,9 +25,11 @@ public:
     FileStream& operator=(FileStream&&);
 
     NativeHandle GetNativeHandle() const;
+    void SetBlocking(bool);
 
     std::size_t Read(void* buffer, std::size_t maxBytes) override;
     std::size_t Read(void* buffer, std::size_t maxBytes, std::chrono::milliseconds timeout) override;
+    bool Read(void* buffer, std::size_t maxBytes, std::size_t& readBytes);
     std::size_t Write(const void* buffer, std::size_t maxBytes) override;
     virtual std::size_t WriteTo(FileStream&, std::size_t maxBytes);
 

@@ -2,6 +2,7 @@
 #include "SystemError.h"
 #include "Timeout.h"
 
+#include <fcntl.h>
 #include <poll.h>
 #include <sys/sendfile.h>
 #include <unistd.h>
@@ -65,6 +66,18 @@ FileStream::NativeHandle FileStream::GetNativeHandle() const {
     return _nativeHandle;
 }
 
+void FileStream::SetBlocking(bool blocking) {
+    auto flags = ::fcntl(_nativeHandle, F_GETFL, O_NONBLOCK);
+
+    if (flags == -1)
+        throw SystemError{};
+
+    auto newFlags = (!blocking) ? (flags | O_NONBLOCK) : (flags & ~O_NONBLOCK);
+
+    if (-1 == ::fcntl(_nativeHandle, F_SETFL, newFlags))
+        throw SystemError{};
+}
+
 std::size_t FileStream::Read(void* buffer, std::size_t maxBytes) {
     ::ssize_t result;
     ENSURE(result = ::read(_nativeHandle, buffer, maxBytes));
@@ -85,6 +98,22 @@ std::size_t FileStream::Read(void* buffer, std::size_t maxBytes, std::chrono::mi
         throw Timeout{};
 
     return Read(buffer, maxBytes);
+}
+
+bool FileStream::Read(void* buffer, std::size_t maxBytes, std::size_t& readBytes) {
+    auto result = ::read(_nativeHandle, buffer, maxBytes);
+
+
+    if (result == -1) {
+        if (errno == EAGAIN || errno == EWOULDBLOCK)
+            return false;
+        else
+            throw SystemError{};
+    }
+
+    readBytes = result;
+
+    return true;
 }
 
 std::size_t FileStream::Write(const void* buffer, std::size_t maxBytes) {
