@@ -27,7 +27,7 @@ std::size_t Poller::GetWatchedCount() {
 void Poller::Register(std::shared_ptr<FileStream> fs) {
     struct epoll_event ev;
 
-    ev.events = EPOLLET | EPOLLIN | EPOLLHUP | EPOLLRDHUP;
+    ev.events = EPOLLET | EPOLLIN | EPOLLOUT | EPOLLHUP | EPOLLRDHUP;
     ev.data.ptr = fs.get();
 
     std::lock_guard<std::mutex> lock{_filesMutex};
