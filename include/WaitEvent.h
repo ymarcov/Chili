@@ -12,7 +12,7 @@ public:
     void Reset();
     void Signal();
     void Wait() const;
-    void Wait(std::chrono::microseconds timeout) const;
+    bool Wait(std::chrono::microseconds timeout) const;
 
 private:
     mutable std::mutex _mutex;

@@ -21,9 +21,9 @@ void WaitEvent::Wait() const {
     _cv.wait(lock, [this] { return _signalled == true; });
 }
 
-void WaitEvent::Wait(std::chrono::microseconds timeout) const {
+bool WaitEvent::Wait(std::chrono::microseconds timeout) const {
     std::unique_lock<std::mutex> lock(_mutex);
-    _cv.wait_for(lock, timeout, [this] { return _signalled == true; });
+    return _cv.wait_for(lock, timeout, [this] { return _signalled == true; });
 }
 
 } // namespace Http
