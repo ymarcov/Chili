@@ -9,6 +9,7 @@ namespace Http {
 
 class WaitEvent {
 public:
+    void Reset();
     void Signal();
     void Wait() const;
     void Wait(std::chrono::microseconds timeout) const;

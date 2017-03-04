@@ -3,6 +3,12 @@
 namespace Yam {
 namespace Http {
 
+void WaitEvent::Reset() {
+    _mutex.lock();
+    _signalled = false;
+    _mutex.unlock();
+}
+
 void WaitEvent::Signal() {
     _mutex.lock();
     _signalled = true;
