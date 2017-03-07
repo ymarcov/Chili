@@ -170,38 +170,43 @@ TEST_F(MemoryPoolTest, primitive_types) {
     EXPECT_EQ(1.23, *f);
 }
 
+namespace TestGlobals {
+
+constexpr int initialCount = 5;
+int count;
+
+} // namespace TestGlobals
+
 TEST_F(MemoryPoolTest, std_array) {
-    static constexpr int initialCount = 5;
-    static int count = initialCount;
+    TestGlobals::count = TestGlobals::initialCount;
 
     struct Decrement {
         ~Decrement() {
-            --count;
+            --TestGlobals::count;
         }
     };
 
-    auto mp = MemoryPool<std::array<Decrement, initialCount>>::Create();
+    auto mp = MemoryPool<std::array<Decrement, TestGlobals::initialCount>>::Create();
 
-    EXPECT_EQ(initialCount, count);
+    EXPECT_EQ(TestGlobals::initialCount, TestGlobals::count);
     mp->New();
-    EXPECT_EQ(0, count);
+    EXPECT_EQ(0, TestGlobals::count);
 }
 
 TEST_F(MemoryPoolTest, c_array) {
-    static constexpr int initialCount = 5;
-    static int count = initialCount;
+    TestGlobals::count = TestGlobals::initialCount;
 
     struct Decrement {
         ~Decrement() {
-            --count;
+            --TestGlobals::count;
         }
     };
 
-    auto mp = MemoryPool<Decrement[initialCount]>::Create();
+    auto mp = MemoryPool<Decrement[TestGlobals::initialCount]>::Create();
 
-    EXPECT_EQ(initialCount, count);
+    EXPECT_EQ(TestGlobals::initialCount, TestGlobals::count);
     mp->New();
-    EXPECT_EQ(0, count);
+    EXPECT_EQ(0, TestGlobals::count);
 
     // API check
     static_assert(std::is_same<decltype(mp->New().get()), Decrement*>::value, "");
