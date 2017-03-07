@@ -33,7 +33,15 @@ bool Semaphore::Decrement(std::chrono::nanoseconds timeout) {
         throw SystemError();
 
     ts.tv_sec += timeout.count() / int(1e9);
-    ts.tv_nsec += timeout.count() % int(1e9);
+
+    auto addedNs = timeout.count() % int(1e9);
+
+    if (ts.tv_nsec + addedNs >= int(1e9)) {
+        ts.tv_sec += 1;
+        ts.tv_nsec = (ts.tv_nsec + addedNs) % int(1e9);
+    } else {
+        ts.tv_nsec += timeout.count() % int(1e9);
+    }
 
     auto ret = ::sem_timedwait(static_cast<sem_t*>(_nativeHandle.get()), &ts);
 
