@@ -11,9 +11,9 @@ class Signal {
 public:
     using Callback = std::function<void(Param...)>;
 
-    void operator()(Param... p) const {
+    void operator()(Param&&... p) const {
         for (auto& s : _subscribers)
-            s(p...);
+            s(std::forward<Param>(p)...);
     }
 
     template <class T>

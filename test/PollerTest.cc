@@ -33,11 +33,11 @@ protected:
 
 private:
     IPEndpoint MakeEndpoint() {
-        return IPEndpoint{{{127, 0, 0, 1}}, 5555};
+        return IPEndpoint{{{127, 0, 0, 1}}, 51788};
     }
 
     std::shared_ptr<ThreadPool> MakeThreadPool() {
-        return std::make_shared<ThreadPool>(1);
+        return std::make_shared<ThreadPool>(3);
     }
 };
 
@@ -46,7 +46,6 @@ TEST_F(PollerTest, signals_shutdown_event) {
 
     auto pollerTask = _poller->Start([&](std::shared_ptr<FileStream>, int events) {
         gotShutdownEvent |= (events & Poller::Events::Shutdown);
-        return Poller::Registration::Continue;
     });
 
     auto serverTask = _server.Start();
@@ -63,24 +62,25 @@ TEST_F(PollerTest, signals_shutdown_event) {
     EXPECT_TRUE(gotShutdownEvent);
 }
 
+//FIXME: sometimes blocks
 TEST_F(PollerTest, registered_file_does_not_block) {
     WaitEvent firstPartDone, secondPartDone;
-    std::size_t totalBytesRemaining = 10;
+    std::atomic_size_t totalBytesRemaining{10};
 
     auto pollerTask = _poller->Start([&](std::shared_ptr<FileStream> f, int events) {
-        std::size_t bytesRead;
         char buffer[1];
 
-        while (f->Read(buffer, sizeof(buffer), bytesRead))
+        while (auto bytesRead = f->Read(buffer, sizeof(buffer)))
             totalBytesRemaining -= bytesRead;
 
         firstPartDone.Signal();
 
         if (totalBytesRemaining > 0) {
-            return Poller::Registration::Continue;
+            _poller->Poll(f);
+            return;
         } else {
             secondPartDone.Signal();
-            return Poller::Registration::Conclude;
+            return;
         }
     });
 
@@ -104,23 +104,23 @@ TEST_F(PollerTest, registered_file_does_not_block) {
     EXPECT_EQ(0, totalBytesRemaining);
 }
 
+//FIXME: sometimes 3 == 4
 TEST_F(PollerTest, signals_read_events) {
-    unsigned countedReadEvents = 0;
+    std::atomic_int countedReadEvents{0};
 
-    auto pollerTask = _poller->Start([&](std::shared_ptr<FileStream>, int events) {
-        if (!(events & Poller::Events::Shutdown))
-            countedReadEvents += !!(events & Poller::Events::Readable);
-        return Poller::Registration::Continue;
+    auto pollerTask = _poller->Start([&](std::shared_ptr<FileStream> fs, int events) {
+        countedReadEvents += !!(events & Poller::Events::Readable);
     });
 
     auto serverTask = _server.Start();
 
     {
         auto c1 = MakeConnection();
-        c1->Write("hello", 5);
         auto c2 = MakeConnection();
-        c2->Write("hello", 5);
         auto c3 = MakeConnection();
+
+        c1->Write("hello", 5);
+        c2->Write("hello", 5);
         c3->Write("hello", 5);
 
         std::this_thread::sleep_for(100ms);
@@ -136,10 +136,13 @@ TEST_F(PollerTest, signals_read_events) {
 }
 
 TEST_F(PollerTest, reaps_connections) {
-    auto pollerTask = _poller->Start([](std::shared_ptr<FileStream>, int events) {
-        if (events & Poller::Events::Readable)
-            return Poller::Registration::Conclude;
-        return Poller::Registration::Continue;
+    std::atomic_int processingCount{0};
+    WaitEvent allProcessing, mayStopProcessing;
+
+    auto pollerTask = _poller->Start([&](std::shared_ptr<FileStream>, int events) {
+        if (++processingCount == 3)
+            allProcessing.Signal();
+        mayStopProcessing.Wait();
     });
 
     auto serverTask = _server.Start();
@@ -151,8 +154,13 @@ TEST_F(PollerTest, reaps_connections) {
         auto c2 = MakeConnection();
         auto c3 = MakeConnection();
 
-        std::this_thread::sleep_for(50ms);
+        c1->Write("hello", 5);
+        c2->Write("hello", 5);
+        c3->Write("hello", 5);
+
+        allProcessing.Wait();
         EXPECT_EQ(3, _poller->GetWatchedCount());
+        mayStopProcessing.Signal();
     }
 
     std::this_thread::sleep_for(50ms);
@@ -165,9 +173,43 @@ TEST_F(PollerTest, reaps_connections) {
     pollerTask.get();
 }
 
+TEST_F(PollerTest, reports_disconnect) {
+    WaitEvent ready, reported;
+    std::atomic_bool reportedDisconnect{false};
+
+    auto pollerTask = _poller->Start([&](std::shared_ptr<FileStream> fs, int events) {
+        ready.Signal();
+
+        if (events & Poller::Events::Shutdown) {
+            reportedDisconnect = true;
+            reported.Signal();
+        } else {
+            // events weren't combined, need to re-wait for shutdown
+            _poller->Poll(fs);
+        }
+    });
+
+    auto serverTask = _server.Start();
+
+    {
+        auto conn = MakeConnection();
+        conn->Write("hello", 5);
+        ready.Wait();
+    }
+
+    reported.Wait(20ms);
+
+    _server.Stop();
+    serverTask.get();
+
+    _poller->Stop();
+    pollerTask.get();
+
+    EXPECT_TRUE(reportedDisconnect);
+}
+
 TEST_F(PollerTest, notifies_on_stop) {
     auto pollerTask = _poller->Start([](std::shared_ptr<FileStream>, int) {
-        return Poller::Registration::Conclude;
     });
 
     bool notified = false;

@@ -1,5 +1,6 @@
 #include "Responder.h"
 
+#include <algorithm>
 #include <array>
 #include <cppformat/format.h>
 #include <cstring>
@@ -95,10 +96,44 @@ void Responder::Send(Status status) {
 
     w.write("\r\n");
 
-    _stream->Write(w.c_str(), w.size());
+    _header = w.str();
+}
 
-    if (_body)
-        _stream->Write(_body->data(), _body->size());
+std::pair<bool, std::size_t> Responder::Flush(std::size_t maxBytes) {
+    std::size_t bytesWritten = 0;
+
+    if (_writePosition < _header.size()) {
+        auto quota = std::min(maxBytes, _header.size() - _writePosition);
+        bytesWritten = _stream->Write(_header.c_str() + _writePosition, quota);
+
+        _writePosition += bytesWritten;
+        maxBytes -= bytesWritten;
+
+        if (_writePosition != _header.size())
+            return std::make_pair(false, bytesWritten);
+    }
+
+    if (_body) {
+        auto bodyBytesConsumed = _writePosition - _header.size();
+        auto quota = std::min(maxBytes, _body->size() - bodyBytesConsumed);
+        bytesWritten = _stream->Write(_body->data() + bodyBytesConsumed, quota);
+
+        _writePosition += bytesWritten;
+
+        if (_writePosition - _header.size() != _body->size())
+            return std::make_pair(false, bytesWritten);
+    }
+
+    return std::make_pair(true, bytesWritten);
+}
+
+bool Responder::GetKeepAlive() const {
+    return _keepAlive;
+}
+
+void Responder::KeepAlive() {
+    SetField("Connection", "keep-alive");
+    _keepAlive = true;
 }
 
 void Responder::SetField(std::string name, std::string value) {

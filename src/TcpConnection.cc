@@ -20,9 +20,8 @@ namespace {
 void Connect(SocketStream& socket, const IPEndpoint& ep) {
     auto addr = ep.GetAddrInfo();
     auto paddr = reinterpret_cast<::sockaddr*>(addr.get());
-    while (-1 == ::connect(socket.GetNativeHandle(), paddr, sizeof(*addr)))
-        if (errno != EINTR)
-            throw SystemError{};
+    if (-1 == ::connect(socket.GetNativeHandle(), paddr, sizeof(*addr)))
+        throw SystemError{};
 }
 
 } // unnamed namespace

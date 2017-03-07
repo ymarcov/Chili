@@ -34,9 +34,17 @@ const char requestHeaderData[] =
 "GET /path/to/res HTTP/1.1\r\n"
 "User-agent: Mozilla/5.0 (X11; Linux x86_64; rv:31.0) Gecko/20100101 Firefox/31.0 Iceweasel/31.8.0\r\n"
 "Cookie: Session=abcd1234; User=Yam\r\n"
+"Connection: Keep-alive\r\n"
 "Expect: 100-continue\r\n"
 "Content-Length: 13\r\n"
 "\r\n";
+
+const char requestMissingEndOfHeaderData[] =
+"GET /path/to/res HTTP/1.1\r\n"
+"User-agent: Mozilla/5.0 (X11; Linux x86_64; rv:31.0) Gecko/20100101 Firefox/31.0 Iceweasel/31.8.0\r\n"
+"Cookie: Session=abcd1234; User=Yam\r\n"
+"Expect: 100-continue\r\n"
+"Content-Length: 13\r\n";
 
 const char requestBodyData[] = "Request body!";
 
@@ -51,7 +59,6 @@ template <std::size_t N>
 std::string ToString(const char (&s)[N]) {
     return {s, NonTerminatedSize(s)};
 }
-
 class StringInputStream : public InputStream {
 public:
     StringInputStream() = default;
@@ -100,7 +107,12 @@ private:
 class RequestTest : public Test {
 protected:
     auto MakeRequest(std::shared_ptr<InputStream>&& s) {
-        return std::make_unique<Request>(std::shared_ptr<void>(new Request::Buffer), std::move(s));
+        auto req = std::make_unique<Request>(std::shared_ptr<void>(new Request::Buffer), std::move(s));
+
+        while (!req->ConsumeHeader(1).first)
+            ;
+
+        return req;
     }
 
     template <std::size_t N>
@@ -128,28 +140,45 @@ TEST_F(RequestTest, header_getters) {
     EXPECT_EQ("abcd1234", r->GetCookie("Session"));
     EXPECT_EQ(2, r->GetCookieNames().size());
     EXPECT_EQ(13, r->GetContentLength());
+    EXPECT_FALSE(r->KeepAlive());
 }
 
 TEST_F(RequestTest, body) {
     auto r = MakeRequest(MakeContiguousInputStream());
 
     auto buffer = std::array<char, 0x1000>{};
-    auto bytesRead = r->ReadNextBodyChunk(buffer.data(), buffer.size());
+    auto result = r->ConsumeBody(buffer.data(), buffer.size());
 
-    EXPECT_EQ("Request body!", std::string(buffer.data(), bytesRead));
+    EXPECT_TRUE(result.first);
+    EXPECT_EQ("Request body!", std::string(buffer.data(), result.second));
 }
 
 TEST_F(RequestTest, non_contiguous_header_and_body) {
     auto r = MakeRequest(MakeNonContiguousInputStream());
     auto buffer = std::array<char, 0x1000>{};
-    auto readBodyBytes = r->ReadNextBodyChunk(buffer.data(), buffer.size());
+    auto result = r->ConsumeBody(buffer.data(), buffer.size());
 
+    EXPECT_TRUE(result.first);
     EXPECT_EQ(Method::Get, r->GetMethod());
     EXPECT_EQ(Version::Http11, r->GetVersion());
     EXPECT_EQ("/path/to/res", r->GetUri());
     EXPECT_EQ(13, r->GetContentLength());
     EXPECT_EQ("100-continue", r->GetField("Expect"));
-    EXPECT_EQ(NonTerminatedSize(requestBodyData), readBodyBytes);
+    EXPECT_EQ(NonTerminatedSize(requestBodyData), result.second);
+    EXPECT_TRUE(r->KeepAlive());
+}
+
+TEST_F(RequestTest, invalid_header_throws) {
+    Request::Buffer buffer;
+    EXPECT_THROW(MakeRequest(MakeInputStream(buffer)), std::runtime_error);
+}
+
+TEST_F(RequestTest, missing_end_of_header_in_small_buffer_never_finishes_consuming) {
+    Request req(std::shared_ptr<void>(new Request::Buffer), MakeInputStream(requestMissingEndOfHeaderData));
+
+    EXPECT_FALSE(req.ConsumeHeader(-1).first);
+    EXPECT_FALSE(req.ConsumeHeader(-1).first);
+    EXPECT_FALSE(req.ConsumeHeader(-1).first);
 }
 
 } // namespace Http

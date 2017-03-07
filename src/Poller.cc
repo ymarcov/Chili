@@ -24,44 +24,60 @@ std::size_t Poller::GetWatchedCount() {
     return _files.size();
 }
 
-void Poller::Register(std::shared_ptr<FileStream> fs) {
+void Poller::Poll(std::shared_ptr<FileStream> fs, int events) {
+    InsertOrIncrementRefCount(fs, events);
+}
+
+// Handling ref counts makes it possible to re-register
+// from within a handler, even though straight after
+// it the dispatcher will decrement the ref count.
+void Poller::InsertOrIncrementRefCount(std::shared_ptr<FileStream>& fs, int events) {
     struct epoll_event ev;
 
-    ev.events = EPOLLET | EPOLLIN | EPOLLOUT | EPOLLHUP | EPOLLRDHUP;
+    ev.events = EPOLLONESHOT | ConvertToNative(events);
     ev.data.ptr = fs.get();
 
     std::lock_guard<std::mutex> lock{_filesMutex};
 
-    _files[fs.get()] = fs;
+    auto it = _files.find(fs.get());
 
-    if (-1 == ::epoll_ctl(_fd, EPOLL_CTL_ADD, fs->GetNativeHandle(), &ev)) {
-        _files.erase(fs.get());
-        throw SystemError{};
+    if (it == end(_files)) {
+        _files[fs.get()] = std::make_pair(1, fs);
+
+        if (-1 == ::epoll_ctl(_fd, EPOLL_CTL_ADD, fs->GetNativeHandle(), &ev)) {
+            _files.erase(fs.get());
+            throw SystemError{};
+        }
+    } else {
+        ++_files[fs.get()].first;
+
+        if (-1 == ::epoll_ctl(_fd, EPOLL_CTL_MOD, fs->GetNativeHandle(), &ev)) {
+            if (-1 == ::epoll_ctl(_fd, EPOLL_CTL_DEL, fs->GetNativeHandle(), nullptr))
+                ; // TODO: log this?
+
+            _files.erase(fs.get());
+            throw SystemError{};
+        }
     }
 
-    ++_fdCount;
 }
 
-void Poller::Unregister(const FileStream& fs) {
+void Poller::DecrementRefCount(const FileStream& fs) {
     std::lock_guard<std::mutex> lock{_filesMutex};
 
     auto it = _files.find(&fs);
 
-    /*
-     * We can enter here twice if epoll
-     * shot more than one event, which
-     * queued more than one task which
-     * either requested to conclude the
-     * registration, or errored out.
-     */
     if (it != _files.end()) {
         auto streamFd = fs.GetNativeHandle();
 
-        _files.erase(it);
+        if (it->second.first == 1) {
+            _files.erase(it);
+        } else {
+            --it->second.first;
+            return;
+        }
 
-        if (!::epoll_ctl(_fd, EPOLL_CTL_DEL, streamFd, nullptr))
-            --_fdCount;
-        else
+        if (::epoll_ctl(_fd, EPOLL_CTL_DEL, streamFd, nullptr))
             ; // TODO Log this!
 
     }
@@ -88,21 +104,16 @@ void Poller::Stop() {
 void Poller::PollLoop(const Poller::EventHandler& handler) {
     constexpr int maxEvents = 100;
     struct epoll_event events[maxEvents];
+    int n;
 
     while (!_stop) {
-        int result;
-
-        while (-1 == (result = ::epoll_wait(_fd, events, maxEvents, 100)))
-            if (errno != EINTR)
-                break;
-
-        if (result == -1) {
+        if (-1 == (n = ::epoll_wait(_fd, events, maxEvents, 100))) {
             _promise.set_exception(std::make_exception_ptr(SystemError{}));
             OnStop();
             return;
         }
 
-        DispatchEvents(events, result, handler);
+        DispatchEvents(events, n, handler);
     }
 
     _promise.set_value();
@@ -116,17 +127,18 @@ void Poller::DispatchEvents(void* eventsPtr, std::size_t n, const Poller::EventH
         auto eventMask = events[i].events;
         auto fs = GetFileStreamFromPtr(events[i].data.ptr);
 
-        _threadPool->Post([=] {
-            Registration r;
+        if (!fs) {
+            // TODO: log?
+            continue;
+        }
 
+        _threadPool->Post([=] {
             try {
-                r = handler(fs, ConvertMask(eventMask));
+                handler(fs, ConvertFromNative(eventMask));
             } catch (...) {
-                r = Registration::Conclude;
             }
 
-            if (r == Registration::Conclude)
-                Unregister(*fs);
+            DecrementRefCount(*fs);
         });
     }
 }
@@ -134,10 +146,10 @@ void Poller::DispatchEvents(void* eventsPtr, std::size_t n, const Poller::EventH
 std::shared_ptr<FileStream> Poller::GetFileStreamFromPtr(void* ptr) {
     std::lock_guard<std::mutex> lock{_filesMutex};
     auto it = _files.find(ptr);
-    return it == _files.end() ? nullptr : it->second;
+    return it == _files.end() ? nullptr : it->second.second;
 }
 
-int Poller::ConvertMask(int m) {
+int Poller::ConvertFromNative(int m) {
     int result = 0;
 
     if (m & EPOLLIN)
@@ -154,6 +166,27 @@ int Poller::ConvertMask(int m) {
 
     if (m & EPOLLERR)
         result |= Events::Error;
+
+    return result;
+}
+
+int Poller::ConvertToNative(int m) {
+    int result = 0;
+
+    if (m & Events::Readable)
+        result |= EPOLLIN;
+
+    if (m & Events::Writable)
+        result |= EPOLLOUT;
+
+    if (m & Events::Shutdown)
+        result |= EPOLLRDHUP;
+
+    if (m & Events::Hangup)
+        result |= EPOLLHUP;
+
+    if (m & Events::Error)
+        result |= EPOLLERR;
 
     return result;
 }

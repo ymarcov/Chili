@@ -51,7 +51,7 @@ protected:
     }
 
 private:
-    IPEndpoint _testEp{{{127, 0, 0, 1}}, 8888};
+    IPEndpoint _testEp{{{127, 0, 0, 1}}, 63184};
 };
 
 TEST_F(TcpTest, hello_goodbye) {

@@ -110,13 +110,13 @@ void PrintInfo(Request& request) {
 
     if (request.GetMethod() == Method::Post) {
         std::cout << "====================\n";
-        auto remaining = request.GetContentLength();
+        bool remaining = true;
         while (remaining) {
-            char buffer[0x100];
-            auto bytesRead = request.ReadNextBodyChunk(buffer, sizeof(buffer));
-            auto str = std::string{buffer, bytesRead};
+            char buffer[0x1000];
+            auto result = request.ConsumeBody(buffer, sizeof(buffer));
+            auto str = std::string{buffer, result.second};
             std::cout << str;
-            remaining -= bytesRead;
+            remaining = result.first;
         }
         std::cout << "====================\n";
     }
@@ -148,8 +148,6 @@ Poller::EventHandler CreateHandler(ServerConfiguration config) {
             std::lock_guard<std::mutex> lock{_outputMutex};
             std::cout << "E: " << e.what() << "\n";
         }
-
-        return Poller::Registration::Conclude;
     };
 }
 

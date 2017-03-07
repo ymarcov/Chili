@@ -2,6 +2,7 @@
 
 #include "FileStream.h"
 #include "SystemError.h"
+#include "TestFileUtils.h"
 
 #include <array>
 #include <chrono>
@@ -29,15 +30,6 @@ public:
     }
 
 protected:
-    int OpenTempFile() {
-        int fd = fileno(std::tmpfile());
-
-        if (fd == -1)
-            throw SystemError{};
-
-        return fd;
-    }
-
     void ExpectDuplicateFileHandles(FileStream& lhs, FileStream& rhs) {
         ASSERT_LE(6, _textInFile.size()) << "Initial file text must be longer";
 

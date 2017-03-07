@@ -44,6 +44,11 @@ protected:
     auto MakeBodyFromString(const std::string& s) const {
         return std::make_shared<std::vector<char>>(s.data(), s.data() + s.size());
     }
+
+    void Flush(std::unique_ptr<Responder>& r) {
+        while (!r->Flush(1).first)
+            ;
+    }
 };
 
 TEST_F(ResponderTest, just_status) {
@@ -51,6 +56,7 @@ TEST_F(ResponderTest, just_status) {
     auto r = MakeResponder(stream);
 
     r->Send(Status::Continue);
+    Flush(r);
 
     EXPECT_EQ("HTTP/1.1 100 Continue\r\n\r\n", stream->ToString());
 }
@@ -62,6 +68,7 @@ TEST_F(ResponderTest, some_headers) {
     r->SetField("First", "Hello world!");
     r->SetField("Second", "v4r!0u$ sYm80;5");
     r->Send(Status::Ok);
+    Flush(r);
 
     auto expected = "HTTP/1.1 200 OK\r\n"
         "First: Hello world!\r\n"
@@ -77,6 +84,7 @@ TEST_F(ResponderTest, headers_and_body) {
 
     r->SetBody(MakeBodyFromString("Hello world!"));
     r->Send(Status::BadGateway);
+    Flush(r);
 
     auto expected = "HTTP/1.1 502 Bad Gateway\r\n"
         "Content-Length: 12\r\n"
@@ -93,6 +101,7 @@ TEST_F(ResponderTest, simple_cookies) {
     r->SetCookie("First", "One");
     r->SetCookie("Second", "Two");
     r->Send(Status::NotFound);
+    Flush(r);
 
     auto expected = "HTTP/1.1 404 Not Found\r\n"
         "Set-Cookie: First=One\r\n"
@@ -115,6 +124,7 @@ TEST_F(ResponderTest, cookie_with_simple_options) {
 
     r->SetCookie("First", "One", opts);
     r->Send(Status::Ok);
+    Flush(r);
 
     auto expected = "HTTP/1.1 200 OK\r\n"
         "Set-Cookie: First=One; Domain=example.com; Path=/some/path; Max-Age=600\r\n"
@@ -137,6 +147,7 @@ TEST_F(ResponderTest, cookie_with_expiration_date) {
 
     r->SetCookie("First", "One", opts);
     r->Send(Status::Ok);
+    Flush(r);
 
     auto expected = "HTTP/1.1 200 OK\r\n"
         "Set-Cookie: First=One; Expires=Tue, 15 Jan 2013 21:47:38 GMT\r\n"
@@ -155,6 +166,7 @@ TEST_F(ResponderTest, cookie_with_httponly_and_secure) {
 
     r->SetCookie("First", "One", opts);
     r->Send(Status::Ok);
+    Flush(r);
 
     auto expected = "HTTP/1.1 200 OK\r\n"
         "Set-Cookie: First=One; HttpOnly; Secure\r\n"

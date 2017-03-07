@@ -79,8 +79,15 @@ void FileStream::SetBlocking(bool blocking) {
 }
 
 std::size_t FileStream::Read(void* buffer, std::size_t maxBytes) {
-    ::ssize_t result;
-    ENSURE(result = ::read(_nativeHandle, buffer, maxBytes));
+    auto result = ::read(_nativeHandle, buffer, maxBytes);
+
+    if (result == -1) {
+        if (errno == EAGAIN || errno == EWOULDBLOCK)
+            return 0;
+        else
+            throw SystemError{};
+    }
+
     return result;
 }
 
@@ -98,22 +105,6 @@ std::size_t FileStream::Read(void* buffer, std::size_t maxBytes, std::chrono::mi
         throw Timeout{};
 
     return Read(buffer, maxBytes);
-}
-
-bool FileStream::Read(void* buffer, std::size_t maxBytes, std::size_t& readBytes) {
-    auto result = ::read(_nativeHandle, buffer, maxBytes);
-
-
-    if (result == -1) {
-        if (errno == EAGAIN || errno == EWOULDBLOCK)
-            return false;
-        else
-            throw SystemError{};
-    }
-
-    readBytes = result;
-
-    return true;
 }
 
 std::size_t FileStream::Write(const void* buffer, std::size_t maxBytes) {

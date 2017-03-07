@@ -16,7 +16,14 @@ class Request {
 public:
     using Buffer = char[8192];
 
+    Request() = default;
     Request(std::shared_ptr<void> emptyBuffer, std::shared_ptr<InputStream> input);
+
+    /*
+     * Reads and parses the request.
+     * Returns whether the opreation is completed, and how many bytes were read.
+     */
+    std::pair<bool, std::size_t> ConsumeHeader(std::size_t maxBytes);
 
     /*
      * Gets the HTTP method of the request.
@@ -71,15 +78,19 @@ public:
     std::size_t GetContentLength() const;
 
     /*
-     * Read data from the request body and advances the stream position.
-     * Returns how many bytes were read.
+     * Gets whether the connection should be kept alive.
      */
-    std::size_t ReadNextBodyChunk(void* buffer, std::size_t bufferSize);
+    bool KeepAlive() const;
+
+    /*
+     * Read data from the request body and advances the stream position.
+     * Returns whether the opreation is completed, and how many bytes were read.
+     */
+    std::pair<bool, std::size_t> ConsumeBody(void* buffer, std::size_t bufferSize);
 
 private:
-    void ReadAndParse();
-
     std::shared_ptr<void> _buffer;
+    std::size_t _bufferPosition = 0;
     std::shared_ptr<InputStream> _input;
     Parser _parser;
     std::size_t _contentBytesReadFromInitialBuffer = 0;
