@@ -11,7 +11,7 @@ PolledTcpServer::PolledTcpServer(const IPEndpoint& ep, std::shared_ptr<Poller> p
 
 void PolledTcpServer::OnAccepted(std::shared_ptr<TcpConnection> conn) {
     conn->SetBlocking(false);
-    auto events = Poller::Events::Readable | Poller::Events::Shutdown | Poller::Events::Hangup;
+    auto events = Poller::Events::Completion | Poller::Events::Readable;
     _poller->Poll(std::move(conn), events);
 }
 

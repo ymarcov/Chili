@@ -41,11 +41,11 @@ private:
     }
 };
 
-TEST_F(PollerTest, signals_shutdown_event) {
-    bool gotShutdownEvent = false;
+TEST_F(PollerTest, signals_end_of_stream_event) {
+    bool gotEosEvent = false;
 
     auto pollerTask = _poller->Start([&](std::shared_ptr<FileStream>, int events) {
-        gotShutdownEvent |= (events & Poller::Events::Shutdown);
+        gotEosEvent |= (events & Poller::Events::EndOfStream);
     });
 
     auto serverTask = _server.Start();
@@ -59,7 +59,7 @@ TEST_F(PollerTest, signals_shutdown_event) {
     _poller->Stop();
     pollerTask.get();
 
-    EXPECT_TRUE(gotShutdownEvent);
+    EXPECT_TRUE(gotEosEvent);
 }
 
 //FIXME: sometimes blocks
@@ -180,11 +180,11 @@ TEST_F(PollerTest, reports_disconnect) {
     auto pollerTask = _poller->Start([&](std::shared_ptr<FileStream> fs, int events) {
         ready.Signal();
 
-        if (events & Poller::Events::Shutdown) {
+        if (events & Poller::Events::EndOfStream) {
             reportedDisconnect = true;
             reported.Signal();
         } else {
-            // events weren't combined, need to re-wait for shutdown
+            // events weren't combined, need to re-wait for EOS
             _poller->Poll(fs);
         }
     });

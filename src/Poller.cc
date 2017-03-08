@@ -159,7 +159,7 @@ int Poller::ConvertFromNative(int m) {
         result |= Events::Writable;
 
     if (m & EPOLLRDHUP)
-        result |= Events::Shutdown;
+        result |= Events::EndOfStream;
 
     if (m & EPOLLHUP)
         result |= Events::Hangup;
@@ -179,7 +179,7 @@ int Poller::ConvertToNative(int m) {
     if (m & Events::Writable)
         result |= EPOLLOUT;
 
-    if (m & Events::Shutdown)
+    if (m & Events::EndOfStream)
         result |= EPOLLRDHUP;
 
     if (m & Events::Hangup)

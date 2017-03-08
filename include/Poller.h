@@ -19,13 +19,13 @@ namespace Http {
 class Poller {
 public:
     enum Events {
-        Shutdown = 0x1,
+        EndOfStream = 0x1,
         Writable = 0x2,
         Readable = 0x4,
         Hangup = 0x8,
         Error  = 0x10,
-        Completion = Shutdown | Hangup | Error,
-        NotifyAll = Shutdown | Writable | Readable | Hangup
+        Completion = EndOfStream | Hangup | Error,
+        NotifyAll = EndOfStream | Writable | Readable
     };
 
     using EventHandler = std::function<void(std::shared_ptr<FileStream>, int events)>;
