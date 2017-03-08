@@ -160,6 +160,7 @@ void Channel::OnWrite() {
 
 void Channel::Close() {
     _stage = Stage::Closed;
+    _timeout = std::chrono::steady_clock::now();
     _request = Request();
     _responder = Responder();
     _stream.reset();

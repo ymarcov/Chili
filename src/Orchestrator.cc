@@ -152,11 +152,20 @@ void Orchestrator::IterateOnce() {
 std::vector<std::shared_ptr<Orchestrator::Task>> Orchestrator::CaptureTasks() {
     std::unique_lock<std::mutex> lock(_mutex);
 
-    _cv.wait(lock, [this] {
+    auto minTimeout = std::min_element(begin(_tasks), end(_tasks), [this](auto& t1, auto& t2) {
+        return t1->_channel->GetTimeout() < t2->_channel->GetTimeout();
+    });
+
+    auto isReady = [this] {
         return _stop || (end(_tasks) != std::find_if(begin(_tasks), end(_tasks), [this](auto& t) {
             return t->_channel->IsReady();
         }));
-    });
+    };
+
+    if (minTimeout != end(_tasks))
+        _cv.wait_until(lock, (*minTimeout)->_channel->GetTimeout(), isReady);
+    else
+        _cv.wait(lock, isReady);
 
     // Garbage-collect closed tasks
     _tasks.erase(std::remove_if(begin(_tasks), end(_tasks), [](auto& t) {
