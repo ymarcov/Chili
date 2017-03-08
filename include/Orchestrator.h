@@ -1,6 +1,7 @@
 #pragma once
 
 #include "Channel.h"
+#include "ChannelFactory.h"
 #include "FileStream.h"
 #include "Poller.h"
 #include "Signal.h"
@@ -18,13 +19,13 @@ namespace Http {
 
 class Orchestrator {
 public:
-    Orchestrator();
+    Orchestrator(std::unique_ptr<ChannelFactory>);
     ~Orchestrator();
 
     std::future<void> Start();
     void Stop();
 
-    std::shared_ptr<Channel> Add(std::shared_ptr<FileStream>, Throttler write = {}, Throttler read = {});
+    std::shared_ptr<Channel> Add(std::shared_ptr<FileStream>);
 
     Signal<> OnStop;
 
@@ -40,6 +41,7 @@ private:
     void IterateOnce();
     std::vector<std::shared_ptr<Task>> CaptureTasks();
 
+    std::unique_ptr<ChannelFactory> _channelFactory;
     Poller _poller;
     std::shared_ptr<Throttler> _masterReadThrottler;
     std::shared_ptr<Throttler> _masterWriteThrottler;

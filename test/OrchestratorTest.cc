@@ -43,6 +43,9 @@ protected:
         fs->Write(buffer.data(), buffer.size());
         fs->Seek(0);
     }
+
+    std::shared_ptr<Orchestrator> _orchestrator;
+    std::shared_ptr<OrchestratedTcpServer> _server;
 };
 
 TEST_F(OrchestratorTest, one_client_header_only) {

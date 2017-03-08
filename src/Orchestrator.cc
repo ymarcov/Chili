@@ -10,7 +10,8 @@ std::chrono::milliseconds Orchestrator::Task::Inactivity() const {
     return std::chrono::duration_cast<std::chrono::milliseconds>(diff);
 }
 
-Orchestrator::Orchestrator() :
+Orchestrator::Orchestrator(std::unique_ptr<ChannelFactory> channelFactory) :
+    _channelFactory(std::move(channelFactory)),
     _poller(std::make_shared<ThreadPool>(2)),
     _masterReadThrottler(std::make_shared<Throttler>()),
     _masterWriteThrottler(std::make_shared<Throttler>()) {
@@ -55,23 +56,21 @@ void Orchestrator::Stop() {
     _poller.Stop();
 }
 
-std::shared_ptr<Channel> Orchestrator::Add(std::shared_ptr<FileStream> stream, Throttler write, Throttler read) {
+std::shared_ptr<Channel> Orchestrator::Add(std::shared_ptr<FileStream> stream) {
     std::lock_guard<std::mutex> lock(_mutex);
 
     auto task = std::make_shared<Task>();
     auto throttlers = Channel::Throttlers();
 
-    throttlers.Read.Dedicated = std::move(read);
     throttlers.Read.Master = _masterReadThrottler;
-    throttlers.Write.Dedicated = std::move(read);
     throttlers.Write.Master = _masterWriteThrottler;
 
-    task->_channel = std::make_shared<Channel>(stream, std::move(throttlers));
+    task->_channel = _channelFactory->CreateChannel(std::move(stream), std::move(throttlers));
     task->_lastActive = std::chrono::steady_clock::now();
 
     _tasks.push_back(task);
 
-    _poller.Poll(stream, Poller::Events::Completion | Poller::Events::Readable);
+    _poller.Poll(task->_channel->GetStream(), Poller::Events::Completion | Poller::Events::Readable);
 
     return task->_channel;
 }
@@ -80,7 +79,7 @@ void Orchestrator::OnEvent(std::shared_ptr<FileStream> fs, int events) {
     std::unique_lock<std::mutex> lock(_mutex);
 
     auto task = std::find_if(begin(_tasks), end(_tasks), [&](auto& t) {
-        return t->_channel->_stream.get() == fs.get();
+        return t->_channel->GetStream().get() == fs.get();
     });
 
     if (task != end(_tasks)) {
@@ -134,11 +133,11 @@ void Orchestrator::IterateOnce() {
 
             switch (task->_channel->GetStage()) {
                 case Channel::Stage::WaitReadable:
-                    _poller.Poll(task->_channel->_stream, Poller::Events::Completion | Poller::Events::Readable);
+                    _poller.Poll(task->_channel->GetStream(), Poller::Events::Completion | Poller::Events::Readable);
                     break;
 
                 case Channel::Stage::WaitWritable:
-                    _poller.Poll(task->_channel->_stream, Poller::Events::Completion | Poller::Events::Writable);
+                    _poller.Poll(task->_channel->GetStream(), Poller::Events::Completion | Poller::Events::Writable);
                     break;
 
                 default:

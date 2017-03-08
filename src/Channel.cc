@@ -167,5 +167,9 @@ void Channel::Close() {
     _stream.reset();
 }
 
+const std::shared_ptr<FileStream>& Channel::GetStream() const {
+    return _stream;
+}
+
 } // namespace Http
 } // namespace Yam

@@ -30,6 +30,7 @@ public:
     };
 
     Channel(std::shared_ptr<FileStream>, Throttlers);
+    virtual ~Channel() = default;
 
 protected:
     enum class Control {
@@ -37,7 +38,7 @@ protected:
         ResponseSent
     };
 
-    virtual Control Process(Request&, Responder&) {return Control::FetchBody;};
+    virtual Control Process(Request&, Responder&) = 0;
 
     Control Send(Status);
     Control FetchBody();
@@ -72,6 +73,8 @@ private:
     void OnProcess();
     void OnWrite();
     void Close();
+
+    const std::shared_ptr<FileStream>& GetStream() const;
 
     std::shared_ptr<FileStream> _stream;
     Throttlers _throttlers;
