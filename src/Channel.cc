@@ -21,7 +21,7 @@ Channel::Channel(std::shared_ptr<FileStream> stream, Throttlers throttlers) :
 }
 
 void Channel::PerformStage() {
-    std::lock_guard<std::mutex> lock(_mutex);
+    std::lock_guard<std::recursive_mutex> lock(_mutex);
 
     try {
         switch (_stage) {
@@ -47,12 +47,12 @@ void Channel::PerformStage() {
 }
 
 Channel::Stage Channel::GetStage() const {
-    std::lock_guard<std::mutex> lock(_mutex);
+    std::lock_guard<std::recursive_mutex> lock(_mutex);
     return _stage;
 }
 
 void Channel::SetStage(Stage s) {
-    std::lock_guard<std::mutex> lock(_mutex);
+    std::lock_guard<std::recursive_mutex> lock(_mutex);
     _stage = s;
 }
 
@@ -61,7 +61,7 @@ std::chrono::time_point<std::chrono::steady_clock> Channel::GetTimeout() const {
 }
 
 bool Channel::IsReady() const {
-    std::lock_guard<std::mutex> lock(_mutex);
+    std::lock_guard<std::recursive_mutex> lock(_mutex);
 
     if (std::chrono::steady_clock::now() < _timeout)
         return false;
@@ -159,6 +159,7 @@ void Channel::OnWrite() {
 }
 
 void Channel::Close() {
+    std::lock_guard<std::recursive_mutex> lock(_mutex);
     _stage = Stage::Closed;
     _timeout = std::chrono::steady_clock::now();
     _request = Request();

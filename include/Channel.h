@@ -79,7 +79,7 @@ private:
     std::shared_ptr<void> _requestBuffer;
     Request _request;
     Responder _responder;
-    mutable std::mutex _mutex;
+    mutable std::recursive_mutex _mutex;
     Stage _stage;
     bool _error = false;
     bool _fetchBody = false;
