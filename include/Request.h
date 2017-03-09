@@ -14,10 +14,8 @@ namespace Http {
 
 class Request {
 public:
-    using Buffer = char[8192];
-
     Request() = default;
-    Request(std::shared_ptr<void> emptyBuffer, std::shared_ptr<InputStream> input);
+    Request(std::shared_ptr<InputStream> input);
 
     /*
      * Reads and parses the request.
@@ -71,6 +69,18 @@ public:
      */
     std::string GetCookie(const std::string& name) const;
 
+    /**
+     * Returns true if the request has a message
+     * body (i.e. Content-Length > 0).
+     */
+    bool HasContent() const;
+
+    /**
+     * If the message has associated content, returns true if
+     * the content is already entirely available to be read.
+     */
+    bool ContentAvailable() const;
+
     /*
      * Gets the length of the associated content.
      * Returns 0 if the Content-Length field is not present.
@@ -83,18 +93,25 @@ public:
     bool KeepAlive() const;
 
     /*
-     * Read data from the request body and advances the stream position.
+     * Read data from the request content body and advances the stream position.
      * Returns whether the opreation is completed, and how many bytes were read.
      */
-    std::pair<bool, std::size_t> ConsumeBody(void* buffer, std::size_t bufferSize);
+    std::pair<bool, std::size_t> ConsumeContent(std::size_t maxBytes);
+
+    /**
+     * Gets the message content, beside the header.
+     */
+    const std::vector<char>& GetContent() const;
 
 private:
-    std::shared_ptr<void> _buffer;
+    std::vector<char> _buffer;
     std::size_t _bufferPosition = 0;
     std::shared_ptr<InputStream> _input;
     Parser _parser;
     std::size_t _contentBytesReadFromInitialBuffer = 0;
     bool _onlySentHeaderFirst = false;
+    std::vector<char> _content;
+    std::size_t _contentPosition = 0;
 };
 
 } // namespace Http

@@ -7,6 +7,7 @@
 #include <atomic>
 #include <future>
 #include <memory>
+#include <netinet/in.h>
 #include <thread>
 
 namespace Yam {
@@ -28,6 +29,8 @@ private:
     std::size_t* AddressBufferSize() override;
 
     IPEndpoint _endpoint;
+    ::sockaddr_in _addrBuffer;
+    std::size_t _addrBufferSize = sizeof(::sockaddr_in);
 };
 
 inline const IPEndpoint& TcpServer::GetEndpoint() const {

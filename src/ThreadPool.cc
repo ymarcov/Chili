@@ -62,6 +62,10 @@ ThreadPool::ThreadPool(int capacity) {
 }
 
 ThreadPool::~ThreadPool() {
+    Stop();
+}
+
+void ThreadPool::Stop() {
     // change the stop flag to true
     _mutex.lock();
     _stop = true;
@@ -74,7 +78,8 @@ ThreadPool::~ThreadPool() {
 
     // wait for everyone to finish
     for (auto& t : _threads)
-        t->join();
+        if (t->joinable())
+            t->join();
 }
 
 std::future<void> ThreadPool::Post(Work w) {

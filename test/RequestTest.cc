@@ -107,9 +107,9 @@ private:
 class RequestTest : public Test {
 protected:
     auto MakeRequest(std::shared_ptr<InputStream>&& s) {
-        auto req = std::make_unique<Request>(std::shared_ptr<void>(new Request::Buffer), std::move(s));
+        auto req = std::make_unique<Request>(std::move(s));
 
-        while (!req->ConsumeHeader(1).first)
+        while (!req->ConsumeHeader(16).first)
             ;
 
         return req;
@@ -146,17 +146,15 @@ TEST_F(RequestTest, header_getters) {
 TEST_F(RequestTest, body) {
     auto r = MakeRequest(MakeContiguousInputStream());
 
-    auto buffer = std::array<char, 0x1000>{};
-    auto result = r->ConsumeBody(buffer.data(), buffer.size());
+    auto result = r->ConsumeContent(0x1000);
 
     EXPECT_TRUE(result.first);
-    EXPECT_EQ("Request body!", std::string(buffer.data(), result.second));
+    EXPECT_EQ("Request body!", std::string(r->GetContent().data(), r->GetContent().size()));
 }
 
 TEST_F(RequestTest, non_contiguous_header_and_body) {
     auto r = MakeRequest(MakeNonContiguousInputStream());
-    auto buffer = std::array<char, 0x1000>{};
-    auto result = r->ConsumeBody(buffer.data(), buffer.size());
+    auto result = r->ConsumeContent(0x1000);
 
     EXPECT_TRUE(result.first);
     EXPECT_EQ(Method::Get, r->GetMethod());
@@ -164,17 +162,17 @@ TEST_F(RequestTest, non_contiguous_header_and_body) {
     EXPECT_EQ("/path/to/res", r->GetUri());
     EXPECT_EQ(13, r->GetContentLength());
     EXPECT_EQ("100-continue", r->GetField("Expect"));
-    EXPECT_EQ(NonTerminatedSize(requestBodyData), result.second);
+    EXPECT_EQ(NonTerminatedSize(requestBodyData), r->GetContent().size());
     EXPECT_TRUE(r->KeepAlive());
 }
 
 TEST_F(RequestTest, invalid_header_throws) {
-    Request::Buffer buffer;
+    char buffer[0x2000];
     EXPECT_THROW(MakeRequest(MakeInputStream(buffer)), std::runtime_error);
 }
 
 TEST_F(RequestTest, missing_end_of_header_in_small_buffer_never_finishes_consuming) {
-    Request req(std::shared_ptr<void>(new Request::Buffer), MakeInputStream(requestMissingEndOfHeaderData));
+    Request req(MakeInputStream(requestMissingEndOfHeaderData));
 
     EXPECT_FALSE(req.ConsumeHeader(-1).first);
     EXPECT_FALSE(req.ConsumeHeader(-1).first);

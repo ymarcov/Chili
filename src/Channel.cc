@@ -3,28 +3,23 @@
 namespace Yam {
 namespace Http {
 
-namespace {
-
-std::unique_ptr<char[]> AllocateRequestBuffer() {
-    return std::unique_ptr<char[]>(new Request::Buffer);
-}
-
-} // unnamed namespace
-
 Channel::Channel(std::shared_ptr<FileStream> stream, Throttlers throttlers) :
     _stream(std::move(stream)),
     _throttlers(std::move(throttlers)),
-    _requestBuffer(AllocateRequestBuffer()),
-    _request(_requestBuffer, _stream),
+    _request(_stream),
     _responder(_stream),
+    _timeout(std::chrono::steady_clock::now()),
     _stage(Stage::WaitReadable) {
 }
+
+Channel::~Channel() {}
 
 void Channel::PerformStage() {
     std::lock_guard<std::recursive_mutex> lock(_mutex);
 
     try {
         switch (_stage) {
+            case Stage::WaitReadTimeout:
             case Stage::Read:
                 OnRead();
                 break;
@@ -33,6 +28,7 @@ void Channel::PerformStage() {
                 OnProcess();
                 break;
 
+            case Stage::WaitWriteTimeout:
             case Stage::Write:
                 OnWrite();
                 break;
@@ -56,7 +52,8 @@ void Channel::SetStage(Stage s) {
     _stage = s;
 }
 
-std::chrono::time_point<std::chrono::steady_clock> Channel::GetTimeout() const {
+std::chrono::time_point<std::chrono::steady_clock> Channel::GetRequestedTimeout() const {
+    std::lock_guard<std::recursive_mutex> lock(_mutex);
     return _timeout;
 }
 
@@ -71,26 +68,40 @@ bool Channel::IsReady() const {
             (_stage != Stage::Closed);
 }
 
+bool Channel::IsWaiting() const {
+    std::lock_guard<std::recursive_mutex> lock(_mutex);
+
+    if (std::chrono::steady_clock::now() < _timeout)
+        return true;
+
+    return (_stage == Stage::WaitReadable) ||
+            (_stage == Stage::WaitWritable);
+}
+
 void Channel::OnRead() {
     auto maxRead = std::min(_throttlers.Read.Dedicated.GetCurrentQuota(),
                             _throttlers.Read.Master->GetCurrentQuota());
 
     if (maxRead == 0) {
-        _stage = Stage::WaitReadable;
-        _timeout = _throttlers.Read.Dedicated.GetFillTimePoint();
+        _stage = Stage::WaitReadTimeout;
+        _timeout = _throttlers.Read.Dedicated.GetFillTime();
         return;
     }
 
-    if (_fetchBody) {
-        auto result = _request.ConsumeBody(_body.data() + _bodyPosition,
-                                           std::min(maxRead, _body.size() - _bodyPosition));
+    if (_fetchContent) {
+        auto result = _request.ConsumeContent(maxRead);
 
         _throttlers.Read.Dedicated.Consume(result.second);
         _throttlers.Read.Master->Consume(result.second);
 
         if (!result.first) {
-            _bodyPosition += result.second;
-            _stage = Stage::WaitReadable;
+            if (result.second <= maxRead) {
+                _stage = Stage::WaitReadable;
+            } else {
+                _stage = Stage::WaitReadTimeout;
+                _timeout = _throttlers.Read.Dedicated.GetFillTime();
+            }
+
             return;
         }
     } else {
@@ -100,7 +111,13 @@ void Channel::OnRead() {
         _throttlers.Read.Master->Consume(result.second);
 
         if (!result.first) {
-            _stage = Stage::WaitReadable;
+            if (result.second <= maxRead) {
+                _stage = Stage::WaitReadable;
+            } else {
+                _stage = Stage::WaitReadTimeout;
+                _timeout = _throttlers.Read.Dedicated.GetFillTime();
+            }
+
             return;
         }
     }
@@ -114,7 +131,7 @@ void Channel::OnProcess() {
     _stage = Stage::WaitWritable;
 
     try {
-        result = Process(_request, _responder);
+        result = Process();
     } catch (...) {
         // TODO: log?
         _error = true;
@@ -123,11 +140,35 @@ void Channel::OnProcess() {
         return;
     }
 
-    if (result == Control::FetchBody) {
-        _fetchBody = true;
-        _bodyPosition = 0;
-        _body = std::vector<char>(_request.GetContentLength());
+    if (result == Control::FetchContent) {
+        _fetchContent = true;
+        _stage = Stage::Read;
     }
+}
+
+Request& Channel::GetRequest() {
+    return _request;
+}
+
+Responder& Channel::GetResponder() {
+    return _responder;
+}
+
+Channel::Control Channel::FetchContent() {
+    return Control::FetchContent;
+}
+
+Channel::Control Channel::SendResponse(Status status) {
+    _responder.Send(status);
+    return Control::SendResponse;
+}
+
+void Channel::ThrottleRead(Throttler t) {
+    _throttlers.Read.Dedicated = std::move(t);
+}
+
+void Channel::ThrottleWrite(Throttler t) {
+    _throttlers.Write.Dedicated = std::move(t);
 }
 
 void Channel::OnWrite() {
@@ -135,8 +176,8 @@ void Channel::OnWrite() {
                              _throttlers.Write.Master->GetCurrentQuota());
 
     if (maxWrite == 0) {
-        _stage = Stage::WaitWritable;
-        _timeout = _throttlers.Write.Dedicated.GetFillTimePoint();
+        _stage = Stage::WaitWriteTimeout;
+        _timeout = _throttlers.Write.Dedicated.GetFillTime();
         return;
     }
 
@@ -146,13 +187,18 @@ void Channel::OnWrite() {
     _throttlers.Write.Master->Consume(result.second);
 
     if (!result.first) {
-        _stage = Stage::WaitWritable;
+        if (result.second <= maxWrite) {
+            _stage = Stage::WaitWritable;
+        } else {
+            _stage = Stage::WaitWriteTimeout;
+            _timeout = _throttlers.Write.Dedicated.GetFillTime();
+        }
     } else {
         if (_error || !_responder.GetKeepAlive()) {
             Close();
         } else {
-            _request = Request(_requestBuffer, _stream);
-            _fetchBody = false;
+            _request = Request(_stream);
+            _fetchContent = false;
             _stage = Stage::WaitReadable;
         }
     }

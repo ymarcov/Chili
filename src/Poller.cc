@@ -7,8 +7,8 @@
 namespace Yam {
 namespace Http {
 
-Poller::Poller(std::shared_ptr<ThreadPool> threadPool) :
-    _threadPool{std::move(threadPool)},
+Poller::Poller(int threads) :
+    _threadPool{std::make_shared<ThreadPool>(threads)},
     _stop{true} {
     if (-1 == (_fd = ::epoll_create1(EPOLL_CLOEXEC)))
         throw SystemError{};
@@ -108,6 +108,7 @@ void Poller::PollLoop(const Poller::EventHandler& handler) {
 
     while (!_stop) {
         if (-1 == (n = ::epoll_wait(_fd, events, maxEvents, 100))) {
+            _threadPool->Stop();
             _promise.set_exception(std::make_exception_ptr(SystemError{}));
             OnStop();
             return;
@@ -116,6 +117,7 @@ void Poller::PollLoop(const Poller::EventHandler& handler) {
         DispatchEvents(events, n, handler);
     }
 
+    _threadPool->Stop();
     _promise.set_value();
     OnStop();
 }
@@ -128,7 +130,7 @@ void Poller::DispatchEvents(void* eventsPtr, std::size_t n, const Poller::EventH
         auto fs = GetFileStreamFromPtr(events[i].data.ptr);
 
         if (!fs) {
-            // TODO: log?
+            // TODO: log? deleted in between iterations
             continue;
         }
 

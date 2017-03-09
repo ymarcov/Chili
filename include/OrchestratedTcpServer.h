@@ -8,7 +8,7 @@ namespace Http {
 
 class OrchestratedTcpServer : public TcpServer {
 public:
-    OrchestratedTcpServer(const IPEndpoint&, std::shared_ptr<Orchestrator>);
+    OrchestratedTcpServer(const IPEndpoint&, std::unique_ptr<ChannelFactory>);
 
 protected:
     void OnAccepted(std::shared_ptr<TcpConnection>);

@@ -1,7 +1,6 @@
 #include "TcpServer.h"
 #include "SystemError.h"
 
-#include <netinet/in.h>
 #include <netinet/tcp.h>
 #include <arpa/inet.h>
 
@@ -58,13 +57,11 @@ void TcpServer::OnAccepted(int fd) {
 }
 
 void* TcpServer::AddressBuffer() {
-    static ::sockaddr_in addr;
-    return &addr;
+    return &_addrBuffer;
 }
 
 std::size_t* TcpServer::AddressBufferSize() {
-    static auto size = sizeof(::sockaddr_in);
-    return &size;
+    return &_addrBufferSize;
 }
 
 } // namespace Http

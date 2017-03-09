@@ -19,7 +19,6 @@ using namespace std::literals;
 struct ServerConfiguration {
     IPEndpoint _endpoint;
     std::shared_ptr<ThreadPool> _threadPool;
-    std::size_t _totalPoolPages;
     std::shared_ptr<Poller> _poller;
     bool _verbose;
 };
@@ -43,14 +42,13 @@ ServerConfiguration CreateConfiguration(std::vector<std::string> argv) {
         threadCount = std::stoi(argv[2]);
 
     auto threadPool = std::make_shared<ThreadPool>(threadCount);
-    auto totalPoolPages = (sizeof(Request::Buffer) / ::getpagesize()) * threadCount;
 
     auto verbose = true;
 
     if (argv.size() >= 4)
         verbose = std::stoi(argv[3]);
 
-    return {endpoint, threadPool, totalPoolPages, std::make_shared<Poller>(threadPool), verbose};
+    return {endpoint, threadPool, std::make_shared<Poller>(2), verbose};
 }
 
 void PrintInfo(Request& request) {
@@ -110,28 +108,29 @@ void PrintInfo(Request& request) {
 
     if (request.GetMethod() == Method::Post) {
         std::cout << "====================\n";
-        bool remaining = true;
-        while (remaining) {
-            char buffer[0x1000];
-            auto result = request.ConsumeBody(buffer, sizeof(buffer));
-            auto str = std::string{buffer, result.second};
-            std::cout << str;
-            remaining = result.first;
-        }
-        std::cout << "====================\n";
+
+        while (!request.ConsumeContent(0x1000).first)
+            ;
+
+        auto str = std::string{request.GetContent().data(), request.GetContent().size()};
+        std::cout << str;
+
+        std::cout << "\n====================\n";
     }
 }
 
 std::mutex _outputMutex;
 
 Poller::EventHandler CreateHandler(ServerConfiguration config) {
-    auto memoryPool = MemoryPool<Request::Buffer>::Create(config._totalPoolPages);
     auto verbose = config._verbose;
 
     return [=](std::shared_ptr<FileStream> conn, int events) {
         try {
-            auto request = Request{memoryPool->New(), conn};
+            auto request = Request{conn};
             auto responder = Responder{conn};
+
+            while (!request.ConsumeHeader(0x10).first)
+                ;
 
             if (request.GetField("Expect", nullptr))
                 responder.Send(Status::Continue);

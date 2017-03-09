@@ -33,8 +33,11 @@ private:
     struct Task {
         std::shared_ptr<Channel> _channel;
         std::chrono::time_point<std::chrono::steady_clock> _lastActive;
+        std::chrono::milliseconds* _inactivityTimeout;
 
-        std::chrono::milliseconds Inactivity() const;
+        void Activate();
+        bool ReachedInactivityTimeout() const;
+        Channel& GetChannel();
     };
 
     void OnEvent(std::shared_ptr<FileStream>, int events);
@@ -42,7 +45,9 @@ private:
     std::vector<std::shared_ptr<Task>> CaptureTasks();
 
     std::unique_ptr<ChannelFactory> _channelFactory;
+    std::promise<void> _threadPromise;
     Poller _poller;
+    std::future<void> _pollerTask;
     std::shared_ptr<Throttler> _masterReadThrottler;
     std::shared_ptr<Throttler> _masterWriteThrottler;
     std::thread _thread;
@@ -50,7 +55,7 @@ private:
     std::atomic_bool _stop{true};
     std::mutex _mutex;
     std::vector<std::shared_ptr<Task>> _tasks;
-    std::chrono::milliseconds _inactivityTimeout;
+    std::chrono::milliseconds _inactivityTimeout{1000};
 };
 
 } // namespace Http

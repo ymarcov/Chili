@@ -30,7 +30,7 @@ public:
 
     using EventHandler = std::function<void(std::shared_ptr<FileStream>, int events)>;
 
-    Poller(std::shared_ptr<ThreadPool>);
+    Poller(int threads);
     Poller(const Poller&) = delete;
     ~Poller();
 

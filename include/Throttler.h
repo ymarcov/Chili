@@ -14,7 +14,7 @@ public:
     Throttler() = default;
     Throttler(std::size_t capacity, std::chrono::milliseconds interval);
 
-    std::chrono::time_point<Clock> GetFillTimePoint() const;
+    std::chrono::time_point<Clock> GetFillTime() const;
     std::size_t GetCurrentQuota() const;
     void Consume(std::size_t);
 

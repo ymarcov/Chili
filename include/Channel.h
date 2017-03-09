@@ -15,9 +15,11 @@ class Channel {
 public:
     enum class Stage {
         WaitReadable,
+        WaitReadTimeout,
         Read,
         Process,
         WaitWritable,
+        WaitWriteTimeout,
         Write,
         Closed
     };
@@ -29,21 +31,27 @@ public:
         } Read, Write;
     };
 
-    Channel(std::shared_ptr<FileStream>, Throttlers);
-    virtual ~Channel() = default;
-
-protected:
     enum class Control {
-        FetchBody,
-        ResponseSent
+        FetchContent,
+        SendResponse
     };
 
-    virtual Control Process(Request&, Responder&) = 0;
+    Channel(std::shared_ptr<FileStream>, Throttlers);
+    virtual ~Channel();
 
-    Control Send(Status);
-    Control FetchBody();
+    /**
+     * The following public functions are designed to be
+     * used from within the Process() implementation.
+     */
+    Request& GetRequest();
+    Responder& GetResponder();
+    Control FetchContent();
+    Control SendResponse(Status);
     void ThrottleRead(Throttler);
     void ThrottleWrite(Throttler);
+
+protected:
+    virtual Control Process() = 0;
 
 private:
     /**
@@ -62,12 +70,17 @@ private:
      * to wait for before performing another stage, even
      * if data is already available.
      */
-    std::chrono::time_point<std::chrono::steady_clock> GetTimeout() const;
+    std::chrono::time_point<std::chrono::steady_clock> GetRequestedTimeout() const;
 
     /**
      * Gets whether the channel is ready to perform its stage.
      */
     bool IsReady() const;
+
+    /**
+     * Gets whether the channel is waiting, either for IO or a timeout.
+     */
+    bool IsWaiting() const;
 
     void OnRead();
     void OnProcess();
@@ -78,16 +91,13 @@ private:
 
     std::shared_ptr<FileStream> _stream;
     Throttlers _throttlers;
-    std::chrono::time_point<std::chrono::steady_clock> _timeout = std::chrono::steady_clock::now();
-    std::shared_ptr<void> _requestBuffer;
     Request _request;
     Responder _responder;
     mutable std::recursive_mutex _mutex;
+    std::chrono::time_point<std::chrono::steady_clock> _timeout;
     Stage _stage;
     bool _error = false;
-    bool _fetchBody = false;
-    std::vector<char> _body;
-    std::size_t _bodyPosition;
+    bool _fetchContent = false;
 
     friend class Orchestrator;
 };

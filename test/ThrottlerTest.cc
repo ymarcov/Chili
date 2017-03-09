@@ -35,7 +35,7 @@ TEST_F(ThrottlerTest, gets_allowed_size_by_elapsed_time) {
 
     EXPECT_LE(throttler.GetCurrentQuota(), 0x1000 * (elapsed.count() / 100.0));
 
-    std::this_thread::sleep_until(throttler.GetFillTimePoint());
+    std::this_thread::sleep_until(throttler.GetFillTime());
 
     EXPECT_EQ(0x1000, throttler.GetCurrentQuota());
 }

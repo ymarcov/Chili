@@ -9,6 +9,8 @@
 namespace Yam {
 namespace Http {
 
+constexpr std::size_t BufferSize = 0x2000;
+
 namespace {
 
 bool BufferContainsEndOfHeaderMarker(const char* buffer, std::size_t bufferSize) {
@@ -26,19 +28,16 @@ bool BufferContainsEndOfHeaderMarker(const char* buffer, std::size_t bufferSize)
 
 } // unnamed namespace
 
-Request::Request(std::shared_ptr<void> emptyBuffer, std::shared_ptr<InputStream> input) :
-    _buffer{std::move(emptyBuffer)},
-    _input{std::move(input)} {
-}
+Request::Request(std::shared_ptr<InputStream> input) :
+    _buffer(BufferSize),
+    _input{std::move(input)} {}
 
 std::pair<bool, std::size_t> Request::ConsumeHeader(std::size_t maxBytes) {
-    auto buffer = static_cast<char*>(_buffer.get());
-
     if (_bufferPosition == 0)
-        std::memset(buffer, 0, sizeof(Buffer));
+        std::memset(_buffer.data(), 0, BufferSize);
 
-    auto quota = std::min(maxBytes, sizeof(Buffer) - _bufferPosition);
-    auto bytesRead = _input->Read(buffer + _bufferPosition, quota);
+    auto quota = std::min(maxBytes, BufferSize - _bufferPosition);
+    auto bytesRead = _input->Read(_buffer.data() + _bufferPosition, quota);
 
     if (!bytesRead)
         return std::make_pair(false, std::size_t(0));
@@ -47,14 +46,14 @@ std::pair<bool, std::size_t> Request::ConsumeHeader(std::size_t maxBytes) {
 
     // When we have the end-of-header marker, we can continue to the parsing stage
 
-    if (!BufferContainsEndOfHeaderMarker(buffer, _bufferPosition)) {
-        if (_bufferPosition == sizeof(Buffer))
+    if (!BufferContainsEndOfHeaderMarker(_buffer.data(), _bufferPosition)) {
+        if (_bufferPosition == BufferSize)
             throw std::runtime_error("No end-of-header found in request header");
 
         return std::make_pair(false, bytesRead);
     }
 
-    _parser = Parser::Parse(static_cast<char*>(_buffer.get()), _bufferPosition);
+    _parser = Parser::Parse(static_cast<char*>(_buffer.data()), _bufferPosition);
     _onlySentHeaderFirst = (_bufferPosition == _parser.GetHeaderLength());
 
     return std::make_pair(true, bytesRead);
@@ -145,6 +144,19 @@ std::vector<std::string> Request::GetCookieNames() const {
     return result;
 }
 
+bool Request::HasContent() const {
+    Parser::Field f;
+
+    if (!_parser.GetField("Content-Length", &f))
+        return false;
+
+    return !!std::strncmp(f.Data, "0", f.Size);
+}
+
+bool Request::ContentAvailable() const {
+    return GetContentLength() == _content.size();
+}
+
 std::size_t Request::GetContentLength() const {
     try {
         return stoi(GetField("Content-Length"));
@@ -162,7 +174,7 @@ bool Request::KeepAlive() const {
     return false;
 }
 
-std::pair<bool, std::size_t> Request::ConsumeBody(void* buffer, std::size_t bufferSize) {
+std::pair<bool, std::size_t> Request::ConsumeContent(std::size_t maxBytes) {
     /*
      * The initial request buffer is quite large.
      * There's a good chance it contains lots of data.
@@ -176,37 +188,46 @@ std::pair<bool, std::size_t> Request::ConsumeBody(void* buffer, std::size_t buff
      */
     auto contentLength = GetContentLength();
 
+    if (_contentPosition == 0)
+        _content.resize(contentLength);
+
     if (!_onlySentHeaderFirst) {
-        auto nonHeaderDataInInitialBuffer = sizeof(Buffer) - _parser.GetHeaderLength();
+        auto nonHeaderDataInInitialBuffer = _bufferPosition - _parser.GetHeaderLength();
         auto contentInInitialBuffer = std::min(nonHeaderDataInInitialBuffer, contentLength);
 
         if (_contentBytesReadFromInitialBuffer < contentInInitialBuffer) {
             auto remaining = contentInInitialBuffer - _contentBytesReadFromInitialBuffer;
-            auto bytesRead = std::min(remaining, bufferSize);
+            auto bytesRead = std::min(remaining, maxBytes);
 
-            std::memcpy(buffer, _parser.GetBody() + _contentBytesReadFromInitialBuffer, bytesRead);
+            std::memcpy(_content.data() + _contentPosition, _parser.GetBody() + _contentBytesReadFromInitialBuffer, bytesRead);
             _contentBytesReadFromInitialBuffer += bytesRead;
 
-            reinterpret_cast<char*&>(buffer) += bytesRead;
-            bufferSize -= bytesRead;
+            _contentPosition += bytesRead;
+            maxBytes -= bytesRead;
             contentLength -= _contentBytesReadFromInitialBuffer;
 
             if (!contentLength)
                 return std::make_pair(true, bytesRead);
 
-            if (!bufferSize)
+            if (!maxBytes)
                 return std::make_pair(false, bytesRead);
         }
     }
 
-    auto readLength = std::min(bufferSize, contentLength);
+    auto readLength = std::min(maxBytes, contentLength);
 
     if (readLength == 0)
         return std::make_pair(true, std::size_t(0));
 
-    auto bytesRead = _input->Read(buffer, readLength);
+    auto bytesRead = _input->Read(_content.data() + _contentPosition, readLength);
+
+    _contentPosition += bytesRead;
 
     return std::make_pair(bytesRead == contentLength, bytesRead);
+}
+
+const std::vector<char>& Request::GetContent() const {
+    return _content;
 }
 
 } // namespace Http

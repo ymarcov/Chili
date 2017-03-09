@@ -14,7 +14,7 @@ Throttler::Throttler(std::size_t capacity, milliseconds interval)
     , _interval(std::move(interval))
     , _currentQuota(capacity) {}
 
-std::chrono::time_point<Throttler::Clock> Throttler::GetFillTimePoint() const {
+std::chrono::time_point<Throttler::Clock> Throttler::GetFillTime() const {
     if (!_enabled)
         return Clock::now();
 

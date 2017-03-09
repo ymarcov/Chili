@@ -20,6 +20,7 @@ public:
     ThreadPool(int capacity);
     ~ThreadPool();
 
+    void Stop();
     std::future<void> Post(Work);
     std::size_t GetThreadCount() const;
 

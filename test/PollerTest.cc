@@ -3,7 +3,6 @@
 #include "Poller.h"
 #include "TcpConnection.h"
 #include "PolledTcpServer.h"
-#include "ThreadPool.h"
 #include "WaitEvent.h"
 
 #include <chrono>
@@ -19,7 +18,7 @@ namespace Http {
 class PollerTest : public Test {
 public:
     PollerTest() :
-        _poller{std::make_shared<Poller>(MakeThreadPool())},
+        _poller{std::make_shared<Poller>(3)},
         _server{MakeEndpoint(), _poller} {
     }
 
@@ -34,10 +33,6 @@ protected:
 private:
     IPEndpoint MakeEndpoint() {
         return IPEndpoint{{{127, 0, 0, 1}}, 51788};
-    }
-
-    std::shared_ptr<ThreadPool> MakeThreadPool() {
-        return std::make_shared<ThreadPool>(3);
     }
 };
 
