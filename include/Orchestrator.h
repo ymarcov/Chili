@@ -55,7 +55,7 @@ private:
     std::atomic_bool _stop{true};
     std::mutex _mutex;
     std::vector<std::shared_ptr<Task>> _tasks;
-    std::chrono::milliseconds _inactivityTimeout{1000};
+    std::chrono::milliseconds _inactivityTimeout{10000};
 };
 
 } // namespace Http
