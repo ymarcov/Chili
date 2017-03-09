@@ -134,6 +134,9 @@ void Orchestrator::OnEvent(std::shared_ptr<FileStream> fs, int events) {
                     ; // TODO: log this? seems like a logic error
                 break;
 
+            case Channel::Stage::Closed:
+                return;
+
             default:
                 // TODO: log this? seems like a logic error
                 channel.Close();
@@ -204,7 +207,9 @@ std::vector<std::shared_ptr<Orchestrator::Task>> Orchestrator::CaptureTasks() {
         return t->GetChannel().GetStage() == Channel::Stage::Closed;
     }), end(_tasks));
 
-    return _tasks;
+    auto snapshot = _tasks;
+
+    return snapshot;
 }
 
 } // namespace Http

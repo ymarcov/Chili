@@ -49,6 +49,10 @@ Channel::Stage Channel::GetStage() const {
 
 void Channel::SetStage(Stage s) {
     std::lock_guard<std::recursive_mutex> lock(_mutex);
+
+    if (_stage == Stage::Closed)
+        return;
+
     _stage = s;
 }
 
@@ -206,6 +210,10 @@ void Channel::OnWrite() {
 
 void Channel::Close() {
     std::lock_guard<std::recursive_mutex> lock(_mutex);
+
+    if (_stage == Stage::Closed)
+        return;
+
     _stage = Stage::Closed;
     _timeout = std::chrono::steady_clock::now();
     _request = Request();
