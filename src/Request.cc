@@ -105,7 +105,7 @@ Version Request::GetVersion() const {
         ++i;
     }
 
-    throw std::runtime_error("Unknown HTTP method");
+    throw std::runtime_error("Unsupported HTTP method");
 }
 
 std::vector<std::string> Request::GetFieldNames() const {

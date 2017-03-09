@@ -89,6 +89,7 @@ private:
 
     const std::shared_ptr<FileStream>& GetStream() const;
 
+    std::uint64_t _id;
     std::shared_ptr<FileStream> _stream;
     Throttlers _throttlers;
     Request _request;

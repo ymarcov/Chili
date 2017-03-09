@@ -1,15 +1,22 @@
 #include "Channel.h"
+#include "Log.h"
+
+#include <atomic>
 
 namespace Yam {
 namespace Http {
 
+std::atomic<std::uint64_t> nextChannelId{0};
+
 Channel::Channel(std::shared_ptr<FileStream> stream, Throttlers throttlers) :
+    _id(++nextChannelId),
     _stream(std::move(stream)),
     _throttlers(std::move(throttlers)),
     _request(_stream),
     _responder(_stream),
     _timeout(std::chrono::steady_clock::now()),
     _stage(Stage::WaitReadable) {
+    Log::Default()->Verbose("Channel {} created", _id);
 }
 
 Channel::~Channel() {}
@@ -36,8 +43,8 @@ void Channel::PerformStage() {
             default:
                 throw std::logic_error("PerformStage() called in non-ready stage");
         }
-    } catch (const std::exception&) {
-        // TODO: log?
+    } catch (const std::exception& e) {
+        Log::Default()->Error("Channel {} PerformStage() error: {}", _id, e.what());
         Close();
     }
 }
@@ -87,6 +94,7 @@ void Channel::OnRead() {
                             _throttlers.Read.Master->GetCurrentQuota());
 
     if (maxRead == 0) {
+        Log::Default()->Verbose("Channel {} throttled. Waiting for read quota to fill.", _id);
         _stage = Stage::WaitReadTimeout;
         _timeout = _throttlers.Read.Dedicated.GetFillTime();
         return;
@@ -100,8 +108,10 @@ void Channel::OnRead() {
 
         if (!result.first) {
             if (result.second <= maxRead) {
+                Log::Default()->Verbose("Channel {} socket buffer empty. Waiting for readability.", _id);
                 _stage = Stage::WaitReadable;
             } else {
+                Log::Default()->Verbose("Channel {} throttled. Waiting for read quota to fill.", _id);
                 _stage = Stage::WaitReadTimeout;
                 _timeout = _throttlers.Read.Dedicated.GetFillTime();
             }
@@ -116,13 +126,47 @@ void Channel::OnRead() {
 
         if (!result.first) {
             if (result.second <= maxRead) {
+                Log::Default()->Verbose("Channel {} socket buffer empty. Waiting for readability.", _id);
                 _stage = Stage::WaitReadable;
             } else {
+                Log::Default()->Verbose("Channel {} throttled. Waiting for read quota to fill.", _id);
                 _stage = Stage::WaitReadTimeout;
                 _timeout = _throttlers.Read.Dedicated.GetFillTime();
             }
 
             return;
+        } else {
+            std::string method, version;
+
+            switch (_request.GetMethod()) {
+                case Method::Head:
+                    method = "HEAD";
+                    break;
+
+                case Method::Get:
+                    method = "GET";
+                    break;
+
+                case Method::Post:
+                    method = "POST";
+                    break;
+
+                default:
+                    Log::Default()->Info("Unsupported method for {}! Dropping request on channel {}.", _request.GetUri(), _id);
+                    break;
+            }
+
+            switch (_request.GetVersion()) {
+                case Version::Http10:
+                    version = "HTTP/1.0";
+                    break;
+
+                case Version::Http11:
+                    version = "HTTP/1.1";
+                    break;
+            }
+
+            Log::Default()->Info("Channel {} Received \"{} {} {}\"", _id, method, _request.GetUri(), version);
         }
     }
 
@@ -137,7 +181,7 @@ void Channel::OnProcess() {
     try {
         result = Process();
     } catch (...) {
-        // TODO: log?
+        Log::Default()->Error("Channel {} processor error ignored! Please handle internally.", _id);
         _error = true;
         _responder = Responder(_stream);
         _responder.Send(Status::InternalServerError);
@@ -145,6 +189,12 @@ void Channel::OnProcess() {
     }
 
     if (result == Control::FetchContent) {
+        if (_fetchContent) {
+            Log::Default()->Error("Channel {} processor asked for content to be fetched twice! Closing!", _id);
+            Close();
+            return;
+        }
+
         _fetchContent = true;
         _stage = Stage::Read;
     }
@@ -180,6 +230,7 @@ void Channel::OnWrite() {
                              _throttlers.Write.Master->GetCurrentQuota());
 
     if (maxWrite == 0) {
+        Log::Default()->Verbose("Channel {} throttled. Waiting for write quota to fill.", _id);
         _stage = Stage::WaitWriteTimeout;
         _timeout = _throttlers.Write.Dedicated.GetFillTime();
         return;
@@ -192,8 +243,10 @@ void Channel::OnWrite() {
 
     if (!result.first) {
         if (result.second <= maxWrite) {
+            Log::Default()->Verbose("Channel {} socket buffer full. Waiting for writability.", _id);
             _stage = Stage::WaitWritable;
         } else {
+            Log::Default()->Verbose("Channel {} throttled. Waiting for write quota to fill.", _id);
             _stage = Stage::WaitWriteTimeout;
             _timeout = _throttlers.Write.Dedicated.GetFillTime();
         }
@@ -201,6 +254,7 @@ void Channel::OnWrite() {
         if (_error || !_responder.GetKeepAlive()) {
             Close();
         } else {
+            Log::Default()->Verbose("Channel {} sent response", _id);
             _request = Request(_stream);
             _fetchContent = false;
             _stage = Stage::WaitReadable;
@@ -213,6 +267,8 @@ void Channel::Close() {
 
     if (_stage == Stage::Closed)
         return;
+
+    Log::Default()->Verbose("Channel {} closed", _id);
 
     _stage = Stage::Closed;
     _timeout = std::chrono::steady_clock::now();
