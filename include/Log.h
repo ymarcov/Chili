@@ -4,7 +4,7 @@
 #include "Logger.h"
 
 #include <atomic>
-#include <cppformat/format.h>
+#include <fmtlib/format.h>
 #include <sstream>
 
 namespace Yam {

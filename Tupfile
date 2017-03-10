@@ -1,7 +1,7 @@
 include_rules
 
-ECHO_OBJS=sandbox/echo.o src/*.o ext/obj/cppformat/libcppformat.a
-TEST_OBJS=test/*.o src/*.o ext/obj/gmock/libgmock.a ext/obj/cppformat/libcppformat.a
+ECHO_OBJS=sandbox/echo.o src/*.o ext/obj/fmtlib/libfmt.a
+TEST_OBJS=test/*.o src/*.o ext/obj/gmock/libgmock.a ext/obj/fmtlib/libfmt.a
 
 : $(ECHO_OBJS) |> !link |> bin/echo
 : $(TEST_OBJS) |> !link |> bin/test
