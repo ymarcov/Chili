@@ -252,9 +252,13 @@ void Channel::OnWrite() {
         }
     } else {
         if (_error || !_responder.GetKeepAlive()) {
+            if (_error)
+                Log::Default()->Verbose("Channel {} encountered an error and sent an error response", _id);
+            else
+                Log::Default()->Verbose("Channel {} sent response and closing", _id);
             Close();
         } else {
-            Log::Default()->Verbose("Channel {} sent response", _id);
+            Log::Default()->Verbose("Channel {} sent response and keeps alive", _id);
             _request = Request(_stream);
             _fetchContent = false;
             _stage = Stage::WaitReadable;
@@ -279,6 +283,10 @@ void Channel::Close() {
 
 const std::shared_ptr<FileStream>& Channel::GetStream() const {
     return _stream;
+}
+
+int Channel::GetId() const {
+    return _id;
 }
 
 } // namespace Http

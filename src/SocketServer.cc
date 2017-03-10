@@ -1,4 +1,5 @@
 #include "SocketServer.h"
+#include "Log.h"
 #include "SystemError.h"
 
 #include <algorithm>
@@ -55,7 +56,8 @@ void SocketServer::AcceptLoop() {
                 if (std::find(begin(ignored), end(ignored), ret) == end(ignored)) {
                     _stop = true;
                     _promise.set_exception(std::make_exception_ptr(SystemError{}));
-                    return; // TODO: log this
+                    Log::Default()->Error("Socket server closed due to unrecoverable error");
+                    return;
                 } else {
                     continue;
                 }
@@ -65,7 +67,7 @@ void SocketServer::AcceptLoop() {
         try {
             OnAccepted(ret);
         } catch (...) {
-            // TODO: log this
+            Log::Default()->Warning("Socket server OnAccepted() threw an error which was ignored. Please handle internally!");
         }
     }
 

@@ -1,4 +1,5 @@
 #include "Poller.h"
+#include "Log.h"
 #include "SystemError.h"
 
 #include <sys/epoll.h>
@@ -53,7 +54,7 @@ void Poller::InsertOrIncrementRefCount(std::shared_ptr<FileStream>& fs, int even
 
         if (-1 == ::epoll_ctl(_fd, EPOLL_CTL_MOD, fs->GetNativeHandle(), &ev)) {
             if (-1 == ::epoll_ctl(_fd, EPOLL_CTL_DEL, fs->GetNativeHandle(), nullptr))
-                ; // TODO: log this?
+                Log::Default()->Error("Failed to delete {} from epoll after modification failed", _fd);
 
             _files.erase(fs.get());
             throw SystemError{};
@@ -78,7 +79,7 @@ void Poller::DecrementRefCount(const FileStream& fs) {
         }
 
         if (::epoll_ctl(_fd, EPOLL_CTL_DEL, streamFd, nullptr))
-            ; // TODO Log this!
+            Log::Default()->Error("Failed to delete {} from epoll after ref count reset", _fd);
 
     }
 }
@@ -130,7 +131,7 @@ void Poller::DispatchEvents(void* eventsPtr, std::size_t n, const Poller::EventH
         auto fs = GetFileStreamFromPtr(events[i].data.ptr);
 
         if (!fs) {
-            // TODO: log? deleted in between iterations
+            Log::Default()->Verbose("File stream was closed in between iterations");
             continue;
         }
 

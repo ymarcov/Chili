@@ -88,6 +88,7 @@ private:
     void Close();
 
     const std::shared_ptr<FileStream>& GetStream() const;
+    int GetId() const;
 
     std::uint64_t _id;
     std::shared_ptr<FileStream> _stream;

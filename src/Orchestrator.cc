@@ -1,4 +1,5 @@
 #include "Orchestrator.h"
+#include "Log.h"
 
 #include <algorithm>
 
@@ -114,31 +115,36 @@ void Orchestrator::OnEvent(std::shared_ptr<FileStream> fs, int events) {
         auto& channel = (*task)->GetChannel();
 
         if (events & Poller::Events::Completion) {
-            // TODO: log this?
+            Log::Default()->Verbose("Channel {} received completion event", channel.GetId());
             channel.Close();
             return;
         }
 
         switch (channel.GetStage()) {
             case Channel::Stage::WaitReadable:
-                if (events & Poller::Events::Readable)
+                if (events & Poller::Events::Readable) {
+                    Log::Default()->Verbose("Channel {} became readable", channel.GetId());
                     channel.SetStage(Channel::Stage::Read);
-                else
-                    ; // TODO: log this? seems like a logic error
+                } else {
+                    Log::Default()->Error("Channel {} was waiting for readbility but got different event. Check poll logic!", channel.GetId());
+                }
                 break;
 
             case Channel::Stage::WaitWritable:
-                if (events & Poller::Events::Writable)
+                if (events & Poller::Events::Writable) {
+                    Log::Default()->Verbose("Channel {} became writable", channel.GetId());
                     channel.SetStage(Channel::Stage::Write);
-                else
-                    ; // TODO: log this? seems like a logic error
+                } else {
+                    Log::Default()->Error("Channel {} was waiting for writability but got different event. Check poll logic!", channel.GetId());
+                }
                 break;
 
             case Channel::Stage::Closed:
+                Log::Default()->Verbose("Ignoring event on already closed channel {}", channel.GetId());
                 return;
 
             default:
-                // TODO: log this? seems like a logic error
+                Log::Default()->Error("Channel {} was not in a waiting stage but received an event. Check poll logic!", channel.GetId());
                 channel.Close();
                 return;
         }
@@ -146,7 +152,7 @@ void Orchestrator::OnEvent(std::shared_ptr<FileStream> fs, int events) {
         lock.unlock();
         _cv.notify_one();
     } else {
-        // TODO: log this?
+        Log::Default()->Error("A channel whose task no longer exists got an event. Check poll logic!");
     }
 }
 
@@ -156,6 +162,7 @@ void Orchestrator::IterateOnce() {
             return;
 
         if (task->ReachedInactivityTimeout()) {
+            Log::Default()->Info("Channel {} reached inactivity timeout", task->GetChannel().GetId());
             task->GetChannel().Close();
         } else if (task->GetChannel().IsReady()) {
             task->Activate();
