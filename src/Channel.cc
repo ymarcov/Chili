@@ -125,7 +125,7 @@ void Channel::OnRead() {
         _throttlers.Read.Master->Consume(result.second);
 
         if (!result.first) {
-            if (result.second <= maxRead) {
+            if (result.second < maxRead) {
                 Log::Default()->Verbose("Channel {} socket buffer empty. Waiting for readability.", _id);
                 _stage = Stage::WaitReadable;
             } else {
