@@ -102,8 +102,6 @@ protected:
     }
 
     IPEndpoint _ep{{{127, 0, 0, 1}}, 63184};
-    std::shared_ptr<Orchestrator> _orchestrator;
-    std::future<void> _orchestratorTask;
 };
 
 TEST_F(OrchestratorTest, one_client_header_only) {
@@ -132,6 +130,35 @@ TEST_F(OrchestratorTest, one_client_header_and_body) {
     auto ready = std::make_shared<WaitEvent>();
 
     auto server = MakeServer(MakeProcessor([=](Channel& c) {
+        if (!c.GetRequest().ContentAvailable())
+            return c.FetchContent();
+
+        ready->Signal();
+        return c.SendResponse(Status::Ok);
+    }));
+
+    server->Start();
+
+    auto client = CreateClient();
+
+    client->Write(requestData, sizeof(requestData));
+    ASSERT_TRUE(ready->Wait(200ms));
+
+    std::string response;
+    EXPECT_NO_THROW(response = ReadToEnd(client));
+    EXPECT_EQ("HTTP/1.1 200 OK\r\n\r\n", response);
+}
+
+TEST_F(OrchestratorTest, one_client_header_and_body_throttled) {
+    auto ready = std::make_shared<WaitEvent>();
+
+    auto server = MakeServer(MakeProcessor([=](Channel& c) {
+        if (!c.IsWriteThrottled())
+            c.ThrottleWrite({5, 5ms});
+
+        if (!c.IsReadThrottled())
+            c.ThrottleRead({5, 5ms});
+
         if (!c.GetRequest().ContentAvailable())
             return c.FetchContent();
 

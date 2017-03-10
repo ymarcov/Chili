@@ -104,6 +104,14 @@ std::shared_ptr<Channel> Orchestrator::Add(std::shared_ptr<FileStream> stream) {
     return task->_channel;
 }
 
+void Orchestrator::ThrottleRead(Throttler t) {
+    *_masterReadThrottler = std::move(t);
+}
+
+void Orchestrator::ThrottleWrite(Throttler t) {
+    *_masterWriteThrottler = std::move(t);
+}
+
 void Orchestrator::OnEvent(std::shared_ptr<FileStream> fs, int events) {
     std::unique_lock<std::mutex> lock(_mutex);
 

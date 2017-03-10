@@ -47,6 +47,8 @@ public:
     Responder& GetResponder();
     Control FetchContent();
     Control SendResponse(Status);
+    bool IsReadThrottled() const;
+    bool IsWriteThrottled() const;
     void ThrottleRead(Throttler);
     void ThrottleWrite(Throttler);
 

@@ -10,6 +10,10 @@ OrchestratedTcpServer::OrchestratedTcpServer(const IPEndpoint& ep, std::unique_p
     _orchestrator->Start();
 }
 
+Orchestrator& OrchestratedTcpServer::GetOrchestrator() {
+    return *_orchestrator;
+}
+
 void OrchestratedTcpServer::OnAccepted(std::shared_ptr<TcpConnection> conn) {
     conn->SetBlocking(false);
     _orchestrator->Add(std::move(conn));

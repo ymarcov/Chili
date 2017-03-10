@@ -10,6 +10,8 @@ class OrchestratedTcpServer : public TcpServer {
 public:
     OrchestratedTcpServer(const IPEndpoint&, std::unique_ptr<ChannelFactory>);
 
+    Orchestrator& GetOrchestrator();
+
 protected:
     void OnAccepted(std::shared_ptr<TcpConnection>);
 

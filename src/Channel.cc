@@ -107,7 +107,7 @@ void Channel::OnRead() {
         _throttlers.Read.Master->Consume(result.second);
 
         if (!result.first) {
-            if (result.second <= maxRead) {
+            if (result.second < maxRead) {
                 Log::Default()->Verbose("Channel {} socket buffer empty. Waiting for readability.", _id);
                 _stage = Stage::WaitReadable;
             } else {
@@ -217,6 +217,14 @@ Channel::Control Channel::SendResponse(Status status) {
     return Control::SendResponse;
 }
 
+bool Channel::IsReadThrottled() const {
+    return _throttlers.Read.Dedicated.IsEnabled();
+}
+
+bool Channel::IsWriteThrottled() const {
+    return _throttlers.Write.Dedicated.IsEnabled();
+}
+
 void Channel::ThrottleRead(Throttler t) {
     _throttlers.Read.Dedicated = std::move(t);
 }
@@ -242,7 +250,7 @@ void Channel::OnWrite() {
     _throttlers.Write.Master->Consume(result.second);
 
     if (!result.first) {
-        if (result.second <= maxWrite) {
+        if (result.second < maxWrite) {
             Log::Default()->Verbose("Channel {} socket buffer full. Waiting for writability.", _id);
             _stage = Stage::WaitWritable;
         } else {

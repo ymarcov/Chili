@@ -26,6 +26,8 @@ public:
     void Stop();
 
     std::shared_ptr<Channel> Add(std::shared_ptr<FileStream>);
+    void ThrottleRead(Throttler);
+    void ThrottleWrite(Throttler);
 
     Signal<> OnStop;
 
