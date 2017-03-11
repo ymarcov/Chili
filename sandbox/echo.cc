@@ -1,8 +1,8 @@
-#include "MemoryPool.h"
+#include "Log.h"
+#include "OrchestratedTcpServer.h"
 #include "Request.h"
 #include "Responder.h"
 #include "SystemError.h"
-#include "PolledTcpServer.h"
 
 #include <chrono>
 #include <iostream>
@@ -18,13 +18,13 @@ using namespace std::literals;
 
 struct ServerConfiguration {
     IPEndpoint _endpoint;
-    std::shared_ptr<ThreadPool> _threadPool;
     std::shared_ptr<Poller> _poller;
+    int _threadCount;
     bool _verbose;
 };
 
-std::unique_ptr<PolledTcpServer> CreateServer(ServerConfiguration config) {
-    return std::make_unique<PolledTcpServer>(config._endpoint, config._poller);
+std::unique_ptr<OrchestratedTcpServer> CreateServer(ServerConfiguration config, std::unique_ptr<ChannelFactory> channelFactory) {
+    return std::make_unique<OrchestratedTcpServer>(config._endpoint, std::move(channelFactory), config._threadCount);
 }
 
 ServerConfiguration CreateConfiguration(std::vector<std::string> argv) {
@@ -41,14 +41,12 @@ ServerConfiguration CreateConfiguration(std::vector<std::string> argv) {
     if (argv.size() >= 3)
         threadCount = std::stoi(argv[2]);
 
-    auto threadPool = std::make_shared<ThreadPool>(threadCount);
-
     auto verbose = true;
 
     if (argv.size() >= 4)
         verbose = std::stoi(argv[3]);
 
-    return {endpoint, threadPool, std::make_shared<Poller>(2), verbose};
+    return {endpoint, std::make_shared<Poller>(2), threadCount, verbose};
 }
 
 void PrintInfo(Request& request) {
@@ -121,33 +119,39 @@ void PrintInfo(Request& request) {
 
 std::mutex _outputMutex;
 
-Poller::EventHandler CreateHandler(ServerConfiguration config) {
-    auto verbose = config._verbose;
+std::unique_ptr<ChannelFactory> CreateChannelFactory(const ServerConfiguration& config) {
+    struct CustomChannel : Channel {
+        CustomChannel(std::shared_ptr<FileStream> fs, Throttlers t, bool verbose) :
+            Channel(std::move(fs), std::move(t)),
+            _verbose(verbose) {}
 
-    return [=](std::shared_ptr<FileStream> conn, int events) {
-        try {
-            auto request = Request{conn};
-            auto responder = Responder{conn};
-
-            while (!request.ConsumeHeader(0x10).first)
-                ;
-
-            if (request.GetField("Expect", nullptr))
-                responder.Send(Status::Continue);
-
-            if (verbose) {
-                std::lock_guard<std::mutex> lock{_outputMutex};
+        Control Process() override {
+            //TODO: Expect field handling and Status::Continue???
+            if (_verbose) {
+                std::lock_guard<std::mutex> lock(_outputMutex);
                 std::cout << "\n";
-                PrintInfo(request);
+                PrintInfo(GetRequest());
                 std::cout << "\n";
             }
 
-            responder.Send(Status::Ok);
-        } catch (const std::exception& e) {
-            std::lock_guard<std::mutex> lock{_outputMutex};
-            std::cout << "E: " << e.what() << "\n";
+            return SendResponse(Status::Ok);
         }
+
+        bool _verbose;
     };
+
+    struct CustomChannelFactory : ChannelFactory {
+        CustomChannelFactory(bool verbose) :
+            _verbose(verbose) {}
+
+        std::unique_ptr<Channel> CreateChannel(std::shared_ptr<FileStream> fs, Channel::Throttlers t) override {
+            return std::make_unique<CustomChannel>(std::move(fs), std::move(t), _verbose);
+        }
+
+        bool _verbose;
+    };
+
+    return std::make_unique<CustomChannelFactory>(config._verbose);
 }
 
 std::vector<std::string> ArgsToVector(int argc, char* argv[]) {
@@ -168,25 +172,23 @@ int main(int argc, char* argv[]) {
     auto args = ArgsToVector(argc, argv);
 
     auto config = CreateConfiguration(args);
-    auto server = CreateServer(config);
-    auto handler = CreateHandler(config);
+    auto server = CreateServer(config, CreateChannelFactory(config));
 
     Trap<SIGINT>([&] {
         server->Stop();
-        config._poller->Stop();
     });
 
     Trap<SIGSEGV>([&] {
         std::cerr << BackTrace{};
     });
 
-    auto pollerTask = config._poller->Start(handler);
+    Log::Default()->SetLevel(Log::Level::Warning);
+
     auto serverTask = server->Start();
 
     try {
         std::cout << "Echo server started.\n";
         serverTask.get();
-        pollerTask.get();
         std::cout << "\nEcho server exited.\n";
     } catch (const SystemError& e) {
         std::cerr << "\nSYSTEM ERROR: " << e.what() << std::endl;
