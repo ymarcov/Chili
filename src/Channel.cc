@@ -22,8 +22,6 @@ Channel::Channel(std::shared_ptr<FileStream> stream, Throttlers throttlers) :
 Channel::~Channel() {}
 
 void Channel::PerformStage() {
-    std::lock_guard<std::recursive_mutex> lock(_mutex);
-
     try {
         switch (_stage) {
             case Stage::WaitReadTimeout:
@@ -44,19 +42,16 @@ void Channel::PerformStage() {
                 throw std::logic_error("PerformStage() called in non-ready stage");
         }
     } catch (const std::exception& e) {
-        Log::Default()->Error("Channel {} PerformStage() error: {}", _id, e.what());
+        Log::Default()->Info("Channel {} PerformStage() error: {}", _id, e.what());
         Close();
     }
 }
 
 Channel::Stage Channel::GetStage() const {
-    std::lock_guard<std::recursive_mutex> lock(_mutex);
     return _stage;
 }
 
 void Channel::SetStage(Stage s) {
-    std::lock_guard<std::recursive_mutex> lock(_mutex);
-
     if (_stage == Stage::Closed)
         return;
 
@@ -64,13 +59,10 @@ void Channel::SetStage(Stage s) {
 }
 
 std::chrono::time_point<std::chrono::steady_clock> Channel::GetRequestedTimeout() const {
-    std::lock_guard<std::recursive_mutex> lock(_mutex);
     return _timeout;
 }
 
 bool Channel::IsReady() const {
-    std::lock_guard<std::recursive_mutex> lock(_mutex);
-
     if (std::chrono::steady_clock::now() < _timeout)
         return false;
 
@@ -80,8 +72,6 @@ bool Channel::IsReady() const {
 }
 
 bool Channel::IsWaiting() const {
-    std::lock_guard<std::recursive_mutex> lock(_mutex);
-
     if (std::chrono::steady_clock::now() < _timeout)
         return true;
 
@@ -275,8 +265,6 @@ void Channel::OnWrite() {
 }
 
 void Channel::Close() {
-    std::lock_guard<std::recursive_mutex> lock(_mutex);
-
     if (_stage == Stage::Closed)
         return;
 

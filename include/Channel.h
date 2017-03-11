@@ -97,7 +97,6 @@ private:
     Throttlers _throttlers;
     Request _request;
     Responder _responder;
-    mutable std::recursive_mutex _mutex;
     std::chrono::time_point<std::chrono::steady_clock> _timeout;
     Stage _stage;
     bool _error = false;

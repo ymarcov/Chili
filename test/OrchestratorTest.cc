@@ -2,6 +2,8 @@
 
 #include "OrchestratedTcpServer.h"
 #include "FileStream.h"
+#include "Log.h"
+#include "LogUtils.h"
 #include "Poller.h"
 #include "TestFileUtils.h"
 #include "WaitEvent.h"
@@ -64,7 +66,7 @@ protected:
             FactoryFunction _f;
         };
 
-        return std::make_shared<OrchestratedTcpServer>(_ep, std::make_unique<Factory>(std::move(factoryFunction)));
+        return std::make_shared<OrchestratedTcpServer>(_ep, std::make_unique<Factory>(std::move(factoryFunction)), 4);
     }
 
     template <class Processor>
@@ -90,15 +92,21 @@ protected:
         return std::make_unique<TcpConnection>(_ep);
     }
 
-    std::string ReadToEnd(const std::unique_ptr<TcpConnection>& conn) {
-        conn->SetBlocking(true);
+    std::string ReadToEnd(FileStream& conn) {
+        conn.SetBlocking(true);
         std::string result;
         char buffer[1];
 
-        while (auto bytesRead = conn->Read(buffer, sizeof(buffer), 1s))
+        while (auto bytesRead = conn.Read(buffer, sizeof(buffer), 1s))
             result += {buffer, bytesRead};
 
         return result;
+    }
+
+    std::string ReadAvailable(FileStream& conn) {
+        char buffer[0x1000];
+        auto bytesRead = conn.Read(buffer, sizeof(buffer));
+        return {buffer, bytesRead};
     }
 
     IPEndpoint _ep{{{127, 0, 0, 1}}, 63184};
@@ -119,10 +127,10 @@ TEST_F(OrchestratorTest, one_client_header_only) {
     auto client = CreateClient();
 
     client->Write(requestData, sizeof(requestData));
-    EXPECT_TRUE(ready->Wait(200ms));
+    ASSERT_TRUE(ready->Wait(200ms));
 
     std::string response;
-    EXPECT_NO_THROW(response = ReadToEnd(client));
+    EXPECT_NO_THROW(response = ReadToEnd(*client));
     EXPECT_EQ("HTTP/1.1 200 OK\r\n\r\n", response);
 }
 
@@ -145,7 +153,7 @@ TEST_F(OrchestratorTest, one_client_header_and_body) {
     ASSERT_TRUE(ready->Wait(200ms));
 
     std::string response;
-    EXPECT_NO_THROW(response = ReadToEnd(client));
+    EXPECT_NO_THROW(response = ReadToEnd(*client));
     EXPECT_EQ("HTTP/1.1 200 OK\r\n\r\n", response);
 }
 
@@ -174,8 +182,59 @@ TEST_F(OrchestratorTest, one_client_header_and_body_throttled) {
     ASSERT_TRUE(ready->Wait(200ms));
 
     std::string response;
-    EXPECT_NO_THROW(response = ReadToEnd(client));
+    EXPECT_NO_THROW(response = ReadToEnd(*client));
     EXPECT_EQ("HTTP/1.1 200 OK\r\n\r\n", response);
+}
+
+TEST_F(OrchestratorTest, multiple_clients) {
+    auto ready = std::make_shared<WaitEvent>();
+    auto readyCount = std::make_shared<std::atomic_int>(0);
+    const auto clientCount = 10000;
+    auto lightLog = TemporaryLogLevel(Log::Level::Info);
+
+    auto server = MakeServer(MakeProcessor([=](Channel& c) {
+        if (!c.IsWriteThrottled())
+            c.ThrottleWrite({5, 5ms});
+
+        if (!c.GetRequest().ContentAvailable())
+            return c.FetchContent();
+
+        if (c.GetRequest().GetField("Host") == "request.urih.com")
+            if (++*readyCount == clientCount)
+                ready->Signal();
+
+        return c.SendResponse(Status::Ok);
+    }));
+
+    server->Start();
+    auto clients = std::vector<std::shared_ptr<TcpConnection>>();
+
+    for (auto i = 0; i < clientCount; ++i)
+        clients.push_back(CreateClient());
+
+    std::random_device rd;
+    std::shuffle(begin(clients), end(clients), rd);
+
+    Poller poller(1);
+    std::atomic_int writtenCount{0};
+    WaitEvent allWritten;
+
+    poller.Start([&](std::shared_ptr<FileStream> fs, int events) {
+        std::string response = ReadAvailable(*fs);
+        std::string expected = "HTTP/1.1 200 OK\r\n\r\n";
+
+        if (response == expected)
+            if (++writtenCount == clientCount)
+                allWritten.Signal();
+    });
+
+    for (auto& client : clients) {
+        client->Write(requestData, sizeof(requestData));
+        poller.Poll(client, Poller::Events::EndOfStream);
+    }
+
+    ASSERT_TRUE(ready->Wait(10000ms));
+    ASSERT_TRUE(allWritten.Wait(5000ms));
 }
 
 } // namespace Http

@@ -20,9 +20,14 @@ Channel& Orchestrator::Task::GetChannel() {
     return *_channel;
 }
 
-Orchestrator::Orchestrator(std::unique_ptr<ChannelFactory> channelFactory) :
+std::mutex& Orchestrator::Task::GetMutex() {
+    return _mutex;
+}
+
+Orchestrator::Orchestrator(std::unique_ptr<ChannelFactory> channelFactory, int threads) :
     _channelFactory(std::move(channelFactory)),
     _poller(2),
+    _threadPool(threads),
     _masterReadThrottler(std::make_shared<Throttler>()),
     _masterWriteThrottler(std::make_shared<Throttler>()) {
     _poller.OnStop += [this] {
@@ -46,6 +51,7 @@ std::future<void> Orchestrator::Start() {
 
             _poller.Stop();
             _pollerTask.wait();
+            _threadPool.Stop();
             OnStop();
 
             try {
@@ -58,6 +64,7 @@ std::future<void> Orchestrator::Start() {
             _stop = true;
             _poller.Stop();
             _pollerTask.wait();
+            _threadPool.Stop();
             OnStop();
 
             try {
@@ -77,7 +84,9 @@ std::future<void> Orchestrator::Start() {
 }
 
 void Orchestrator::Stop() {
+    std::unique_lock<std::mutex> lock(_mutex);
     _stop = true;
+    lock.unlock();
     _cv.notify_one();
 
     if (_thread.joinable())
@@ -120,6 +129,8 @@ void Orchestrator::OnEvent(std::shared_ptr<FileStream> fs, int events) {
     });
 
     if (task != end(_tasks)) {
+        std::unique_lock<std::mutex> taskLock((*task)->GetMutex());
+
         auto& channel = (*task)->GetChannel();
 
         if (events & Poller::Events::Completion) {
@@ -157,6 +168,7 @@ void Orchestrator::OnEvent(std::shared_ptr<FileStream> fs, int events) {
                 return;
         }
 
+        taskLock.unlock();
         lock.unlock();
         _cv.notify_one();
     } else {
@@ -167,28 +179,32 @@ void Orchestrator::OnEvent(std::shared_ptr<FileStream> fs, int events) {
 void Orchestrator::IterateOnce() {
     for (auto& task : CaptureTasks()) {
         if (_stop)
-            return;
+            break;
 
-        if (task->ReachedInactivityTimeout()) {
-            Log::Default()->Info("Channel {} reached inactivity timeout", task->GetChannel().GetId());
-            task->GetChannel().Close();
-        } else if (task->GetChannel().IsReady()) {
-            task->Activate();
+        _threadPool.Post([=] {
+            std::lock_guard<std::mutex> lock(task->GetMutex());
 
-            switch (task->GetChannel().GetStage()) {
-                case Channel::Stage::WaitReadable:
-                    _poller.Poll(task->GetChannel().GetStream(), Poller::Events::Completion | Poller::Events::Readable);
-                    break;
+            if (task->ReachedInactivityTimeout()) {
+                Log::Default()->Info("Channel {} reached inactivity timeout", task->GetChannel().GetId());
+                task->GetChannel().Close();
+            } else if (task->GetChannel().IsReady()) {
+                task->Activate();
 
-                case Channel::Stage::WaitWritable:
-                    _poller.Poll(task->GetChannel().GetStream(), Poller::Events::Completion | Poller::Events::Writable);
-                    break;
+                switch (task->GetChannel().GetStage()) {
+                    case Channel::Stage::WaitReadable:
+                        _poller.Poll(task->GetChannel().GetStream(), Poller::Events::Completion | Poller::Events::Readable);
+                        break;
 
-                default:
-                    // No need to re-poll at this point
-                    break;
+                    case Channel::Stage::WaitWritable:
+                        _poller.Poll(task->GetChannel().GetStream(), Poller::Events::Completion | Poller::Events::Writable);
+                        break;
+
+                    default:
+                        // No need to re-poll at this point
+                        break;
+                }
             }
-        }
+        });
     }
 }
 
@@ -197,6 +213,7 @@ std::vector<std::shared_ptr<Orchestrator::Task>> Orchestrator::CaptureTasks() {
 
     auto isReady = [this] {
         return _stop || (end(_tasks) != std::find_if(begin(_tasks), end(_tasks), [this](auto& t) {
+            std::lock_guard<std::mutex> lock(t->GetMutex());
             return t->GetChannel().IsReady();
         }));
     };
@@ -204,6 +221,8 @@ std::vector<std::shared_ptr<Orchestrator::Task>> Orchestrator::CaptureTasks() {
     auto timeout = std::chrono::steady_clock::now() + _inactivityTimeout;
 
     for (auto& t : _tasks) {
+        std::lock_guard<std::mutex> lock(t->GetMutex());
+
         auto& channel = t->GetChannel();
 
         if (channel.IsWaiting()) {
@@ -219,6 +238,7 @@ std::vector<std::shared_ptr<Orchestrator::Task>> Orchestrator::CaptureTasks() {
 
     // Garbage-collect closed tasks
     _tasks.erase(std::remove_if(begin(_tasks), end(_tasks), [](auto& t) {
+        std::lock_guard<std::mutex> lock(t->GetMutex());
         return t->GetChannel().GetStage() == Channel::Stage::Closed;
     }), end(_tasks));
 

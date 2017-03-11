@@ -3,9 +3,9 @@
 namespace Yam {
 namespace Http {
 
-OrchestratedTcpServer::OrchestratedTcpServer(const IPEndpoint& ep, std::unique_ptr<ChannelFactory> factory) :
+OrchestratedTcpServer::OrchestratedTcpServer(const IPEndpoint& ep, std::unique_ptr<ChannelFactory> factory, int threads) :
     TcpServer(ep),
-    _orchestrator(std::make_shared<Orchestrator>(std::move(factory))) {
+    _orchestrator(std::make_shared<Orchestrator>(std::move(factory), threads)) {
     _orchestrator->OnStop += [this] { Stop(); };
     _orchestrator->Start();
 }

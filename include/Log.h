@@ -34,6 +34,10 @@ public:
         _currentLevel = level;
     }
 
+    Level GetLevel() const {
+        return _currentLevel;
+    }
+
     template <class... Args>
     void Verbose(const char* format, Args&&... args) {
         if (Enabled(Level::Verbose))
