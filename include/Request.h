@@ -79,7 +79,7 @@ public:
      * If the message has associated content, returns true if
      * the content is already entirely available to be read.
      */
-    bool ContentAvailable() const;
+    bool IsContentAvailable() const;
 
     /*
      * Gets the length of the associated content.

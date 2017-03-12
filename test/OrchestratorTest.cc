@@ -159,7 +159,7 @@ TEST_F(OrchestratorTest, one_client_header_and_body) {
     auto ready = std::make_shared<WaitEvent>();
 
     auto server = MakeServer(MakeProcessor([=](Channel& c) {
-        if (!c.GetRequest().ContentAvailable())
+        if (!c.GetRequest().IsContentAvailable())
             return c.FetchContent();
 
         ready->Signal();
@@ -188,7 +188,7 @@ TEST_F(OrchestratorTest, one_client_header_and_body_throttled) {
         if (!c.IsReadThrottled())
             c.ThrottleRead({5, 5ms});
 
-        if (!c.GetRequest().ContentAvailable())
+        if (!c.GetRequest().IsContentAvailable())
             return c.FetchContent();
 
         ready->Signal();
@@ -212,7 +212,7 @@ TEST_F(OrchestratorTest, one_client_header_and_body_with_expect) {
     auto sentOk = std::make_shared<WaitEvent>();
 
     auto server = MakeServer(MakeProcessor([=](Channel& c) {
-        if (!c.GetRequest().ContentAvailable()) {
+        if (!c.GetRequest().IsContentAvailable()) {
             sentContinue->Signal();
             return c.FetchContent();
         }
@@ -271,7 +271,7 @@ TEST_F(OrchestratorTest, multiple_clients) {
         if (!c.IsWriteThrottled())
             c.ThrottleWrite({5, 5ms});
 
-        if (!c.GetRequest().ContentAvailable())
+        if (!c.GetRequest().IsContentAvailable())
             return c.FetchContent();
 
         if (c.GetRequest().GetField("Host") == "request.urih.com")

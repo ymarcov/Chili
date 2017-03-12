@@ -153,7 +153,7 @@ bool Request::HasContent() const {
     return !!std::strncmp(f.Data, "0", f.Size);
 }
 
-bool Request::ContentAvailable() const {
+bool Request::IsContentAvailable() const {
     return GetContentLength() == _content.size();
 }
 

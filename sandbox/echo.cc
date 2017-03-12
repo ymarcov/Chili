@@ -123,7 +123,7 @@ std::unique_ptr<ChannelFactory> CreateChannelFactory(const ServerConfiguration& 
             _verbose(verbose) {}
 
         Control Process() override {
-            if (!GetRequest().ContentAvailable())
+            if (!GetRequest().IsContentAvailable())
                 return FetchContent();
 
             if (_verbose) {
