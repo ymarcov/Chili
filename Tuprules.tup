@@ -4,5 +4,6 @@ CXX=g++
 CXXFLAGS=-g -std=c++1y -I$(ROOT)/include -Wall -Werror -pedantic
 CXXFLAGS+=-isystem $(ROOT)/ext
 
-!c++ = |> $(CXX) $(CXXFLAGS) @(CXXFLAGS) -c %f -o %o |>
-!link = |> $(CXX) %f -o %o -lpthread -lcurl -lunwind |>
+!c++ = |> $(CXX) -fPIC $(CXXFLAGS) @(CXXFLAGS) -c %f -o %o |>
+!link = |> $(CXX) %f -o %o -Lbin -lyam_http -lpthread -lcurl -lunwind |>
+!link_so = |> $(CXX) -shared -fPIC %f -o %o -lpthread -lcurl -lunwind |>

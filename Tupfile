@@ -1,7 +1,10 @@
 include_rules
 
 ECHO_OBJS=sandbox/echo.o src/*.o ext/obj/fmtlib/libfmt.a
+LIB_OBJS=src/*.o ext/obj/fmtlib/libfmt.a
 TEST_OBJS=test/*.o src/*.o ext/obj/gmock/libgmock.a ext/obj/fmtlib/libfmt.a
+LIB=bin/libyam_http.so
 
-: $(ECHO_OBJS) |> !link |> bin/echo
-: $(TEST_OBJS) |> !link |> bin/test
+: $(LIB_OBJS) |> !link_so |> $(LIB)
+: $(ECHO_OBJS) | $(LIB) |> !link |> bin/echo
+: $(TEST_OBJS) | $(LIB) |> !link |> bin/test
