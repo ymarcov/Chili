@@ -97,6 +97,8 @@ void Responder::Send(Status status) {
     w.write("\r\n");
 
     _header = w.str();
+
+    _status = status;
 }
 
 std::pair<bool, std::size_t> Responder::Flush(std::size_t maxBytes) {
@@ -173,6 +175,10 @@ void Responder::SetCookie(std::string name, std::string value, const CookieOptio
 
 void Responder::SetBody(std::shared_ptr<std::vector<char>> body) {
     _body = std::move(body);
+}
+
+Status Responder::GetStatus() const {
+    return _status;
 }
 
 } // namespace Http

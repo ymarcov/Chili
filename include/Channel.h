@@ -33,6 +33,7 @@ public:
 
     enum class Control {
         FetchContent,
+        RejectContent,
         SendResponse
     };
 
@@ -46,6 +47,7 @@ public:
     Request& GetRequest();
     Responder& GetResponder();
     Control FetchContent();
+    Control RejectContent();
     Control SendResponse(Status);
     bool IsReadThrottled() const;
     bool IsWriteThrottled() const;

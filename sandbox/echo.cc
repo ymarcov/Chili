@@ -107,9 +107,6 @@ void PrintInfo(Request& request) {
     if (request.GetMethod() == Method::Post) {
         std::cout << "====================\n";
 
-        while (!request.ConsumeContent(0x1000).first)
-            ;
-
         auto str = std::string{request.GetContent().data(), request.GetContent().size()};
         std::cout << str;
 
@@ -126,7 +123,9 @@ std::unique_ptr<ChannelFactory> CreateChannelFactory(const ServerConfiguration& 
             _verbose(verbose) {}
 
         Control Process() override {
-            //TODO: Expect field handling and Status::Continue???
+            if (!GetRequest().ContentAvailable())
+                return FetchContent();
+
             if (_verbose) {
                 std::lock_guard<std::mutex> lock(_outputMutex);
                 std::cout << "\n";
@@ -182,7 +181,7 @@ int main(int argc, char* argv[]) {
         std::cerr << BackTrace{};
     });
 
-    Log::Default()->SetLevel(Log::Level::Warning);
+    //Log::Default()->SetLevel(Log::Level::Warning);
 
     auto serverTask = server->Start();
 

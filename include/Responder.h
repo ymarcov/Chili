@@ -30,9 +30,15 @@ public:
      */
     std::pair<bool, std::size_t> Flush(std::size_t maxBytes);
 
+    /**
+     * Gets the status that was requested to be sent.
+     */
+    Status GetStatus() const;
+
 private:
     std::shared_ptr<OutputStream> _stream;
     std::vector<std::pair<std::string, std::string>> _fields;
+    Status _status;
     bool _keepAlive = false;
     std::string _header;
     std::shared_ptr<std::vector<char>> _body;

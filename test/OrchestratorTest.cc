@@ -35,6 +35,25 @@ const char requestData[] =
 "\r\n"
 "Request body!";
 
+const char requestDataWithExpect[] =
+"GET /path/to/res HTTP/1.1\r\n"
+"Accept: text/html,application/xhtml+xml,application/xml;q=0.9,*/*;q=0.8\r\n"
+"Accept-encoding: gzip, deflate\r\n"
+"Accept-language: en-US,en;q=0.5\r\n"
+"Connection: close\r\n"
+"Expect: 100-continue\r\n"
+"Host: request.urih.com\r\n"
+"Referer: http://www.google.com/?url=http%3A%2F%2Frequest.urih.com\r\n"
+"User-agent: Mozilla/5.0 (X11; Linux x86_64; rv:31.0) Gecko/20100101 Firefox/31.0 Iceweasel/31.8.0\r\n"
+"Cookie: Session=abcd1234; User=Yam\r\n"
+"X-http-proto: HTTP/1.1\r\n"
+"X-log-7527: 95.35.33.46\r\n"
+"X-real-ip: 95.35.33.46\r\n"
+"Content-Length: 13\r\n"
+"\r\n";
+
+const char requestDataWithExpectBody[] = "Request body!";
+
 class OrchestratorTest : public Test {
 protected:
     void WriteMoreData(std::shared_ptr<FileStream>& fs, int minSize, int maxSize = -1) {
@@ -99,6 +118,8 @@ protected:
 
         while (auto bytesRead = conn.Read(buffer, sizeof(buffer), 1s))
             result += {buffer, bytesRead};
+
+        conn.SetBlocking(false);
 
         return result;
     }
@@ -184,6 +205,60 @@ TEST_F(OrchestratorTest, one_client_header_and_body_throttled) {
     std::string response;
     EXPECT_NO_THROW(response = ReadToEnd(*client));
     EXPECT_EQ("HTTP/1.1 200 OK\r\n\r\n", response);
+}
+
+TEST_F(OrchestratorTest, one_client_header_and_body_with_expect) {
+    auto sentContinue = std::make_shared<WaitEvent>();
+    auto sentOk = std::make_shared<WaitEvent>();
+
+    auto server = MakeServer(MakeProcessor([=](Channel& c) {
+        if (!c.GetRequest().ContentAvailable()) {
+            sentContinue->Signal();
+            return c.FetchContent();
+        }
+
+        sentOk->Signal();
+        return c.SendResponse(Status::Ok);
+    }));
+
+    server->Start();
+
+    auto client = CreateClient();
+
+    std::string response;
+
+    client->Write(requestDataWithExpect, sizeof(requestDataWithExpect));
+    ASSERT_TRUE(sentContinue->Wait(200ms));
+    std::this_thread::sleep_for(50ms);
+    response = ReadAvailable(*client);
+    ASSERT_EQ("HTTP/1.1 100 Continue\r\n\r\n", response);
+
+    client->Write(requestDataWithExpectBody, sizeof(requestDataWithExpectBody));
+
+    ASSERT_TRUE(sentOk->Wait(200ms));
+    std::this_thread::sleep_for(50ms);
+    response = ReadAvailable(*client);
+    ASSERT_EQ("HTTP/1.1 200 OK\r\n\r\n", response);
+}
+
+TEST_F(OrchestratorTest, one_client_header_and_body_with_expect_reject) {
+    auto sentRejection = std::make_shared<WaitEvent>();
+
+    auto server = MakeServer(MakeProcessor([=](Channel& c) {
+        sentRejection->Signal();
+        return c.RejectContent();
+    }));
+
+    server->Start();
+
+    auto client = CreateClient();
+
+    client->Write(requestDataWithExpect, sizeof(requestDataWithExpect));
+    ASSERT_TRUE(sentRejection->Wait(200ms));
+
+    std::string response;
+    ASSERT_NO_THROW(response = ReadToEnd(*client));
+    ASSERT_EQ("HTTP/1.1 417 Expectation Failed\r\n\r\n", response);
 }
 
 TEST_F(OrchestratorTest, multiple_clients) {

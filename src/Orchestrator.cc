@@ -8,7 +8,9 @@ namespace Http {
 
 void Orchestrator::Task::Activate() {
     GetChannel().PerformStage();
-    _lastActive = std::chrono::steady_clock::now();
+
+    if (GetChannel().GetStage() == Channel::Stage::Process)
+        _lastActive = std::chrono::steady_clock::now();
 }
 
 bool Orchestrator::Task::ReachedInactivityTimeout() const {

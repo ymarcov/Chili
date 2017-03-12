@@ -107,6 +107,8 @@ void Channel::OnRead() {
             }
 
             return;
+        } else {
+            _fetchContent = false;
         }
     } else {
         auto result = _request.ConsumeHeader(maxRead);
@@ -166,7 +168,7 @@ void Channel::OnRead() {
 
 void Channel::OnProcess() {
     Control result;
-    _stage = Stage::WaitWritable;
+    _stage = Stage::Write;
 
     try {
         result = Process();
@@ -186,7 +188,27 @@ void Channel::OnProcess() {
         }
 
         _fetchContent = true;
-        _stage = Stage::Read;
+        std::string value;
+
+        if (_request.GetField("Expect", &value)) {
+            if (value == "100-continue") {
+                _responder = Responder(_stream);
+                _responder.Send(Status::Continue);
+            }
+        } else {
+            _stage = Stage::Read;
+        }
+    } else if (result == Control::RejectContent) {
+        std::string value;
+
+        if (_request.GetField("Expect", &value)) {
+            if (value == "100-continue") {
+                _responder = Responder(_stream);
+                _responder.Send(Status::ExpectationFailed);
+            }
+        } else {
+            Close();
+        }
     }
 }
 
@@ -200,6 +222,10 @@ Responder& Channel::GetResponder() {
 
 Channel::Control Channel::FetchContent() {
     return Control::FetchContent;
+}
+
+Channel::Control Channel::RejectContent() {
+    return Control::RejectContent;
 }
 
 Channel::Control Channel::SendResponse(Status status) {
@@ -249,7 +275,9 @@ void Channel::OnWrite() {
             _timeout = _throttlers.Write.Dedicated.GetFillTime();
         }
     } else {
-        if (_error || !_responder.GetKeepAlive()) {
+        if (_fetchContent) {
+            _stage = Stage::Read;
+        } else if (_error || !_responder.GetKeepAlive()) {
             if (_error)
                 Log::Default()->Verbose("Channel {} encountered an error and sent an error response", _id);
             else
@@ -259,7 +287,7 @@ void Channel::OnWrite() {
             Log::Default()->Verbose("Channel {} sent response and keeps alive", _id);
             _request = Request(_stream);
             _fetchContent = false;
-            _stage = Stage::WaitReadable;
+            _stage = Stage::Read;
         }
     }
 }
