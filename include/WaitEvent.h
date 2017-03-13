@@ -13,6 +13,10 @@ public:
     void Signal();
     void Wait() const;
     bool Wait(std::chrono::microseconds timeout) const;
+    bool WaitUntil(std::chrono::time_point<std::chrono::steady_clock>) const;
+    void WaitAndReset();
+    bool WaitAndReset(std::chrono::microseconds timeout);
+    bool WaitUntilAndReset(std::chrono::time_point<std::chrono::steady_clock>);
 
 private:
     mutable std::mutex _mutex;
