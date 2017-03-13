@@ -15,11 +15,11 @@ class Channel {
 public:
     enum class Stage {
         WaitReadable,
-        WaitReadTimeout,
+        ReadTimeout,
         Read,
         Process,
         WaitWritable,
-        WaitWriteTimeout,
+        WriteTimeout,
         Write,
         Closed
     };
@@ -94,6 +94,12 @@ private:
     const std::shared_ptr<FileStream>& GetStream() const;
     int GetId() const;
 
+    bool FetchData(std::pair<bool, std::size_t>(Request::*)(std::size_t), std::size_t maxRead);
+    void LogNewRequest();
+    void SendInternalError();
+    void HandleControlDirective(Control);
+    bool FlushData(std::size_t maxWrite);
+
     std::uint64_t _id;
     std::shared_ptr<FileStream> _stream;
     Throttlers _throttlers;
@@ -101,8 +107,8 @@ private:
     Responder _responder;
     std::chrono::time_point<std::chrono::steady_clock> _timeout;
     Stage _stage;
-    bool _error = false;
-    bool _fetchContent = false;
+    bool _respondedWithError = false;
+    bool _fetchingContent = false;
 
     friend class Orchestrator;
 };
