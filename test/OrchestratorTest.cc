@@ -264,7 +264,7 @@ TEST_F(OrchestratorTest, one_client_header_and_body_with_expect_reject) {
 TEST_F(OrchestratorTest, multiple_clients) {
     auto ready = std::make_shared<WaitEvent>();
     auto readyCount = std::make_shared<std::atomic_int>(0);
-    const auto clientCount = 10000;
+    const auto clientCount = 1000;
     auto lightLog = TemporaryLogLevel(Log::Level::Info);
 
     auto server = MakeServer(MakeProcessor([=](Channel& c) {
