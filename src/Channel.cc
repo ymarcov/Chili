@@ -42,7 +42,7 @@ void Channel::Advance() {
                 throw std::logic_error("Advance() called in non-ready stage");
         }
     } catch (const std::exception& e) {
-        Log::Default()->Info("Channel {} Advance() error: {}", _id, e.what());
+        Log::Default()->Info("Channel {} error: {}", _id, e.what());
         Close();
     }
 }
@@ -93,6 +93,10 @@ void Channel::OnRead() {
 
     if (doneReading) {
         _responder = Responder(_stream);
+
+        if (!_request.KeepAlive())
+            _responder.ExplicitKeepAlive(false);
+
         _stage = Stage::Process;
     }
 }
@@ -242,7 +246,7 @@ void Channel::OnWrite() {
         _fetchingContent = false;
         _stage = Stage::Read;
     } else {
-        Log::Default()->Verbose("Channel {} sent response and closing", _id);
+        Log::Default()->Verbose("Channel {} sent final response", _id);
         Close();
     }
 }
