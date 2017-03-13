@@ -133,6 +133,10 @@ std::unique_ptr<ChannelFactory> CreateChannelFactory(const ServerConfiguration& 
                 std::cout << "\n";
             }
 
+            const char msg[] = "<b><u>Hello world!</u></b>";
+            auto data = std::make_shared<std::vector<char>>(std::begin(msg), std::end(msg) - 1);
+            GetResponder().SetBody(data);
+
             return SendResponse(Status::Ok);
         }
 
