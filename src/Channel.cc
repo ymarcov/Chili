@@ -67,8 +67,7 @@ bool Channel::IsReady() const {
         return false;
 
     return (_stage != Stage::WaitReadable) &&
-            (_stage != Stage::WaitWritable) &&
-            (_stage != Stage::Closed);
+            (_stage != Stage::WaitWritable);
 }
 
 void Channel::OnRead() {

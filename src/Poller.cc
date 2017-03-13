@@ -29,6 +29,10 @@ void Poller::Poll(std::shared_ptr<FileStream> fs, int events) {
     InsertOrIncrementRefCount(fs, events);
 }
 
+void Poller::Remove(const std::shared_ptr<FileStream>& fs) {
+    DecrementRefCount(*fs);
+}
+
 // Handling ref counts makes it possible to re-register
 // from within a handler, even though straight after
 // it the dispatcher will decrement the ref count.

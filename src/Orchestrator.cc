@@ -11,6 +11,7 @@ void Orchestrator::Task::Activate() {
 
     if (ReachedInactivityTimeout()) {
         Log::Default()->Info("Channel {} reached inactivity timeout", channel.GetId());
+        _orchestrator->_poller.Remove(channel.GetStream());
         channel.Close();
         return;
     }

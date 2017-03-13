@@ -36,6 +36,7 @@ public:
 
     std::size_t GetWatchedCount();
     void Poll(std::shared_ptr<FileStream>, int events = Events::NotifyAll);
+    void Remove(const std::shared_ptr<FileStream>&);
 
     std::future<void> Start(EventHandler);
     void Stop();
