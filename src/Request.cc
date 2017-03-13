@@ -19,7 +19,7 @@ bool BufferContainsEndOfHeaderMarker(const char* buffer, std::size_t bufferSize)
     if (bufferSize < sizeof(eohMarker))
         return false;
 
-    for (auto i = 0U; i < (bufferSize - 3); i++)
+    for (auto i = 0U; i <= (bufferSize - sizeof(std::uint32_t)); i++)
         if (*reinterpret_cast<const std::uint32_t*>(buffer + i) == eohMarker)
             return true;
 

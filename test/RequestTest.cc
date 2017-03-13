@@ -167,7 +167,8 @@ TEST_F(RequestTest, non_contiguous_header_and_body) {
 }
 
 TEST_F(RequestTest, invalid_header_throws) {
-    char buffer[0x2000];
+    char buffer[0x2000] = {0};
+    std::iota(std::begin(buffer), std::end(buffer), 1);
     EXPECT_THROW(MakeRequest(MakeInputStream(buffer)), std::runtime_error);
 }
 
