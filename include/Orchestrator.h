@@ -34,9 +34,9 @@ public:
 
 private:
     struct Task {
+        Orchestrator* _orchestrator;
         std::shared_ptr<Channel> _channel;
         std::chrono::time_point<std::chrono::steady_clock> _lastActive;
-        std::chrono::milliseconds* _inactivityTimeout;
         std::mutex _mutex;
 
         void Activate();
@@ -46,8 +46,14 @@ private:
     };
 
     void OnEvent(std::shared_ptr<FileStream>, int events);
+    void HandleChannelEvent(Channel&, int events);
     void IterateOnce();
     std::vector<std::shared_ptr<Task>> CaptureTasks();
+    void InternalStop();
+    void InternalForceStopOnError();
+    bool AtLeastOneTaskIsReady();
+    std::chrono::time_point<std::chrono::steady_clock> GetLatestAllowedWakeup();
+    void CollectGarbage();
 
     std::unique_ptr<ChannelFactory> _channelFactory;
     std::promise<void> _threadPromise;
@@ -57,7 +63,7 @@ private:
     std::shared_ptr<Throttler> _masterReadThrottler;
     std::shared_ptr<Throttler> _masterWriteThrottler;
     std::thread _thread;
-    std::condition_variable _cv;
+    std::condition_variable _newEvent;
     std::atomic_bool _stop{true};
     std::mutex _mutex;
     std::vector<std::shared_ptr<Task>> _tasks;

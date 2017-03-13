@@ -61,7 +61,7 @@ private:
     /**
      * Take the next step in the state machine.
      */
-    void PerformStage();
+    void Advance();
 
     /**
      * Gets and sets the stage the channel is currently in.
@@ -80,11 +80,6 @@ private:
      * Gets whether the channel is ready to perform its stage.
      */
     bool IsReady() const;
-
-    /**
-     * Gets whether the channel is waiting, either for IO or a timeout.
-     */
-    bool IsWaiting() const;
 
     void OnRead();
     void OnProcess();
@@ -105,8 +100,8 @@ private:
     Throttlers _throttlers;
     Request _request;
     Responder _responder;
-    std::chrono::time_point<std::chrono::steady_clock> _timeout;
-    Stage _stage;
+    std::atomic<std::chrono::time_point<std::chrono::steady_clock>> _timeout;
+    std::atomic<Stage> _stage;
     bool _respondedWithError = false;
     bool _fetchingContent = false;
 

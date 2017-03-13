@@ -21,7 +21,7 @@ Channel::Channel(std::shared_ptr<FileStream> stream, Throttlers throttlers) :
 
 Channel::~Channel() {}
 
-void Channel::PerformStage() {
+void Channel::Advance() {
     try {
         switch (_stage) {
             case Stage::ReadTimeout:
@@ -39,10 +39,10 @@ void Channel::PerformStage() {
                 break;
 
             default:
-                throw std::logic_error("PerformStage() called in non-ready stage");
+                throw std::logic_error("Advance() called in non-ready stage");
         }
     } catch (const std::exception& e) {
-        Log::Default()->Info("Channel {} PerformStage() error: {}", _id, e.what());
+        Log::Default()->Info("Channel {} Advance() error: {}", _id, e.what());
         Close();
     }
 }
@@ -63,20 +63,12 @@ std::chrono::time_point<std::chrono::steady_clock> Channel::GetRequestedTimeout(
 }
 
 bool Channel::IsReady() const {
-    if (std::chrono::steady_clock::now() < _timeout)
+    if (std::chrono::steady_clock::now() < _timeout.load())
         return false;
 
     return (_stage != Stage::WaitReadable) &&
             (_stage != Stage::WaitWritable) &&
             (_stage != Stage::Closed);
-}
-
-bool Channel::IsWaiting() const {
-    if (std::chrono::steady_clock::now() < _timeout)
-        return true;
-
-    return (_stage == Stage::WaitReadable) ||
-            (_stage == Stage::WaitWritable);
 }
 
 void Channel::OnRead() {
@@ -285,11 +277,11 @@ void Channel::Close() {
 
     Log::Default()->Verbose("Channel {} closed", _id);
 
-    _stage = Stage::Closed;
     _timeout = std::chrono::steady_clock::now();
     _request = Request();
     _responder = Responder();
     _stream.reset();
+    _stage = Stage::Closed;
 }
 
 const std::shared_ptr<FileStream>& Channel::GetStream() const {

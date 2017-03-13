@@ -7,15 +7,42 @@ namespace Yam {
 namespace Http {
 
 void Orchestrator::Task::Activate() {
-    GetChannel().PerformStage();
+    auto& channel = GetChannel();
 
-    if (GetChannel().GetStage() == Channel::Stage::Process)
-        _lastActive = std::chrono::steady_clock::now();
+    if (ReachedInactivityTimeout()) {
+        Log::Default()->Info("Channel {} reached inactivity timeout", channel.GetId());
+        channel.Close();
+        return;
+    }
+
+    if (!channel.IsReady())
+        return;
+
+    channel.Advance();
+
+    switch (channel.GetStage()) {
+        case Channel::Stage::Process: {
+            _lastActive = std::chrono::steady_clock::now();
+        } break;
+
+        case Channel::Stage::WaitReadable: {
+            _orchestrator->_poller.Poll(channel.GetStream(),
+                                        Poller::Events::Completion | Poller::Events::Readable);
+        } break;
+
+        case Channel::Stage::WaitWritable: {
+            _orchestrator->_poller.Poll(channel.GetStream(),
+                                        Poller::Events::Completion | Poller::Events::Writable);
+        } break;
+
+        default:
+            break; // Don't need to get involved
+    }
 }
 
 bool Orchestrator::Task::ReachedInactivityTimeout() const {
     auto diff = std::chrono::steady_clock::now() - _lastActive;
-    return diff >= *_inactivityTimeout;
+    return diff >= _orchestrator->_inactivityTimeout;
 }
 
 Channel& Orchestrator::Task::GetChannel() {
@@ -34,7 +61,7 @@ Orchestrator::Orchestrator(std::unique_ptr<ChannelFactory> channelFactory, int t
     _masterWriteThrottler(std::make_shared<Throttler>()) {
     _poller.OnStop += [this] {
         _stop = true;
-        _cv.notify_one();
+        _newEvent.notify_one();
     };
 }
 
@@ -51,30 +78,9 @@ std::future<void> Orchestrator::Start() {
             while (!_stop)
                 IterateOnce();
 
-            _poller.Stop();
-            _pollerTask.wait();
-            _threadPool.Stop();
-            OnStop();
-
-            try {
-                _pollerTask.get();
-                _threadPromise.set_value();
-            } catch (...) {
-                _threadPromise.set_exception(std::current_exception());
-            }
+            InternalStop();
         } catch (...) {
-            _stop = true;
-            _poller.Stop();
-            _pollerTask.wait();
-            _threadPool.Stop();
-            OnStop();
-
-            try {
-                _pollerTask.get();
-                _threadPromise.set_exception(std::current_exception());
-            } catch (...) {
-                _threadPromise.set_exception(std::current_exception());
-            }
+            InternalForceStopOnError();
         }
     });
 
@@ -85,11 +91,36 @@ std::future<void> Orchestrator::Start() {
     return _threadPromise.get_future();
 }
 
+void Orchestrator::InternalStop() {
+    try {
+        _poller.Stop();
+        _threadPool.Stop();
+        OnStop();
+        _pollerTask.get();
+        _threadPromise.set_value();
+    } catch (...) {
+        _threadPromise.set_exception(std::current_exception());
+    }
+}
+
+void Orchestrator::InternalForceStopOnError() {
+    try {
+        _stop = true;
+        _poller.Stop();
+        _threadPool.Stop();
+        OnStop();
+        _pollerTask.get();
+        _threadPromise.set_exception(std::current_exception());
+    } catch (...) {
+        _threadPromise.set_exception(std::current_exception());
+    }
+}
+
 void Orchestrator::Stop() {
     std::unique_lock<std::mutex> lock(_mutex);
     _stop = true;
     lock.unlock();
-    _cv.notify_one();
+    _newEvent.notify_one();
 
     if (_thread.joinable())
         _thread.join();
@@ -104,9 +135,9 @@ std::shared_ptr<Channel> Orchestrator::Add(std::shared_ptr<FileStream> stream) {
     throttlers.Read.Master = _masterReadThrottler;
     throttlers.Write.Master = _masterWriteThrottler;
 
+    task->_orchestrator = this;
     task->_channel = _channelFactory->CreateChannel(std::move(stream), std::move(throttlers));
     task->_lastActive = std::chrono::steady_clock::now();
-    task->_inactivityTimeout = &_inactivityTimeout;
 
     _tasks.push_back(task);
 
@@ -126,55 +157,66 @@ void Orchestrator::ThrottleWrite(Throttler t) {
 void Orchestrator::OnEvent(std::shared_ptr<FileStream> fs, int events) {
     std::unique_lock<std::mutex> lock(_mutex);
 
-    auto task = std::find_if(begin(_tasks), end(_tasks), [&](auto& t) {
+    auto it = std::find_if(begin(_tasks), end(_tasks), [&](auto& t) {
         return t->GetChannel().GetStream().get() == fs.get();
     });
 
-    if (task != end(_tasks)) {
-        std::unique_lock<std::mutex> taskLock((*task)->GetMutex());
+    if (it == end(_tasks)) {
+        Log::Default()->Error("A channel whose task no longer exists got an event. Check poll logic!");
+        return;
+    }
 
-        auto& channel = (*task)->GetChannel();
+    auto task = *it;
 
-        if (events & Poller::Events::Completion) {
-            Log::Default()->Verbose("Channel {} received completion event", channel.GetId());
+    lock.unlock();
+
+    {
+        std::lock_guard<std::mutex> taskLock(task->GetMutex());
+        HandleChannelEvent(task->GetChannel(), events);
+    }
+
+    _newEvent.notify_one();
+}
+
+void Orchestrator::HandleChannelEvent(Channel& channel, int events) {
+    if (events & Poller::Events::Completion) {
+        Log::Default()->Verbose("Channel {} received completion event", channel.GetId());
+        channel.Close();
+        return;
+    }
+
+    switch (channel.GetStage()) {
+        case Channel::Stage::WaitReadable: {
+            if (events & Poller::Events::Readable) {
+                Log::Default()->Verbose("Channel {} became readable", channel.GetId());
+                channel.SetStage(Channel::Stage::Read);
+            } else {
+                Log::Default()->Error("Channel {} was waiting for readbility but got different "
+                                      "event. Check poll logic!", channel.GetId());
+            }
+        } break;
+
+        case Channel::Stage::WaitWritable: {
+            if (events & Poller::Events::Writable) {
+                Log::Default()->Verbose("Channel {} became writable", channel.GetId());
+                channel.SetStage(Channel::Stage::Write);
+            } else {
+                Log::Default()->Error("Channel {} was waiting for writability but got different "
+                                      "event. Check poll logic!", channel.GetId());
+            }
+        } break;
+
+        case Channel::Stage::Closed: {
+            Log::Default()->Verbose("Ignoring event on already closed channel {}", channel.GetId());
+            return;
+         }
+
+        default: {
+            Log::Default()->Error("Channel {} was not in a waiting stage but received an event. "
+                                  "Check poll logic!", channel.GetId());
             channel.Close();
             return;
-        }
-
-        switch (channel.GetStage()) {
-            case Channel::Stage::WaitReadable:
-                if (events & Poller::Events::Readable) {
-                    Log::Default()->Verbose("Channel {} became readable", channel.GetId());
-                    channel.SetStage(Channel::Stage::Read);
-                } else {
-                    Log::Default()->Error("Channel {} was waiting for readbility but got different event. Check poll logic!", channel.GetId());
-                }
-                break;
-
-            case Channel::Stage::WaitWritable:
-                if (events & Poller::Events::Writable) {
-                    Log::Default()->Verbose("Channel {} became writable", channel.GetId());
-                    channel.SetStage(Channel::Stage::Write);
-                } else {
-                    Log::Default()->Error("Channel {} was waiting for writability but got different event. Check poll logic!", channel.GetId());
-                }
-                break;
-
-            case Channel::Stage::Closed:
-                Log::Default()->Verbose("Ignoring event on already closed channel {}", channel.GetId());
-                return;
-
-            default:
-                Log::Default()->Error("Channel {} was not in a waiting stage but received an event. Check poll logic!", channel.GetId());
-                channel.Close();
-                return;
-        }
-
-        taskLock.unlock();
-        lock.unlock();
-        _cv.notify_one();
-    } else {
-        Log::Default()->Error("A channel whose task no longer exists got an event. Check poll logic!");
+         }
     }
 }
 
@@ -185,27 +227,7 @@ void Orchestrator::IterateOnce() {
 
         _threadPool.Post([=] {
             std::lock_guard<std::mutex> lock(task->GetMutex());
-
-            if (task->ReachedInactivityTimeout()) {
-                Log::Default()->Info("Channel {} reached inactivity timeout", task->GetChannel().GetId());
-                task->GetChannel().Close();
-            } else if (task->GetChannel().IsReady()) {
-                task->Activate();
-
-                switch (task->GetChannel().GetStage()) {
-                    case Channel::Stage::WaitReadable:
-                        _poller.Poll(task->GetChannel().GetStream(), Poller::Events::Completion | Poller::Events::Readable);
-                        break;
-
-                    case Channel::Stage::WaitWritable:
-                        _poller.Poll(task->GetChannel().GetStream(), Poller::Events::Completion | Poller::Events::Writable);
-                        break;
-
-                    default:
-                        // No need to re-poll at this point
-                        break;
-                }
-            }
+            task->Activate();
         });
     }
 }
@@ -213,40 +235,46 @@ void Orchestrator::IterateOnce() {
 std::vector<std::shared_ptr<Orchestrator::Task>> Orchestrator::CaptureTasks() {
     std::unique_lock<std::mutex> lock(_mutex);
 
-    auto isReady = [this] {
-        return _stop || (end(_tasks) != std::find_if(begin(_tasks), end(_tasks), [this](auto& t) {
-            std::lock_guard<std::mutex> lock(t->GetMutex());
-            return t->GetChannel().IsReady();
-        }));
-    };
-
-    auto timeout = std::chrono::steady_clock::now() + _inactivityTimeout;
-
-    for (auto& t : _tasks) {
-        std::lock_guard<std::mutex> lock(t->GetMutex());
-
-        auto& channel = t->GetChannel();
-
-        if (channel.IsWaiting()) {
-            auto&& requestedTimeout = channel.GetRequestedTimeout();
-
-            if (requestedTimeout < timeout)
-                timeout = requestedTimeout;
-        }
-    }
+    auto timeout = GetLatestAllowedWakeup();
 
     if (timeout > std::chrono::steady_clock::now())
-        _cv.wait_until(lock, timeout, isReady);
+        _newEvent.wait_until(lock, timeout, [this] { return _stop || AtLeastOneTaskIsReady(); });
 
-    // Garbage-collect closed tasks
-    _tasks.erase(std::remove_if(begin(_tasks), end(_tasks), [](auto& t) {
-        std::lock_guard<std::mutex> lock(t->GetMutex());
-        return t->GetChannel().GetStage() == Channel::Stage::Closed;
-    }), end(_tasks));
+    CollectGarbage();
 
     auto snapshot = _tasks;
 
     return snapshot;
+}
+
+bool Orchestrator::AtLeastOneTaskIsReady() {
+    return end(_tasks) != std::find_if(begin(_tasks), end(_tasks), [this](auto& t) {
+        return t->GetChannel().IsReady();
+    });
+}
+
+std::chrono::time_point<std::chrono::steady_clock> Orchestrator::GetLatestAllowedWakeup() {
+    auto now = std::chrono::steady_clock::now();
+    auto timeout = now + _inactivityTimeout;
+
+    for (auto& t : _tasks) {
+        auto& channel = t->GetChannel();
+        auto&& requestedTimeout = channel.GetRequestedTimeout();
+
+        if ((requestedTimeout > now) && (requestedTimeout < timeout))
+            timeout = requestedTimeout;
+    }
+
+    return timeout;
+}
+
+void Orchestrator::CollectGarbage() {
+    _tasks.erase(std::remove_if(begin(_tasks), end(_tasks), [](auto& t) {
+        // For some reason adding the mutex here, though I'm not sure
+        // it's even necessary correctness-wise, makes things much faster.
+        std::lock_guard<std::mutex> lock(t->GetMutex());
+        return t->GetChannel().GetStage() == Channel::Stage::Closed;
+    }), end(_tasks));
 }
 
 } // namespace Http
