@@ -161,10 +161,8 @@ void Orchestrator::OnEvent(std::shared_ptr<FileStream> fs, int events) {
         return t->GetChannel().GetStream().get() == fs.get();
     });
 
-    if (it == end(_tasks)) {
-        Log::Default()->Error("A channel whose task no longer exists got an event. Check poll logic!");
+    if (it == end(_tasks))
         return;
-    }
 
     auto task = *it;
 
