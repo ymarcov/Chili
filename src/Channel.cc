@@ -166,8 +166,9 @@ void Channel::OnProcess() {
 
 void Channel::SendInternalError() {
     Log::Default()->Error("Channel {} processor error ignored! Please handle internally.", _id);
-    _respondedWithError = true;
+    _forceClose = true;
     _responder = Responder(_stream);
+    _responder.ExplicitKeepAlive(false);
     _responder.Send(Status::InternalServerError);
     _stage = Stage::Write;
 }
@@ -229,8 +230,7 @@ void Channel::OnWrite() {
 
     // Okay, all data was flushed
 
-    if (_respondedWithError) {
-        Log::Default()->Verbose("Channel {} encountered an error and sent an error response", _id);
+    if (_forceClose) {
         Close();
     } else if (_fetchingContent) {
         // This means that we just sent a response requesting

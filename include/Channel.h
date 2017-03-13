@@ -102,7 +102,7 @@ private:
     Responder _responder;
     std::atomic<std::chrono::time_point<std::chrono::steady_clock>> _timeout;
     std::atomic<Stage> _stage;
-    bool _respondedWithError = false;
+    bool _forceClose = false;
     bool _fetchingContent = false;
 
     friend class Orchestrator;

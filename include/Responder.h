@@ -18,7 +18,7 @@ public:
 
     void Send(Status);
     bool GetKeepAlive() const;
-    void KeepAlive();
+    void ExplicitKeepAlive(bool);
     void SetField(std::string name, std::string value);
     void SetCookie(std::string name, std::string value);
     void SetCookie(std::string name, std::string value, const CookieOptions&);
@@ -39,7 +39,7 @@ private:
     std::shared_ptr<OutputStream> _stream;
     std::vector<std::pair<std::string, std::string>> _fields;
     Status _status;
-    bool _keepAlive = false;
+    bool _keepAlive = true;
     std::string _header;
     std::shared_ptr<std::vector<char>> _body;
     std::size_t _writePosition = 0;

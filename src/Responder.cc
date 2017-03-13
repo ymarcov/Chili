@@ -133,9 +133,14 @@ bool Responder::GetKeepAlive() const {
     return _keepAlive;
 }
 
-void Responder::KeepAlive() {
-    SetField("Connection", "keep-alive");
-    _keepAlive = true;
+void Responder::ExplicitKeepAlive(bool b) {
+    if (b) {
+        SetField("Connection", "keep-alive");
+        _keepAlive = true;
+    } else {
+        SetField("Connection", "close");
+        _keepAlive = false;
+    }
 }
 
 void Responder::SetField(std::string name, std::string value) {

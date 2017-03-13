@@ -168,10 +168,16 @@ std::size_t Request::GetContentLength() const {
 bool Request::KeepAlive() const {
     Parser::Field f;
 
-    if (_parser.GetField("connection", &f))
-        return !::strncasecmp(f.Data, "keep-alive", f.Size);
+    if (_parser.GetField("connection", &f)) {
+        if (!::strncasecmp(f.Data, "close", f.Size))
+            return false;
 
-    return false;
+        if (!::strncasecmp(f.Data, "keep-alive", f.Size))
+            return true;
+    }
+
+    f = _parser.GetVersion();
+    return !::strncasecmp(f.Data, "HTTP/1.1", f.Size);
 }
 
 std::pair<bool, std::size_t> Request::ConsumeContent(std::size_t maxBytes) {
