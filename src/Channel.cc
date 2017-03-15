@@ -66,8 +66,11 @@ bool Channel::IsReady() const {
     if (std::chrono::steady_clock::now() < _timeout.load())
         return false;
 
-    return (_stage != Stage::WaitReadable) &&
-            (_stage != Stage::WaitWritable);
+    auto stage = _stage.load();
+
+    return (stage != Stage::WaitReadable) &&
+            (stage != Stage::WaitWritable) &&
+            (stage != Stage::Closed);
 }
 
 void Channel::OnRead() {

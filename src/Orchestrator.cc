@@ -13,11 +13,15 @@ void Orchestrator::Task::Activate() {
         Log::Default()->Info("Channel {} reached inactivity timeout", channel.GetId());
         _orchestrator->_poller.Remove(channel.GetStream());
         channel.Close();
+        _pending = false;
+        _orchestrator->_newEvent.notify_one();
         return;
     }
 
-    if (!channel.IsReady())
+    if (!channel.IsReady()) {
+        _pending = false;
         return;
+    }
 
     channel.Advance();
 
