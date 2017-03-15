@@ -141,7 +141,7 @@ void Orchestrator::Stop() {
         _thread.join();
 }
 
-std::shared_ptr<Channel> Orchestrator::Add(std::shared_ptr<FileStream> stream) {
+void Orchestrator::Add(std::shared_ptr<FileStream> stream) {
     std::lock_guard<std::mutex> lock(_mutex);
 
     auto task = std::make_shared<Task>();
@@ -157,8 +157,6 @@ std::shared_ptr<Channel> Orchestrator::Add(std::shared_ptr<FileStream> stream) {
     _tasks.push_back(task);
 
     _poller.Poll(task->GetChannel().GetStream(), Poller::Events::Completion | Poller::Events::Readable);
-
-    return task->_channel;
 }
 
 void Orchestrator::ThrottleRead(Throttler t) {

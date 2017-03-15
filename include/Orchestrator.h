@@ -26,26 +26,30 @@ public:
     std::future<void> Start();
     void Stop();
 
-    std::shared_ptr<Channel> Add(std::shared_ptr<FileStream>);
+    void Add(std::shared_ptr<FileStream>);
     void ThrottleRead(Throttler);
     void ThrottleWrite(Throttler);
 
     Signal<> OnStop;
 
 private:
-    struct Task {
-        Orchestrator* _orchestrator;
-        std::shared_ptr<Channel> _channel;
-        std::chrono::time_point<std::chrono::steady_clock> _lastActive;
-        std::mutex _mutex;
-        std::atomic_bool _inProcess{false};
-
+    class Task {
+    public:
         void MarkHandlingInProcess(bool);
         bool IsHandlingInProcess() const;
         void Activate();
         bool ReachedInactivityTimeout() const;
         Channel& GetChannel();
         std::mutex& GetMutex();
+
+    private:
+        Orchestrator* _orchestrator;
+        std::shared_ptr<Channel> _channel;
+        std::chrono::time_point<std::chrono::steady_clock> _lastActive;
+        std::mutex _mutex;
+        std::atomic_bool _inProcess{false};
+
+        friend void Orchestrator::Add(std::shared_ptr<FileStream>);
     };
 
     void OnEvent(std::shared_ptr<FileStream>, int events);
