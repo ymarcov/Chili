@@ -38,6 +38,7 @@ private:
         std::shared_ptr<Channel> _channel;
         std::chrono::time_point<std::chrono::steady_clock> _lastActive;
         std::mutex _mutex;
+        std::atomic_bool _pending{false};
 
         void Activate();
         bool ReachedInactivityTimeout() const;

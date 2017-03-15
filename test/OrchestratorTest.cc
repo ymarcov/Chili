@@ -52,6 +52,11 @@ const char requestDataWithExpect[] =
 "Content-Length: 13\r\n"
 "\r\n";
 
+const char okResponse[] =
+"HTTP/1.1 200 OK\r\n"
+"Connection: close\r\n"
+"\r\n";
+
 const char requestDataWithExpectBody[] = "Request body!";
 
 class OrchestratorTest : public Test {
@@ -152,7 +157,7 @@ TEST_F(OrchestratorTest, one_client_header_only) {
 
     std::string response;
     EXPECT_NO_THROW(response = ReadToEnd(*client));
-    EXPECT_EQ("HTTP/1.1 200 OK\r\n\r\n", response);
+    EXPECT_EQ(okResponse, response);
 }
 
 TEST_F(OrchestratorTest, one_client_header_and_body) {
@@ -175,7 +180,7 @@ TEST_F(OrchestratorTest, one_client_header_and_body) {
 
     std::string response;
     EXPECT_NO_THROW(response = ReadToEnd(*client));
-    EXPECT_EQ("HTTP/1.1 200 OK\r\n\r\n", response);
+    EXPECT_EQ(okResponse, response);
 }
 
 TEST_F(OrchestratorTest, one_client_header_and_body_throttled) {
@@ -204,7 +209,7 @@ TEST_F(OrchestratorTest, one_client_header_and_body_throttled) {
 
     std::string response;
     EXPECT_NO_THROW(response = ReadToEnd(*client));
-    EXPECT_EQ("HTTP/1.1 200 OK\r\n\r\n", response);
+    EXPECT_EQ(okResponse, response);
 }
 
 TEST_F(OrchestratorTest, one_client_header_and_body_with_expect) {
@@ -238,7 +243,7 @@ TEST_F(OrchestratorTest, one_client_header_and_body_with_expect) {
     ASSERT_TRUE(sentOk->Wait(200ms));
     std::this_thread::sleep_for(50ms);
     response = ReadAvailable(*client);
-    ASSERT_EQ("HTTP/1.1 200 OK\r\n\r\n", response);
+    ASSERT_EQ(okResponse, response);
 }
 
 TEST_F(OrchestratorTest, one_client_header_and_body_with_expect_reject) {
@@ -255,21 +260,22 @@ TEST_F(OrchestratorTest, one_client_header_and_body_with_expect_reject) {
 
     client->Write(requestDataWithExpect, sizeof(requestDataWithExpect));
     ASSERT_TRUE(sentRejection->Wait(200ms));
+    std::this_thread::sleep_for(50ms);
 
     std::string response;
-    ASSERT_NO_THROW(response = ReadToEnd(*client));
+    ASSERT_NO_THROW(response = ReadAvailable(*client));
     ASSERT_EQ("HTTP/1.1 417 Expectation Failed\r\n\r\n", response);
 }
 
 TEST_F(OrchestratorTest, multiple_clients) {
     auto ready = std::make_shared<WaitEvent>();
     auto readyCount = std::make_shared<std::atomic_int>(0);
-    const auto clientCount = 1000;
-    auto lightLog = TemporaryLogLevel(Log::Level::Info);
+    const auto clientCount = 100;
+    //auto lightLog = TemporaryLogLevel(Log::Level::Info);
 
     auto server = MakeServer(MakeProcessor([=](Channel& c) {
-        if (!c.IsWriteThrottled())
-            c.ThrottleWrite({5, 5ms});
+        //if (!c.IsWriteThrottled())
+            //c.ThrottleWrite({5, 5ms});
 
         if (!c.GetRequest().IsContentAvailable())
             return c.FetchContent();
@@ -295,10 +301,7 @@ TEST_F(OrchestratorTest, multiple_clients) {
     WaitEvent allWritten;
 
     poller.Start([&](std::shared_ptr<FileStream> fs, int events) {
-        std::string response = ReadAvailable(*fs);
-        std::string expected = "HTTP/1.1 200 OK\r\n\r\n";
-
-        if (response == expected)
+        if (ReadAvailable(*fs) == okResponse)
             if (++writtenCount == clientCount)
                 allWritten.Signal();
     });
@@ -308,8 +311,8 @@ TEST_F(OrchestratorTest, multiple_clients) {
         poller.Poll(client, Poller::Events::EndOfStream);
     }
 
-    ASSERT_TRUE(ready->Wait(10000ms));
-    ASSERT_TRUE(allWritten.Wait(5000ms));
+    ASSERT_TRUE(ready->Wait(1000ms));
+    ASSERT_TRUE(allWritten.Wait(2000ms));
 }
 
 } // namespace Http

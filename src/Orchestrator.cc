@@ -21,10 +21,18 @@ void Orchestrator::Task::Activate() {
 
     channel.Advance();
 
+    _pending = false;
+
     switch (channel.GetStage()) {
-        case Channel::Stage::Process: {
+        case Channel::Stage::Process:
             _lastActive = std::chrono::steady_clock::now();
-        } break;
+        case Channel::Stage::Read:
+        case Channel::Stage::ReadTimeout:
+        case Channel::Stage::Write:
+        case Channel::Stage::WriteTimeout:
+        case Channel::Stage::Closed:
+            _orchestrator->_newEvent.notify_one();
+            break;
 
         case Channel::Stage::WaitReadable: {
             _orchestrator->_poller.Poll(channel.GetStream(),
@@ -39,6 +47,7 @@ void Orchestrator::Task::Activate() {
         default:
             break; // Don't need to get involved
     }
+
 }
 
 bool Orchestrator::Task::ReachedInactivityTimeout() const {
@@ -105,6 +114,8 @@ void Orchestrator::InternalStop() {
 }
 
 void Orchestrator::InternalForceStopOnError() {
+    Log::Default()->Error("Orchestrator stopped due to error!");
+
     try {
         _stop = true;
         _poller.Stop();
@@ -224,10 +235,14 @@ void Orchestrator::IterateOnce() {
         if (_stop)
             break;
 
-        _threadPool.Post([=] {
-            std::lock_guard<std::mutex> lock(task->GetMutex());
-            task->Activate();
-        });
+        if (!task->_pending) {
+            task->_pending = true;
+
+            _threadPool.Post([=] {
+                std::lock_guard<std::mutex> lock(task->GetMutex());
+                task->Activate();
+            });
+        }
     }
 }
 
@@ -236,8 +251,12 @@ std::vector<std::shared_ptr<Orchestrator::Task>> Orchestrator::CaptureTasks() {
 
     auto timeout = GetLatestAllowedWakeup();
 
-    if (timeout > std::chrono::steady_clock::now())
-        _newEvent.wait_until(lock, timeout, [this] { return _stop || AtLeastOneTaskIsReady(); });
+    if (timeout > std::chrono::steady_clock::now()) {
+        _newEvent.wait_until(lock, timeout, [&] {
+            timeout = GetLatestAllowedWakeup();
+            return _stop || AtLeastOneTaskIsReady();
+        });
+    }
 
     CollectGarbage();
 
@@ -248,7 +267,7 @@ std::vector<std::shared_ptr<Orchestrator::Task>> Orchestrator::CaptureTasks() {
 
 bool Orchestrator::AtLeastOneTaskIsReady() {
     return end(_tasks) != std::find_if(begin(_tasks), end(_tasks), [this](auto& t) {
-        return t->GetChannel().IsReady();
+        return !t->_pending && t->GetChannel().IsReady();
     });
 }
 
