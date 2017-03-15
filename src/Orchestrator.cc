@@ -28,16 +28,6 @@ void Orchestrator::Task::Activate() {
     _pending = false;
 
     switch (channel.GetStage()) {
-        case Channel::Stage::Process:
-            _lastActive = std::chrono::steady_clock::now();
-        case Channel::Stage::Read:
-        case Channel::Stage::ReadTimeout:
-        case Channel::Stage::Write:
-        case Channel::Stage::WriteTimeout:
-        case Channel::Stage::Closed:
-            _orchestrator->_newEvent.notify_one();
-            break;
-
         case Channel::Stage::WaitReadable: {
             _orchestrator->_poller.Poll(channel.GetStream(),
                                         Poller::Events::Completion | Poller::Events::Readable);
@@ -49,6 +39,8 @@ void Orchestrator::Task::Activate() {
         } break;
 
         default:
+            _lastActive = std::chrono::steady_clock::now();
+            _orchestrator->_newEvent.notify_one();
             break; // Don't need to get involved
     }
 
