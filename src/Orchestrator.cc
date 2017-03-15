@@ -6,6 +6,14 @@
 namespace Yam {
 namespace Http {
 
+void Orchestrator::Task::MarkHandlingInProcess(bool b) {
+    _inProcess = b;
+}
+
+bool Orchestrator::Task::IsHandlingInProcess() const {
+    return _inProcess;
+}
+
 void Orchestrator::Task::Activate() {
     auto& channel = GetChannel();
 
@@ -13,19 +21,17 @@ void Orchestrator::Task::Activate() {
         Log::Default()->Info("Channel {} reached inactivity timeout", channel.GetId());
         _orchestrator->_poller.Remove(channel.GetStream());
         channel.Close();
-        _pending = false;
+        _inProcess = false;
         _orchestrator->_newEvent.notify_one();
         return;
     }
 
     if (!channel.IsReady()) {
-        _pending = false;
+        _inProcess = false;
         return;
     }
 
     channel.Advance();
-
-    _pending = false;
 
     switch (channel.GetStage()) {
         case Channel::Stage::WaitReadable: {
@@ -44,6 +50,7 @@ void Orchestrator::Task::Activate() {
             break; // Don't need to get involved
     }
 
+    _inProcess = false;
 }
 
 bool Orchestrator::Task::ReachedInactivityTimeout() const {
@@ -231,8 +238,8 @@ void Orchestrator::IterateOnce() {
         if (_stop)
             break;
 
-        if (!task->_pending) {
-            task->_pending = true;
+        if (!task->IsHandlingInProcess()) {
+            task->MarkHandlingInProcess(true);
 
             _threadPool.Post([=] {
                 std::lock_guard<std::mutex> lock(task->GetMutex());
@@ -263,7 +270,7 @@ std::vector<std::shared_ptr<Orchestrator::Task>> Orchestrator::CaptureTasks() {
 
 bool Orchestrator::AtLeastOneTaskIsReady() {
     return end(_tasks) != std::find_if(begin(_tasks), end(_tasks), [this](auto& t) {
-        return !t->_pending && t->GetChannel().IsReady();
+        return !t->IsHandlingInProcess() && t->GetChannel().IsReady();
     });
 }
 

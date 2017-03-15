@@ -38,8 +38,10 @@ private:
         std::shared_ptr<Channel> _channel;
         std::chrono::time_point<std::chrono::steady_clock> _lastActive;
         std::mutex _mutex;
-        std::atomic_bool _pending{false};
+        std::atomic_bool _inProcess{false};
 
+        void MarkHandlingInProcess(bool);
+        bool IsHandlingInProcess() const;
         void Activate();
         bool ReachedInactivityTimeout() const;
         Channel& GetChannel();
