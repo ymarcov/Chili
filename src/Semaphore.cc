@@ -16,6 +16,10 @@ Semaphore::Semaphore(unsigned initialValue) {
         throw SystemError();
 }
 
+Semaphore::~Semaphore() {
+    ::sem_destroy(static_cast<sem_t*>(_nativeHandle.get()));
+}
+
 void Semaphore::Increment() {
     if (::sem_post(static_cast<sem_t*>(_nativeHandle.get())) == -1)
         throw SystemError();

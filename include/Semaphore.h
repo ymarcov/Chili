@@ -9,6 +9,9 @@ namespace Http {
 class Semaphore {
 public:
     Semaphore(unsigned initialValue = 0);
+    Semaphore(const Semaphore&) = delete;
+    Semaphore& operator=(const Semaphore&) = delete;
+    ~Semaphore();
 
     void Increment();
     void Decrement();
