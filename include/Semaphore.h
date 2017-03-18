@@ -12,7 +12,7 @@ public:
 
     void Increment();
     void Decrement();
-    bool Decrement(std::chrono::nanoseconds timeout);
+    bool TryDecrement(std::chrono::nanoseconds timeout);
     bool TryDecrement();
 
 private:

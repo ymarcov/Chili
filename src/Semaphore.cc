@@ -26,7 +26,7 @@ void Semaphore::Decrement() {
         throw SystemError();
 }
 
-bool Semaphore::Decrement(std::chrono::nanoseconds timeout) {
+bool Semaphore::TryDecrement(std::chrono::nanoseconds timeout) {
     timespec ts;
 
     if (::clock_gettime(CLOCK_REALTIME, &ts) == -1)

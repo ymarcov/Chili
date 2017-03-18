@@ -36,9 +36,9 @@ TEST_F(SemaphoreTest, basic_usage) {
 
 TEST_F(SemaphoreTest, times_out) {
     Semaphore s;
-    EXPECT_FALSE(s.Decrement(10ms));
+    EXPECT_FALSE(s.TryDecrement(10ms));
     s.Increment();
-    EXPECT_TRUE(s.Decrement(10ms));
+    EXPECT_TRUE(s.TryDecrement(10ms));
 }
 
 TEST_F(SemaphoreTest, try_decrement) {
