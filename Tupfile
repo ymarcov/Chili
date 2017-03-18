@@ -1,10 +1,19 @@
 include_rules
 
-ECHO_OBJS=sandbox/echo.o src/*.o ext/obj/fmtlib/libfmt.a
-LIB_OBJS=src/*.o ext/obj/fmtlib/libfmt.a
-TEST_OBJS=test/*.o src/*.o ext/obj/gmock/libgmock.a ext/obj/fmtlib/libfmt.a
-LIB=bin/libyam_http.so
+LIB_NAME=libyam_http
 
-: $(LIB_OBJS) |> !link_so |> $(LIB)
-: $(ECHO_OBJS) | $(LIB) |> !link |> bin/echo
-: $(TEST_OBJS) | $(LIB) |> !link |> bin/test
+BIN_DIR=bin
+LIB_OBJS=src/*.o ext/obj/fmtlib/libfmt.a
+ECHO_OBJS=sandbox/echo.o
+TEST_OBJS=test/*.o ext/obj/gmock/libgmock.a
+
+: $(LIB_OBJS) |> !link_shared |> $(BIN_DIR)/$(LIB_NAME).so
+: $(LIB_OBJS) |> !link_static |> $(BIN_DIR)/$(LIB_NAME).a
+
+LINK_FLAGS=-L$(BIN_DIR) -Lext/obj/fmtlib
+LINK_DEPS=-l:$(LIB_NAME).a -lfmt -lpthread -lcurl -lunwind
+
+!link_bin = |> $(CXX) %f -o %o $(LINK_FLAGS) $(LINK_DEPS) |>
+
+: $(ECHO_OBJS) | $(BIN_DIR)/$(LIB_NAME).a |> !link_bin |> bin/echo
+: $(TEST_OBJS) | $(BIN_DIR)/$(LIB_NAME).a |> !link_bin |> bin/test

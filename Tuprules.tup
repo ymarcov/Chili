@@ -1,9 +1,10 @@
 ROOT=$(TUP_CWD)
 
+AR=ar
 CXX=g++
 CXXFLAGS=-g -std=c++1y -I$(ROOT)/include -Wall -Werror -pedantic
 CXXFLAGS+=-isystem $(ROOT)/ext
 
 !c++ = |> $(CXX) -fPIC $(CXXFLAGS) @(CXXFLAGS) -c %f -o %o |>
-!link = |> $(CXX) %f -o %o -Lbin -lyam_http -lpthread -lcurl -lunwind |>
-!link_so = |> $(CXX) -shared -fPIC %f -o %o -lpthread -lcurl -lunwind |>
+!link_shared = |> $(CXX) -shared -fPIC %f -o %o -lpthread -lcurl -lunwind |>
+!link_static = |> $(AR) -rcs -o %o %f |>
