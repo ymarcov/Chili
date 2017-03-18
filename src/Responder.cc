@@ -84,6 +84,21 @@ Responder::Responder(std::shared_ptr<OutputStream> stream) :
     _stream(std::move(stream)) {}
 
 void Responder::Send(Status status) {
+    if (!_prepared)
+        Prepare(status);
+    _response->_status = status;
+}
+
+void Responder::SendCached(std::shared_ptr<CachedResponse> cr) {
+    _response = std::move(cr);
+}
+
+std::shared_ptr<CachedResponse> Responder::CacheAs(Status status) {
+    Prepare(status);
+    return _response;
+}
+
+void Responder::Prepare(Status status) {
     fmt::MemoryWriter w;
 
     w.write("{} {}\r\n", HttpVersion, ToString(status));
@@ -91,38 +106,40 @@ void Responder::Send(Status status) {
     for (auto& nv : _fields)
         w.write("{}: {}\r\n", nv.first, nv.second);
 
-    if (_body)
-        w.write("Content-Length: {}\r\n", _body->size());
+    if (GetResponse()._body)
+        w.write("Content-Length: {}\r\n", GetResponse()._body->size());
 
     w.write("\r\n");
 
-    _header = w.str();
+    GetResponse()._header = w.str();
 
-    _status = status;
+    GetResponse()._status = status;
 }
 
 std::pair<bool, std::size_t> Responder::Flush(std::size_t maxBytes) {
     std::size_t bytesWritten = 0;
+    auto& header = GetResponse()._header;
+    auto& body = GetResponse()._body;
 
-    if (_writePosition < _header.size()) {
-        auto quota = std::min(maxBytes, _header.size() - _writePosition);
-        bytesWritten = _stream->Write(_header.c_str() + _writePosition, quota);
+    if (_writePosition < header.size()) {
+        auto quota = std::min(maxBytes, header.size() - _writePosition);
+        bytesWritten = _stream->Write(header.c_str() + _writePosition, quota);
 
         _writePosition += bytesWritten;
         maxBytes -= bytesWritten;
 
-        if (_writePosition != _header.size())
+        if (_writePosition != header.size())
             return std::make_pair(false, bytesWritten);
     }
 
-    if (_body) {
-        auto bodyBytesConsumed = _writePosition - _header.size();
-        auto quota = std::min(maxBytes, _body->size() - bodyBytesConsumed);
-        bytesWritten = _stream->Write(_body->data() + bodyBytesConsumed, quota);
+    if (body) {
+        auto bodyBytesConsumed = _writePosition - header.size();
+        auto quota = std::min(maxBytes, body->size() - bodyBytesConsumed);
+        bytesWritten = _stream->Write(body->data() + bodyBytesConsumed, quota);
 
         _writePosition += bytesWritten;
 
-        if (_writePosition - _header.size() != _body->size())
+        if (_writePosition - header.size() != body->size())
             return std::make_pair(false, bytesWritten);
     }
 
@@ -130,16 +147,16 @@ std::pair<bool, std::size_t> Responder::Flush(std::size_t maxBytes) {
 }
 
 bool Responder::GetKeepAlive() const {
-    return _keepAlive;
+    return GetResponse()._keepAlive;
 }
 
 void Responder::ExplicitKeepAlive(bool b) {
     if (b) {
         SetField("Connection", "keep-alive");
-        _keepAlive = true;
+        GetResponse()._keepAlive = true;
     } else {
         SetField("Connection", "close");
-        _keepAlive = false;
+        GetResponse()._keepAlive = false;
     }
 }
 
@@ -179,11 +196,17 @@ void Responder::SetCookie(std::string name, std::string value, const CookieOptio
 }
 
 void Responder::SetBody(std::shared_ptr<std::vector<char>> body) {
-    _body = std::move(body);
+    GetResponse()._body = std::move(body);
 }
 
 Status Responder::GetStatus() const {
-    return _status;
+    return GetResponse()._status;
+}
+
+CachedResponse& Responder::GetResponse() const {
+    if (!_response)
+        _response = std::make_shared<CachedResponse>();
+    return *_response;
 }
 
 } // namespace Http

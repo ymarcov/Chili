@@ -11,12 +11,22 @@
 namespace Yam {
 namespace Http {
 
+class CachedResponse {
+    Status _status;
+    bool _keepAlive = true;
+    std::string _header;
+    std::shared_ptr<std::vector<char>> _body;
+    friend class Responder;
+};
+
 class Responder {
 public:
     Responder() = default;
     Responder(std::shared_ptr<OutputStream>);
 
     void Send(Status);
+    void SendCached(std::shared_ptr<CachedResponse>);
+    std::shared_ptr<CachedResponse> CacheAs(Status);
     bool GetKeepAlive() const;
     void ExplicitKeepAlive(bool);
     void SetField(std::string name, std::string value);
@@ -36,12 +46,13 @@ public:
     Status GetStatus() const;
 
 private:
+    void Prepare(Status);
+    CachedResponse& GetResponse() const;
+
     std::shared_ptr<OutputStream> _stream;
+    bool _prepared = false;
     std::vector<std::pair<std::string, std::string>> _fields;
-    Status _status;
-    bool _keepAlive = true;
-    std::string _header;
-    std::shared_ptr<std::vector<char>> _body;
+    mutable std::shared_ptr<CachedResponse> _response;
     std::size_t _writePosition = 0;
 };
 

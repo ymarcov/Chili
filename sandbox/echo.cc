@@ -117,6 +117,9 @@ void PrintInfo(Request& request) {
 std::mutex _outputMutex;
 
 std::unique_ptr<ChannelFactory> CreateChannelFactory(const ServerConfiguration& config) {
+    static std::shared_ptr<CachedResponse> cr;
+    static std::atomic_bool crSet{false};
+
     struct CustomChannel : Channel {
         CustomChannel(std::shared_ptr<FileStream> fs, Throttlers t, bool verbose) :
             Channel(std::move(fs), std::move(t)),
@@ -133,9 +136,15 @@ std::unique_ptr<ChannelFactory> CreateChannelFactory(const ServerConfiguration& 
                 std::cout << "\n";
             }
 
+            if (crSet)
+                return SendResponse(cr);
+
             const char msg[] = "<b><u>Hello world!</u></b>";
             auto data = std::make_shared<std::vector<char>>(std::begin(msg), std::end(msg) - 1);
             GetResponder().SetBody(data);
+
+            cr = GetResponder().CacheAs(Status::Ok);
+            crSet = true;
 
             return SendResponse(Status::Ok);
         }

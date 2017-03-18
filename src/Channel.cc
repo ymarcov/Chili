@@ -314,6 +314,11 @@ Channel::Control Channel::RejectContent() {
     return Control::RejectContent;
 }
 
+Channel::Control Channel::SendResponse(std::shared_ptr<CachedResponse> cr) {
+    _responder.SendCached(std::move(cr));
+    return Control::SendResponse;
+}
+
 Channel::Control Channel::SendResponse(Status status) {
     _responder.Send(status);
     return Control::SendResponse;

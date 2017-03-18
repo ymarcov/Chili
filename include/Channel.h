@@ -48,6 +48,7 @@ public:
     Responder& GetResponder();
     Control FetchContent();
     Control RejectContent();
+    Control SendResponse(std::shared_ptr<CachedResponse>);
     Control SendResponse(Status);
     bool IsReadThrottled() const;
     bool IsWriteThrottled() const;
