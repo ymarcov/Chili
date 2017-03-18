@@ -1,5 +1,9 @@
 #pragma once
 
+/**
+ * @cond INTERNAL
+ */
+
 #include <atomic>
 
 namespace Yam {
@@ -57,3 +61,6 @@ inline void Spinlock::Unlock() {
 } // namespace Http
 } // namespace Yam
 
+/**
+ * @endcond INTERNAL
+ */

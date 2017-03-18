@@ -1,6 +1,6 @@
 #include <gmock/gmock.h>
 
-#include "OrchestratedTcpServer.h"
+#include "HttpServer.h"
 #include "FileStream.h"
 #include "Log.h"
 #include "LogUtils.h"
@@ -78,7 +78,7 @@ protected:
 
     using FactoryFunction = std::function<std::unique_ptr<ChannelBase>(std::shared_ptr<FileStream>, Channel::Throttlers)>;
 
-    std::shared_ptr<OrchestratedTcpServer> MakeServer(FactoryFunction factoryFunction) {
+    std::shared_ptr<HttpServer> MakeServer(FactoryFunction factoryFunction) {
         struct Factory : ChannelFactory {
             Factory(FactoryFunction f) :
                 _f(std::move(f)) {}
@@ -90,7 +90,7 @@ protected:
             FactoryFunction _f;
         };
 
-        return std::make_shared<OrchestratedTcpServer>(_ep, std::make_unique<Factory>(std::move(factoryFunction)), 4);
+        return std::make_shared<HttpServer>(_ep, std::make_unique<Factory>(std::move(factoryFunction)), 4);
     }
 
     template <class Processor>

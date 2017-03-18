@@ -10,11 +10,24 @@
 namespace Yam {
 namespace Http {
 
+/**
+ * A socket server.
+ */
 class SocketServer {
 public:
     virtual ~SocketServer();
 
+    /**
+     * Starts the server so that new connections can be accepted.
+     *
+     * @return A task that finishes when the server has stopped.
+     */
     std::future<void> Start();
+
+    /**
+     * Request the server to stop. This should cause the task
+     * returned by Start() to finish.
+     */
     void Stop();
 
 protected:

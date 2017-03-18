@@ -1,5 +1,5 @@
 #include "Log.h"
-#include "OrchestratedTcpServer.h"
+#include "HttpServer.h"
 #include "Request.h"
 #include "Responder.h"
 #include "SystemError.h"
@@ -23,8 +23,8 @@ struct ServerConfiguration {
     bool _verbose;
 };
 
-std::unique_ptr<OrchestratedTcpServer> CreateServer(ServerConfiguration config, std::unique_ptr<ChannelFactory> channelFactory) {
-    return std::make_unique<OrchestratedTcpServer>(config._endpoint, std::move(channelFactory), config._threadCount);
+std::unique_ptr<HttpServer> CreateServer(ServerConfiguration config, std::unique_ptr<ChannelFactory> channelFactory) {
+    return std::make_unique<HttpServer>(config._endpoint, std::move(channelFactory), config._threadCount);
 }
 
 ServerConfiguration CreateConfiguration(std::vector<std::string> argv) {

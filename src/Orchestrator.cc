@@ -55,7 +55,7 @@ void Orchestrator::Task::Activate() {
 
 bool Orchestrator::Task::ReachedInactivityTimeout() const {
     auto diff = std::chrono::steady_clock::now() - _lastActive;
-    return diff >= _orchestrator->_inactivityTimeout;
+    return diff >= _orchestrator->_inactivityTimeout.load();
 }
 
 Channel& Orchestrator::Task::GetChannel() {
@@ -167,6 +167,10 @@ void Orchestrator::ThrottleWrite(Throttler t) {
     *_masterWriteThrottler = std::move(t);
 }
 
+void Orchestrator::SetInactivityTimeout(std::chrono::milliseconds ms) {
+    _inactivityTimeout = ms;
+}
+
 void Orchestrator::OnEvent(std::shared_ptr<FileStream> fs, int events) {
     std::unique_lock<std::mutex> lock(_mutex);
 
@@ -274,7 +278,7 @@ bool Orchestrator::AtLeastOneTaskIsReady() {
 
 std::chrono::time_point<std::chrono::steady_clock> Orchestrator::GetLatestAllowedWakeup() {
     auto now = std::chrono::steady_clock::now();
-    auto timeout = now + _inactivityTimeout;
+    auto timeout = now + _inactivityTimeout.load();
 
     for (auto& t : _tasks) {
         auto& channel = t->GetChannel();

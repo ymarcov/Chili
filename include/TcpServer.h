@@ -13,10 +13,17 @@
 namespace Yam {
 namespace Http {
 
+/**
+ * A TCP server.
+ */
 class TcpServer : public SocketServer {
 public:
     TcpServer(const IPEndpoint&);
 
+    /**
+     * Gets the endpoint that this server
+     * is listening on.
+     */
     const IPEndpoint& GetEndpoint() const;
 
 protected:

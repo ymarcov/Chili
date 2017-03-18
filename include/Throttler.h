@@ -8,12 +8,30 @@
 namespace Yam {
 namespace Http {
 
+/**
+ * Throttles I/O operations.
+ *
+ * This is useful when you want to do load-balancing
+ * with regards to download/upload speeds, but also
+ * when you're trying to stay under a certain rate
+ * of bandwidth.
+ */
 class Throttler {
 public:
     using Clock = std::chrono::steady_clock;
 
+    /**
+     * Creates a disabled throttler that does not in fact throttle anything.
+     */
     Throttler() = default;
+
+    /**
+     * Creates a throttler that only allows the specified
+     * capacity to be read or written (depending on where it
+     * is used) during every specified interval of time.
+     */
     Throttler(std::size_t capacity, std::chrono::milliseconds interval);
+
     Throttler(const Throttler&);
     Throttler& operator=(const Throttler&);
 

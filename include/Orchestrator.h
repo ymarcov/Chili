@@ -29,6 +29,7 @@ public:
     void Add(std::shared_ptr<FileStream>);
     void ThrottleRead(Throttler);
     void ThrottleWrite(Throttler);
+    void SetInactivityTimeout(std::chrono::milliseconds);
 
     Signal<> OnStop;
 
@@ -74,7 +75,7 @@ private:
     std::atomic_bool _stop{true};
     std::mutex _mutex;
     std::vector<std::shared_ptr<Task>> _tasks;
-    std::chrono::milliseconds _inactivityTimeout{10000};
+    std::atomic<std::chrono::milliseconds> _inactivityTimeout{std::chrono::milliseconds(10000)};
 };
 
 } // namespace Http
