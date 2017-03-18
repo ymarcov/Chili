@@ -82,7 +82,7 @@ TEST_F(ResponderTest, headers_and_body) {
     auto stream = MakeStream();
     auto r = MakeResponder(stream);
 
-    r->SetBody(MakeBodyFromString("Hello world!"));
+    r->SetContent(MakeBodyFromString("Hello world!"));
     r->Send(Status::BadGateway);
     Flush(r);
 

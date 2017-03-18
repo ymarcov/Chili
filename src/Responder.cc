@@ -195,7 +195,7 @@ void Responder::SetCookie(std::string name, std::string value, const CookieOptio
     SetField("Set-Cookie", fmt::format("{}={}{}", std::move(name), std::move(value), w.str()));
 }
 
-void Responder::SetBody(std::shared_ptr<std::vector<char>> body) {
+void Responder::SetContent(std::shared_ptr<std::vector<char>> body) {
     GetResponse()._body = std::move(body);
 }
 

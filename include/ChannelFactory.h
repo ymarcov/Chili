@@ -22,7 +22,6 @@ public:
      *
      * @param fs           The FileStream (usually a socket) on top of which
      *                     the channel will carry out its I/O operations.
-     *
      * @param throttlers   The default throttlers to be used for this
      *                     particular channel. Setting them in the factory
      *                     is a good way to establish defaults among

@@ -19,28 +19,83 @@ class CachedResponse {
     friend class Responder;
 };
 
+/**
+ * An HTTP responder.
+ */
 class Responder {
 public:
     Responder() = default;
     Responder(std::shared_ptr<OutputStream>);
 
-    void Send(Status);
-    void SendCached(std::shared_ptr<CachedResponse>);
+    /**
+     * Creates a cached response which can later
+     * be sent through to improve efficiency.
+     */
     std::shared_ptr<CachedResponse> CacheAs(Status);
-    bool GetKeepAlive() const;
-    void SetExplicitKeepAlive(bool);
-    void SetField(std::string name, std::string value);
-    void SetCookie(std::string name, std::string value);
-    void SetCookie(std::string name, std::string value, const CookieOptions&);
-    void SetBody(std::shared_ptr<std::vector<char>>);
 
     /**
+     * Forces whether to try to keep the connection
+     * associated with this request alive after
+     * handling the request.
+     */
+    void SetExplicitKeepAlive(bool);
+
+    /**
+     * Sets a response field.
+     *
+     * @param name  The HTTP response field name
+     * @param value The field's value
+     */
+    void SetField(std::string name, std::string value);
+
+    /**
+     * Sets a cookie.
+     *
+     * @param name  The name of the cookie
+     * @param value The value of the cookie
+     */
+    void SetCookie(std::string name, std::string value);
+
+    /**
+     * Sets a cookie with extra cookie options.
+     *
+     * @param name  The name of the cookie
+     * @param value The value of the cookie
+     * @param opts  Extra options for the cookie
+     */
+    void SetCookie(std::string name, std::string value, const CookieOptions& opts);
+
+    /**
+     * Sets the response message content (e.g. HTML, or some file data).
+     *
+     * @param data The data to be sent
+     */
+    void SetContent(std::shared_ptr<std::vector<char>> data);
+
+    /**
+     * @internal
      * Writes response data to the output stream.
      * Returns whether the operation completed, and how many bytes were written.
      */
     std::pair<bool, std::size_t> Flush(std::size_t maxBytes);
 
     /**
+     * @internal
+     */
+    void Send(Status);
+
+    /**
+     * @internal
+     */
+    void SendCached(std::shared_ptr<CachedResponse>);
+
+    /**
+     * @internal
+     */
+    bool GetKeepAlive() const;
+
+    /**
+     * @internal
      * Gets the status that was requested to be sent.
      */
     Status GetStatus() const;

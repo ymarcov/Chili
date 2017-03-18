@@ -141,7 +141,7 @@ std::unique_ptr<ChannelFactory> CreateChannelFactory(const ServerConfiguration& 
 
             const char msg[] = "<b><u>Hello world!</u></b>";
             auto data = std::make_shared<std::vector<char>>(std::begin(msg), std::end(msg) - 1);
-            GetResponder().SetBody(data);
+            GetResponder().SetContent(data);
 
             cr = GetResponder().CacheAs(Status::Ok);
             crSet = true;
