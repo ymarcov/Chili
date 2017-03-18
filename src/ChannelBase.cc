@@ -3,6 +3,10 @@
 namespace Yam {
 namespace Http {
 
+void ChannelBase::SetAutoFetchContent(bool b) {
+    _autoFetchContent = b;
+}
+
 Request& ChannelBase::GetRequest() {
     return _request;
 }

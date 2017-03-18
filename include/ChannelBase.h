@@ -16,6 +16,18 @@ public:
     using Channel::Channel;
 
     /**
+     * Sets whether to automatically get each request's entire
+     * message content, regardless of how long it is, before
+     * calling Process().
+     *
+     * This is true by default.
+     *
+     * This may only be called in the channel's constructor.
+     * Otherwise, the behavior is undefined.
+     */
+    void SetAutoFetchContent(bool);
+
+    /**
      * Gets the request associated with the current processing call.
      */
     Request& GetRequest();

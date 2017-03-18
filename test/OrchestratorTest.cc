@@ -98,7 +98,9 @@ protected:
         struct CustomChannel : ChannelBase {
             CustomChannel(std::shared_ptr<FileStream> fs, Channel::Throttlers t, Processor p) :
                 ChannelBase(std::move(fs), std::move(t)),
-                _p(std::move(p)) {}
+                _p(std::move(p)) {
+                SetAutoFetchContent(false);
+            }
 
             Control Process() override {
                 return _p(*this);

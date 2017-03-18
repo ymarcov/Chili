@@ -90,6 +90,7 @@ private:
     std::atomic<Stage> _stage;
     bool _forceClose = false;
     bool _fetchingContent = false;
+    bool _autoFetchContent = true;
 
     friend class ChannelBase;
     friend class Orchestrator;

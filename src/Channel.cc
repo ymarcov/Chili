@@ -163,8 +163,12 @@ void Channel::LogNewRequest() {
 
 void Channel::OnProcess() {
     try {
-        auto directive = Process();
-        HandleControlDirective(directive);
+        if (_autoFetchContent && !_request.IsContentAvailable()) {
+            HandleControlDirective(Control::FetchContent);
+        } else {
+            auto directive = Process();
+            HandleControlDirective(directive);
+        }
     } catch (...) {
         SendInternalError();
         return;

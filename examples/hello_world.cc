@@ -18,14 +18,6 @@ class HelloWorldChannel : public ChannelBase {
 
     // Process incoming requests
     Control Process() override {
-        if (!GetRequest().IsContentAvailable()) {
-            if (GetRequest().GetContentLength() > 0x1000)
-                return RejectContent(); // Too big for us, don't waste bandwidth!
-            else
-                return FetchContent(); // Go get it!
-        }
-
-        // Okay, we have the entire request now
         GetResponder().SetBody(CreateHtml());
         GetResponder().SetField("Content-Type", "text/html");
         return SendResponse(Status::Ok);
