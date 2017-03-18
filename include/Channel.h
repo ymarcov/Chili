@@ -40,21 +40,6 @@ public:
     Channel(std::shared_ptr<FileStream>, Throttlers);
     virtual ~Channel();
 
-    /**
-     * The following public functions are designed to be
-     * used from within the Process() implementation.
-     */
-    Request& GetRequest();
-    Responder& GetResponder();
-    Control FetchContent();
-    Control RejectContent();
-    Control SendResponse(std::shared_ptr<CachedResponse>);
-    Control SendResponse(Status);
-    bool IsReadThrottled() const;
-    bool IsWriteThrottled() const;
-    void ThrottleRead(Throttler);
-    void ThrottleWrite(Throttler);
-
 protected:
     virtual Control Process() = 0;
 
@@ -106,6 +91,7 @@ private:
     bool _forceClose = false;
     bool _fetchingContent = false;
 
+    friend class ChannelBase;
     friend class Orchestrator;
 };
 
