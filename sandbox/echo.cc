@@ -146,7 +146,7 @@ std::unique_ptr<ChannelFactory> CreateChannelFactory(const ServerConfiguration& 
             cr = GetResponder().CacheAs(Status::Ok);
             crSet = true;
 
-            return SendResponse(Status::Ok);
+            return SendResponse(cr);
         }
 
         bool _verbose;
