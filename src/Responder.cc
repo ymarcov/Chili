@@ -150,7 +150,7 @@ bool Responder::GetKeepAlive() const {
     return GetResponse()._keepAlive;
 }
 
-void Responder::ExplicitKeepAlive(bool b) {
+void Responder::SetExplicitKeepAlive(bool b) {
     if (b) {
         SetField("Connection", "keep-alive");
         GetResponse()._keepAlive = true;

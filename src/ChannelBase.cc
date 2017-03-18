@@ -29,6 +29,12 @@ ChannelBase::Control ChannelBase::SendResponse(Status status) {
     return Control::SendResponse;
 }
 
+ChannelBase::Control ChannelBase::SendFinalResponse(Status status) {
+    _responder.SetExplicitKeepAlive(false);
+    _responder.Send(status);
+    return Control::SendResponse;
+}
+
 bool ChannelBase::IsReadThrottled() const {
     return _throttlers.Read.Dedicated.IsEnabled();
 }

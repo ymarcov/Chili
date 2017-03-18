@@ -28,7 +28,7 @@ public:
     void SendCached(std::shared_ptr<CachedResponse>);
     std::shared_ptr<CachedResponse> CacheAs(Status);
     bool GetKeepAlive() const;
-    void ExplicitKeepAlive(bool);
+    void SetExplicitKeepAlive(bool);
     void SetField(std::string name, std::string value);
     void SetCookie(std::string name, std::string value);
     void SetCookie(std::string name, std::string value, const CookieOptions&);

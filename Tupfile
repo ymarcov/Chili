@@ -17,3 +17,5 @@ LINK_DEPS=-l:$(LIB_NAME).a -lfmt -lpthread -lcurl -lunwind
 
 : $(ECHO_OBJS) | $(BIN_DIR)/$(LIB_NAME).a |> !link_bin |> bin/echo
 : $(TEST_OBJS) | $(BIN_DIR)/$(LIB_NAME).a |> !link_bin |> bin/test
+
+: examples/hello_world.o | $(BIN_DIR)/$(LIB_NAME).a |> !link_bin |> bin/hello_world

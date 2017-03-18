@@ -98,7 +98,7 @@ void Channel::OnRead() {
         _responder = Responder(_stream);
 
         if (!_request.KeepAlive())
-            _responder.ExplicitKeepAlive(false);
+            _responder.SetExplicitKeepAlive(false);
 
         _stage = Stage::Process;
     }
@@ -175,7 +175,7 @@ void Channel::SendInternalError() {
     Log::Default()->Error("Channel {} processor error ignored! Please handle internally.", _id);
     _forceClose = true;
     _responder = Responder(_stream);
-    _responder.ExplicitKeepAlive(false);
+    _responder.SetExplicitKeepAlive(false);
     _responder.Send(Status::InternalServerError);
     _stage = Stage::Write;
 }

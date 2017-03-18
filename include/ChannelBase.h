@@ -60,6 +60,15 @@ public:
     Control SendResponse(Status);
 
     /**
+     * Sends a response back to the client and closes the channel.
+     *
+     * The actual response can be customized by configuring
+     * the responder properties -- which you can access by
+     * calling GetResponder().
+     */
+    Control SendFinalResponse(Status);
+
+    /**
      * Returns true if reading is currently being throttled
      * on this channel.
      */
