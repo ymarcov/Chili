@@ -1,4 +1,5 @@
 #include "SocketStream.h"
+#include "Log.h"
 #include "SystemError.h"
 
 #include <fcntl.h>
@@ -6,11 +7,6 @@
 
 namespace Yam {
 namespace Http {
-
-#define ENSURE(expr) \
-    while (-1 == (expr)) \
-        if (errno != EINTR) \
-            throw SystemError{};
 
 SocketStream& SocketStream::IncrementUseCount(SocketStream& s) {
     if (s._nativeHandle != InvalidHandle)
@@ -62,9 +58,12 @@ SocketStream& SocketStream::operator=(SocketStream&& rhs) {
 }
 
 std::size_t SocketStream::Write(const void* buffer, std::size_t maxBytes) {
-    ::ssize_t result;
-    ENSURE(result = ::send(_nativeHandle, buffer, maxBytes, MSG_NOSIGNAL));
-    return result;
+    auto bytesWritten = ::send(_nativeHandle, buffer, maxBytes, MSG_NOSIGNAL);
+
+    if (bytesWritten == -1)
+        throw SystemError{};
+
+    return bytesWritten;
 }
 
 std::size_t SocketStream::WriteTo(FileStream& fs, std::size_t maxBytes) {
@@ -87,8 +86,8 @@ void SocketStream::Close() {
 }
 
 void SocketStream::Shutdown() {
-    int result;
-    ENSURE(result = ::shutdown(_nativeHandle, SHUT_RDWR));
+    if (-1 == ::shutdown(_nativeHandle, SHUT_RDWR))
+        Log::Default()->Warning("Failed to shutdown socket fd {}", _nativeHandle);
 }
 
 } // namespace Http

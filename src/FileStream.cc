@@ -1,4 +1,5 @@
 #include "FileStream.h"
+#include "Log.h"
 #include "SystemError.h"
 #include "Timeout.h"
 
@@ -10,11 +11,6 @@
 namespace Yam {
 namespace Http {
 
-#define ENSURE(expr) \
-    while (-1 == (expr)) \
-        if (errno != EINTR) \
-            throw SystemError{};
-
 const FileStream::NativeHandle FileStream::InvalidHandle = -1;
 
 FileStream::FileStream() :
@@ -24,9 +20,10 @@ FileStream::FileStream(FileStream::NativeHandle nh) :
     _nativeHandle{nh} {}
 
 FileStream::FileStream(const FileStream& rhs) {
-    int result;
-    ENSURE(result = ::dup(rhs._nativeHandle));
-    _nativeHandle = result;
+    _nativeHandle = ::dup(rhs._nativeHandle);
+
+    if (_nativeHandle == -1)
+        throw SystemError{};
 }
 
 FileStream::FileStream(FileStream&& rhs) {
@@ -44,8 +41,12 @@ FileStream::~FileStream() {
 FileStream& FileStream::operator=(const FileStream& rhs) {
     int result = InvalidHandle;
 
-    if (rhs._nativeHandle != InvalidHandle)
-        ENSURE(result = ::dup(rhs._nativeHandle));
+    if (rhs._nativeHandle != InvalidHandle) {
+        result = ::dup(rhs._nativeHandle);
+
+        if (result == -1)
+            throw SystemError{};
+    }
 
     Close();
     _nativeHandle = result;
@@ -108,9 +109,12 @@ std::size_t FileStream::Read(void* buffer, std::size_t maxBytes, std::chrono::mi
 }
 
 std::size_t FileStream::Write(const void* buffer, std::size_t maxBytes) {
-    ::ssize_t result;
-    ENSURE(result = ::write(_nativeHandle, buffer, maxBytes));
-    return result;
+    auto bytesWritten = ::write(_nativeHandle, buffer, maxBytes);
+
+    if (bytesWritten == -1)
+        throw SystemError{};
+
+    return bytesWritten;
 }
 
 std::size_t FileStream::WriteTo(FileStream& fs, std::size_t maxBytes) {
@@ -126,10 +130,9 @@ std::size_t FileStream::WriteTo(FileStream& fs, std::size_t maxBytes) {
 }
 
 void FileStream::Close() {
-    if (_nativeHandle != InvalidHandle) {
-        int result;
-        ENSURE(result = ::close(_nativeHandle));
-    }
+    if (_nativeHandle != InvalidHandle)
+        if (-1 == ::close(_nativeHandle))
+            Log::Default()->Warning("Failed to close fd {}", _nativeHandle);
 }
 
 void SeekableFileStream::Seek(std::size_t offset) {
