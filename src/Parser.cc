@@ -111,7 +111,6 @@ void Parser::ParseCookies() const {
     lexer.SetDelimeters({"=", ";", ",", " ", "\t"});
 
     while (!lexer.EndOfStream()) {
-
         auto name = lexer.Lex();
         auto value = lexer.Lex();
 
