@@ -291,9 +291,6 @@ std::chrono::time_point<std::chrono::steady_clock> Orchestrator::GetLatestAllowe
 
 void Orchestrator::CollectGarbage() {
     _tasks.erase(std::remove_if(begin(_tasks), end(_tasks), [](auto& t) {
-        // For some reason adding the mutex here, though I'm not sure
-        // it's even necessary correctness-wise, makes things much faster.
-        std::lock_guard<std::mutex> lock(t->GetMutex());
         return t->GetChannel().GetStage() == Channel::Stage::Closed;
     }), end(_tasks));
 }
