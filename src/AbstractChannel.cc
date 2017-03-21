@@ -41,7 +41,7 @@ void AbstractChannel::Advance() {
                 throw std::logic_error("Advance() called in non-ready stage");
         }
     } catch (const std::exception& e) {
-        Log::Default()->Info("Channel {} error: {}", _id, e.what());
+        Log::Default()->Debug("Channel {} error: {}", _id, e.what());
         Close();
     }
 }
