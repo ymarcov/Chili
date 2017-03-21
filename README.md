@@ -7,6 +7,16 @@ It uses asynchronous I/O operations, relying on *epoll* (so it is Linux-only), a
 
 It has a light footprint, since it only uses a small external library, *fmtlib*, and the standard C++ library, not even relying on *Boost*. In addition, it employs modern C++ constructs, and compiles well under G++ 4.9.2 with -std=c++1y.
 
+### Feature Summary
+
+- Asynchronous I/O
+- Independent Read/Write throttling, both for the server as a whole and for individual connections
+- Efficient, does not overload the CPU or memory
+- Lightweight, only depends on the C++ Standard Library and a small external static library for fast string formatting
+- Uses modern C++ and is easy to use, and even customize the code
+- Public API documented with Doxygen
+- Thoroughly tested with Google Test unit & integration tests
+
 ## Example Code (Hello World)
 
 ```c++
