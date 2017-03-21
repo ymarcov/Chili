@@ -1,100 +1,131 @@
 #pragma once
 
-#include "Poller.h"
-#include "Request.h"
-#include "Responder.h"
-#include "Signal.h"
-#include "Throttler.h"
-
-#include <mutex>
+#include "AbstractChannel.h"
 
 namespace Yam {
 namespace Http {
 
-class Channel {
+/**
+ * Base class for custom channels.
+ *
+ * A channel is an HTTP state machine on top
+ * of an open socket.
+ */
+class Channel : public AbstractChannel {
 public:
-    enum class Stage {
-        WaitReadable,
-        ReadTimeout,
-        Read,
-        Process,
-        WaitWritable,
-        WriteTimeout,
-        Write,
-        Closed
-    };
+    using AbstractChannel::AbstractChannel;
 
-    struct Throttlers {
-        struct {
-            Throttler Dedicated;
-            std::shared_ptr<Throttler> Master;
-        } Read, Write;
-    };
+    /**
+     * Sets whether to automatically get each request's entire
+     * message content, regardless of how long it is, before
+     * calling Process().
+     *
+     * This is true by default.
+     *
+     * This may only be called in the channel's constructor.
+     * Otherwise, the behavior is undefined.
+     */
+    void SetAutoFetchContent(bool);
 
-    enum class Control {
-        FetchContent,
-        RejectContent,
-        SendResponse
-    };
+    /**
+     * Gets the request associated with the current processing call.
+     */
+    Request& GetRequest();
 
-    Channel(std::shared_ptr<FileStream>);
-    virtual ~Channel();
+    /**
+     * Gets the responder associated with the current processing call.
+     */
+    Responder& GetResponder();
+
+    /**
+     * Instructs the server to fetch the rest of the content
+     * (message body) of the request being processed.
+     */
+    Control FetchContent();
+
+    /**
+     * Instructs the server to reject the rest of the content
+     * (message body) of the request being processed.
+     *
+     * This is useful if, just judging by the header,
+     * you know you will not be able to process the message
+     * for one reason or another (perhaps only temporarily).
+     */
+    Control RejectContent();
+
+    /**
+     * Sends a cached response back to the client.
+     *
+     * The response would have been previously cached
+     * by a call to Responder::CacheAs(), after configuring
+     * its various properties.
+     */
+    Control SendResponse(std::shared_ptr<CachedResponse>);
+
+    /**
+     * Sends a response back to the client.
+     *
+     * The actual response can be customized by configuring
+     * the responder properties -- which you can access by
+     * calling GetResponder().
+     */
+    Control SendResponse(Status);
+
+    /**
+     * Sends a response back to the client and closes the channel.
+     *
+     * The actual response can be customized by configuring
+     * the responder properties -- which you can access by
+     * calling GetResponder().
+     */
+    Control SendFinalResponse(Status);
+
+    /**
+     * Returns true if reading is currently being throttled
+     * on this channel.
+     */
+    bool IsReadThrottled() const;
+
+    /**
+     * Returns true if writing is currently being throttled
+     * on this channel.
+     */
+    bool IsWriteThrottled() const;
+
+    /**
+     * Specifies a throttler to use for read operations
+     * on this channel.
+     *
+     * This is particularly useful if the client intends
+     * to send a very big request body, or perhaps makes
+     * a lot of requests on this particular channel.
+     */
+    void ThrottleRead(Throttler);
+
+    /**
+     * Specifies a throttler to use for write operations
+     * on this channel.
+     *
+     * This is particularly useful if you intend to send
+     * the client a very big response body, or perhaps
+     * engage in many back and forth request-response
+     * sequences on this particular channel.
+     */
+    void ThrottleWrite(Throttler);
 
 protected:
-    virtual Control Process() = 0;
-
-private:
     /**
-     * Take the next step in the state machine.
+     * This function is called whenever the channel
+     * has new data to process. This normally happens
+     * when a new request has just been accepted and parsed,
+     * but might also be called if, right after the request
+     * header has been processed, the first call to Process()
+     * requests that the rest of the message's body be retrieved.
+     * Once it is retrieved, this function will be called a 2nd time.
      */
-    void Advance();
-
-    /**
-     * Gets and sets the stage the channel is currently in.
-     */
-    Stage GetStage() const;
-    void SetStage(Stage);
-
-    /**
-     * If the channel is in a waiting stage, gets the timeout
-     * to wait for before performing another stage, even
-     * if data is already available.
-     */
-    std::chrono::time_point<std::chrono::steady_clock> GetRequestedTimeout() const;
-
-    /**
-     * Gets whether the channel is ready to perform its stage.
-     */
-    bool IsReady() const;
-
-    void OnRead();
-    void OnProcess();
-    void OnWrite();
-    void Close();
-
-    const std::shared_ptr<FileStream>& GetStream() const;
-    int GetId() const;
-
-    bool FetchData(std::pair<bool, std::size_t>(Request::*)(std::size_t), std::size_t maxRead);
-    void LogNewRequest();
-    void SendInternalError();
-    void HandleControlDirective(Control);
-    bool FlushData(std::size_t maxWrite);
-
-    std::uint64_t _id;
-    std::shared_ptr<FileStream> _stream;
-    Throttlers _throttlers;
-    Request _request;
-    Responder _responder;
-    std::atomic<std::chrono::time_point<std::chrono::steady_clock>> _timeout;
-    std::atomic<Stage> _stage;
-    bool _forceClose = false;
-    bool _fetchingContent = false;
-    bool _autoFetchContent = true;
-
-    friend class ChannelBase;
-    friend class Orchestrator;
+    Control Process() override = 0;
 };
 
 } // namespace Http
 } // namespace Yam
+

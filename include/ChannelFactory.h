@@ -4,7 +4,7 @@
  * @file ChannelFacotory.h
  */
 
-#include "ChannelBase.h"
+#include "Channel.h"
 
 namespace Yam {
 namespace Http {
@@ -27,7 +27,7 @@ public:
      *                     is a good way to establish defaults among
      *                     all open channels.
      */
-    virtual std::unique_ptr<ChannelBase> CreateChannel(std::shared_ptr<FileStream> fs) = 0;
+    virtual std::unique_ptr<Channel> CreateChannel(std::shared_ptr<FileStream> fs) = 0;
 };
 
 } // namespace Http

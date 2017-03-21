@@ -76,14 +76,14 @@ protected:
         fs->Write(buffer.data(), buffer.size());
     }
 
-    using FactoryFunction = std::function<std::unique_ptr<ChannelBase>(std::shared_ptr<FileStream>)>;
+    using FactoryFunction = std::function<std::unique_ptr<Channel>(std::shared_ptr<FileStream>)>;
 
     std::shared_ptr<HttpServer> MakeServer(FactoryFunction factoryFunction) {
         struct Factory : ChannelFactory {
             Factory(FactoryFunction f) :
                 _f(std::move(f)) {}
 
-            std::unique_ptr<ChannelBase> CreateChannel(std::shared_ptr<FileStream> stream) override {
+            std::unique_ptr<Channel> CreateChannel(std::shared_ptr<FileStream> stream) override {
                 return _f(std::move(stream));
             }
 
@@ -95,9 +95,9 @@ protected:
 
     template <class Processor>
     FactoryFunction MakeProcessor(Processor processor) {
-        struct CustomChannel : ChannelBase {
+        struct CustomChannel : Channel {
             CustomChannel(std::shared_ptr<FileStream> fs, Processor p) :
-                ChannelBase(std::move(fs)),
+                Channel(std::move(fs)),
                 _p(std::move(p)) {
                 SetAutoFetchContent(false);
             }
@@ -143,7 +143,7 @@ protected:
 TEST_F(OrchestratorTest, one_client_header_only) {
     auto ready = std::make_shared<WaitEvent>();
 
-    auto server = MakeServer(MakeProcessor([=](ChannelBase& c) {
+    auto server = MakeServer(MakeProcessor([=](Channel& c) {
         if (c.GetRequest().GetField("Host") == "request.urih.com")
             ready->Signal();
 
@@ -165,7 +165,7 @@ TEST_F(OrchestratorTest, one_client_header_only) {
 TEST_F(OrchestratorTest, one_client_header_and_body) {
     auto ready = std::make_shared<WaitEvent>();
 
-    auto server = MakeServer(MakeProcessor([=](ChannelBase& c) {
+    auto server = MakeServer(MakeProcessor([=](Channel& c) {
         if (!c.GetRequest().IsContentAvailable())
             return c.FetchContent();
 
@@ -188,7 +188,7 @@ TEST_F(OrchestratorTest, one_client_header_and_body) {
 TEST_F(OrchestratorTest, one_client_header_and_body_throttled) {
     auto ready = std::make_shared<WaitEvent>();
 
-    auto server = MakeServer(MakeProcessor([=](ChannelBase& c) {
+    auto server = MakeServer(MakeProcessor([=](Channel& c) {
         if (!c.IsWriteThrottled())
             c.ThrottleWrite({5, 5ms});
 
@@ -218,7 +218,7 @@ TEST_F(OrchestratorTest, one_client_header_and_body_with_expect) {
     auto sentContinue = std::make_shared<WaitEvent>();
     auto sentOk = std::make_shared<WaitEvent>();
 
-    auto server = MakeServer(MakeProcessor([=](ChannelBase& c) {
+    auto server = MakeServer(MakeProcessor([=](Channel& c) {
         if (!c.GetRequest().IsContentAvailable()) {
             sentContinue->Signal();
             return c.FetchContent();
@@ -251,7 +251,7 @@ TEST_F(OrchestratorTest, one_client_header_and_body_with_expect) {
 TEST_F(OrchestratorTest, one_client_header_and_body_with_expect_reject) {
     auto sentRejection = std::make_shared<WaitEvent>();
 
-    auto server = MakeServer(MakeProcessor([=](ChannelBase& c) {
+    auto server = MakeServer(MakeProcessor([=](Channel& c) {
         sentRejection->Signal();
         return c.RejectContent();
     }));
@@ -275,7 +275,7 @@ TEST_F(OrchestratorTest, multiple_clients) {
     const auto clientCount = 5000;
     auto lightLog = TemporaryLogLevel(Log::Level::Info);
 
-    auto server = MakeServer(MakeProcessor([=](ChannelBase& c) {
+    auto server = MakeServer(MakeProcessor([=](Channel& c) {
         if (!c.IsWriteThrottled())
             c.ThrottleWrite({5, 5ms});
 

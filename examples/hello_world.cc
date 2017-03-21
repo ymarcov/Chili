@@ -1,10 +1,9 @@
-#include "ChannelBase.h"
+#include "Channel.h"
 #include "ChannelFactory.h"
 #include "HttpServer.h"
 #include "Log.h"
 
 using Yam::Http::Channel;
-using Yam::Http::ChannelBase;
 using Yam::Http::ChannelFactory;
 using Yam::Http::FileStream;
 using Yam::Http::HttpServer;
@@ -12,9 +11,9 @@ using Yam::Http::IPEndpoint;
 using Yam::Http::Log;
 using Yam::Http::Status;
 
-class HelloWorldChannel : public ChannelBase {
-    // Use constructors from ChannelBase
-    using ChannelBase::ChannelBase;
+class HelloWorldChannel : public Channel {
+    // Use constructors from Channel
+    using Channel::Channel;
 
     // Process incoming requests
     Control Process() override {
@@ -30,7 +29,7 @@ class HelloWorldChannel : public ChannelBase {
 };
 
 class HelloWorldChannelFactory : public ChannelFactory {
-    std::unique_ptr<ChannelBase> CreateChannel(std::shared_ptr<FileStream> fs) override {
+    std::unique_ptr<Channel> CreateChannel(std::shared_ptr<FileStream> fs) override {
         return std::make_unique<HelloWorldChannel>(std::move(fs));
     }
 };

@@ -120,9 +120,9 @@ std::unique_ptr<ChannelFactory> CreateChannelFactory(const ServerConfiguration& 
     static std::shared_ptr<CachedResponse> cr;
     static std::atomic_bool crSet{false};
 
-    struct CustomChannel : ChannelBase {
+    struct CustomChannel : Channel {
         CustomChannel(std::shared_ptr<FileStream> fs, bool verbose) :
-            ChannelBase(std::move(fs)),
+            Channel(std::move(fs)),
             _verbose(verbose) {}
 
         Control Process() override {
@@ -156,7 +156,7 @@ std::unique_ptr<ChannelFactory> CreateChannelFactory(const ServerConfiguration& 
         CustomChannelFactory(bool verbose) :
             _verbose(verbose) {}
 
-        std::unique_ptr<ChannelBase> CreateChannel(std::shared_ptr<FileStream> fs) override {
+        std::unique_ptr<Channel> CreateChannel(std::shared_ptr<FileStream> fs) override {
             return std::make_unique<CustomChannel>(std::move(fs), _verbose);
         }
 
