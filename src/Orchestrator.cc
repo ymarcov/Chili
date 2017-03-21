@@ -142,8 +142,6 @@ void Orchestrator::Stop() {
 }
 
 void Orchestrator::Add(std::shared_ptr<FileStream> stream) {
-    std::lock_guard<std::mutex> lock(_mutex);
-
     auto task = std::make_shared<Task>();
 
     task->_orchestrator = this;
@@ -152,7 +150,10 @@ void Orchestrator::Add(std::shared_ptr<FileStream> stream) {
     task->_channel->_throttlers.Write.Master = _masterWriteThrottler;
     task->_lastActive = std::chrono::steady_clock::now();
 
-    _tasks.push_back(task);
+    {
+        std::lock_guard<std::mutex> lock(_mutex);
+        _tasks.push_back(task);
+    }
 
     _poller.Poll(task->GetChannel().GetStream(), Poller::Events::Completion | Poller::Events::Readable);
 }
