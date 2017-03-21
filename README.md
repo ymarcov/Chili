@@ -11,11 +11,13 @@ It has a light footprint, since it only uses a small external library, *fmtlib*,
 
 - Asynchronous I/O
 - Independent Read/Write throttling, both for the server as a whole and for individual connections
+- Supports conditional message body fetching & rejection
+- Supports cached responses for added efficiency
 - Efficient, does not overload the CPU or memory
 - Lightweight, only depends on the C++ Standard Library and a small external static library for fast string formatting
 - Uses modern C++ and is easy to use, and even customize the code
 - Public API documented with Doxygen
-- Thoroughly tested with Google Test unit & integration tests
+- Thoroughly tested with Google Test unit & integration tests, and also with Valgrind Memcheck
 
 ## Example Code (Hello World)
 
