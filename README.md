@@ -13,11 +13,11 @@ $ ab -c4 -n100000 http://127.0.0.1:3000/
 
 Output:
 
-> This is ApacheBench, Version 2.3 <$Revision: 1604373 $>
-> Copyright 1996 Adam Twiss, Zeus Technology Ltd, http://www.zeustech.net/
-> Licensed to The Apache Software Foundation, http://www.apache.org/
-> 
+> This is ApacheBench, Version 2.3 <$Revision: 1604373 $> \
+> Copyright 1996 Adam Twiss, Zeus Technology Ltd, http://www.zeustech.net/ \
+> Licensed to The Apache Software Foundation, http://www.apache.org/ \
 > Benchmarking 127.0.0.1 (be patient)
+>
 >     Completed 10000 requests
 >     Completed 20000 requests
 >     Completed 30000 requests
@@ -56,15 +56,16 @@ Output:
 >       Total:          0    0   0.0      0       1
 > 
 > Percentage of the requests served within a certain time (ms)
-> 50%      0
-> 66%      0
-> 75%      0
-> 80%      0
-> 90%      0
-> 95%      0
-> 98%      0
-> 99%      0
-> 100%      1 (longest request)
+>
+>     50%      0
+>     66%      0
+>     75%      0
+>     80%      0
+>     90%      0
+>     95%      0
+>     98%      0
+>     99%      0
+>     100%      1 (longest request)
 
 ## Installation
 ### Install prerequisites
