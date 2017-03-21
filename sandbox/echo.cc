@@ -126,9 +126,6 @@ std::unique_ptr<ChannelFactory> CreateChannelFactory(const ServerConfiguration& 
             _verbose(verbose) {}
 
         Control Process() override {
-            if (!GetRequest().IsContentAvailable())
-                return FetchContent();
-
             if (_verbose) {
                 std::lock_guard<std::mutex> lock(_outputMutex);
                 std::cout << "\n";

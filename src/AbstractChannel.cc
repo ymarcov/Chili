@@ -165,7 +165,7 @@ void AbstractChannel::OnProcess() {
     _stage = Stage::Process;
 
     try {
-        if (_autoFetchContent && !_request.IsContentAvailable()) {
+        if (_autoFetchContent && _request.HasContent() && !_request.IsContentAvailable()) {
             HandleControlDirective(Control::FetchContent);
         } else {
             auto directive = Process();
