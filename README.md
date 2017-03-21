@@ -91,9 +91,6 @@ $ ab -c4 -n100000 http://127.0.0.1:3000/
 ### Yam::HTTP
 
 ```
-Document Path:          /
-Document Length:        26 bytes
-
 Concurrency Level:      4
 Time taken for tests:   4.078 seconds
 Complete requests:      100000
@@ -111,9 +108,6 @@ Transfer rate:          2011.78 [Kbytes/sec] received
 In comparison, here's the same benchmark targeting my local Apache server. In this case, Yam::HTTP yielded about 5x better performance.
 
 ```
-Document Path:          /
-Document Length:        1521 bytes
-
 Concurrency Level:      4
 Time taken for tests:   20.503 seconds
 Complete requests:      100000
