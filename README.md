@@ -1,6 +1,71 @@
 # Yam::HTTP
 ***A simple to use, yet efficient, modern C++ HTTP server library***
 
+## Performance
+This server uses asyncrhonous I/O operations exclusively, using *epoll*.
+
+Running on Intel i7-4790 @ 3.6GHz with 8GB of memory, here are ApacheBench results, showing that this server can handle quite a few requests at a time, and is definitely performant enough for most use cases.
+
+```bash
+$ bin/sandbox_echo 3000 4 0 & # Run sandbox server with 4 threads
+$ ab -c4 -n100000 http://127.0.0.1:3000/
+```
+
+Output:
+
+> This is ApacheBench, Version 2.3 <$Revision: 1604373 $>
+> Copyright 1996 Adam Twiss, Zeus Technology Ltd, http://www.zeustech.net/
+> Licensed to The Apache Software Foundation, http://www.apache.org/
+> 
+> Benchmarking 127.0.0.1 (be patient)
+>     Completed 10000 requests
+>     Completed 20000 requests
+>     Completed 30000 requests
+>     Completed 40000 requests
+>     Completed 50000 requests
+>     Completed 60000 requests
+>     Completed 70000 requests
+>     Completed 80000 requests
+>     Completed 90000 requests
+>     Completed 100000 requests
+>     Finished  100000 requests
+> 
+>     Server Software:
+>     Server Hostname:        127.0.0.1
+>     Server Port:            3000
+> 
+>     Document Path:          /
+>     Document Length:        26 bytes
+> 
+>     Concurrency Level:      4
+>     Time taken for tests:   3.228 seconds
+>     Complete requests:      100000
+>     Failed requests:        0
+>     Total transferred:      8400000 bytes
+>     HTML transferred:       2600000 bytes
+>     Requests per second:    30974.65 [#/sec] (mean)
+>     Time per request:       0.129 [ms] (mean)
+>     Time per request:       0.032 [ms] (mean, across all concurrent requests)
+>     Transfer rate:          2540.89 [Kbytes/sec] received
+> 
+>     Connection Times (ms)
+>       min  mean[+/-sd] median   max
+>       Connect:        0    0   0.0      0       0
+>       Processing:     0    0   0.0      0       1
+>       Waiting:        0    0   0.0      0       1
+>       Total:          0    0   0.0      0       1
+> 
+> Percentage of the requests served within a certain time (ms)
+> 50%      0
+> 66%      0
+> 75%      0
+> 80%      0
+> 90%      0
+> 95%      0
+> 98%      0
+> 99%      0
+> 100%      1 (longest request)
+
 ## Installation
 ### Install prerequisites
 Assuming you're on Ubuntu/Debian,
