@@ -28,10 +28,6 @@ void AbstractChannel::Advance() {
                 OnRead();
                 break;
 
-            case Stage::Process:
-                OnProcess();
-                break;
-
             case Stage::WriteTimeout:
             case Stage::Write:
                 OnWrite();
@@ -99,7 +95,7 @@ void AbstractChannel::OnRead() {
         if (!_request.KeepAlive())
             _responder.SetExplicitKeepAlive(false);
 
-        _stage = Stage::Process;
+        OnProcess();
     }
 }
 
@@ -161,6 +157,8 @@ void AbstractChannel::LogNewRequest() {
 }
 
 void AbstractChannel::OnProcess() {
+    _stage = Stage::Process;
+
     try {
         if (_autoFetchContent && !_request.IsContentAvailable()) {
             HandleControlDirective(Control::FetchContent);
