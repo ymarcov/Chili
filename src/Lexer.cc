@@ -106,7 +106,7 @@ void Lexer::AddDelimeter(const char* delimeter) {
 std::size_t Lexer::DelimeterAt(const char* cursor, std::size_t consumed) {
     for (std::size_t i = 0; i < _delimeterCount; ++i)
         if (_length > consumed + (_delimeterLengths[i] - 1))
-            if (!::strncmp(cursor, _delimeters[i], _delimeterLengths[i]))
+            if (!::memcmp(cursor, _delimeters[i], _delimeterLengths[i]))
                 return _delimeterLengths[i];
     return 0;
 }
