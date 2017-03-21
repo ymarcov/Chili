@@ -92,20 +92,20 @@ $ ab -c4 -n100000 http://127.0.0.1:3000/
 
 ```
 Concurrency Level:      4
-Time taken for tests:   4.078 seconds
+Time taken for tests:   4.158 seconds
 Complete requests:      100000
 Failed requests:        0
-Total transferred:      8400000 bytes
-HTML transferred:       2600000 bytes
-Requests per second:    24524.54 [#/sec] (mean)
-Time per request:       0.163 [ms] (mean)
-Time per request:       0.041 [ms] (mean, across all concurrent requests)
-Transfer rate:          2011.78 [Kbytes/sec] received
+Total transferred:      156200000 bytes
+HTML transferred:       150200000 bytes
+Requests per second:    24048.12 [#/sec] (mean)
+Time per request:       0.166 [ms] (mean)
+Time per request:       0.042 [ms] (mean, across all concurrent requests)
+Transfer rate:          36682.77 [Kbytes/sec] received
 ```
 
 ### Apache 2.4.10
 
-In comparison, here's the same benchmark targeting my local Apache server. In this case, Yam::HTTP yielded about 5x better performance.
+In comparison, here's the same benchmark targeting my local Apache server. In this case, Yam::HTTP yielded about 5x better performance. The Apache response has a few more headers which affects the size a little bit, but this has a very negligible impact on the results.
 
 ```
 Concurrency Level:      4
