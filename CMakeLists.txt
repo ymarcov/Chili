@@ -4,7 +4,7 @@ set(CMAKE_ARCHIVE_OUTPUT_DIRECTORY ${CMAKE_BINARY_DIR}/bin)
 set(CMAKE_LIBRARY_OUTPUT_DIRECTORY ${CMAKE_BINARY_DIR}/bin)
 set(CMAKE_RUNTIME_OUTPUT_DIRECTORY ${CMAKE_BINARY_DIR}/bin)
 
-add_compile_options(-std=c++1y -fPIC)
+add_compile_options(-std=c++1y -fPIC -O3 -Werror -Wall -Wpedantic)
 
 project(fmtlib)
 file(GLOB SOURCES "ext/fmtlib/*.cc")
