@@ -61,7 +61,7 @@ int main() {
 Assuming you're on Ubuntu/Debian,
 
 ```bash
-$ sudo apt-get install cmake libgtest-dev
+$ sudo apt-get install cmake libgtest-dev google-mock
 ```
 ### Compile & Run
 
