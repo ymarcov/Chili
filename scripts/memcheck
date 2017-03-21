@@ -1,0 +1,3 @@
+#!/bin/bash
+
+exec valgrind --memcheck:leak-check=full --show-reachable=yes --suppressions=$(dirname $0)/valgrind.supp "$@"
