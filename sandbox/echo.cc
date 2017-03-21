@@ -121,8 +121,8 @@ std::unique_ptr<ChannelFactory> CreateChannelFactory(const ServerConfiguration& 
     static std::atomic_bool crSet{false};
 
     struct CustomChannel : ChannelBase {
-        CustomChannel(std::shared_ptr<FileStream> fs, Throttlers t, bool verbose) :
-            ChannelBase(std::move(fs), std::move(t)),
+        CustomChannel(std::shared_ptr<FileStream> fs, bool verbose) :
+            ChannelBase(std::move(fs)),
             _verbose(verbose) {}
 
         Control Process() override {
@@ -156,8 +156,8 @@ std::unique_ptr<ChannelFactory> CreateChannelFactory(const ServerConfiguration& 
         CustomChannelFactory(bool verbose) :
             _verbose(verbose) {}
 
-        std::unique_ptr<ChannelBase> CreateChannel(std::shared_ptr<FileStream> fs, Channel::Throttlers t) override {
-            return std::make_unique<CustomChannel>(std::move(fs), std::move(t), _verbose);
+        std::unique_ptr<ChannelBase> CreateChannel(std::shared_ptr<FileStream> fs) override {
+            return std::make_unique<CustomChannel>(std::move(fs), _verbose);
         }
 
         bool _verbose;

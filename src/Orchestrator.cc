@@ -145,13 +145,11 @@ void Orchestrator::Add(std::shared_ptr<FileStream> stream) {
     std::lock_guard<std::mutex> lock(_mutex);
 
     auto task = std::make_shared<Task>();
-    auto throttlers = Channel::Throttlers();
-
-    throttlers.Read.Master = _masterReadThrottler;
-    throttlers.Write.Master = _masterWriteThrottler;
 
     task->_orchestrator = this;
-    task->_channel = _channelFactory->CreateChannel(std::move(stream), std::move(throttlers));
+    task->_channel = _channelFactory->CreateChannel(std::move(stream));
+    task->_channel->_throttlers.Read.Master = _masterReadThrottler;
+    task->_channel->_throttlers.Write.Master = _masterWriteThrottler;
     task->_lastActive = std::chrono::steady_clock::now();
 
     _tasks.push_back(task);

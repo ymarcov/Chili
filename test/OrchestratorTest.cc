@@ -76,15 +76,15 @@ protected:
         fs->Write(buffer.data(), buffer.size());
     }
 
-    using FactoryFunction = std::function<std::unique_ptr<ChannelBase>(std::shared_ptr<FileStream>, Channel::Throttlers)>;
+    using FactoryFunction = std::function<std::unique_ptr<ChannelBase>(std::shared_ptr<FileStream>)>;
 
     std::shared_ptr<HttpServer> MakeServer(FactoryFunction factoryFunction) {
         struct Factory : ChannelFactory {
             Factory(FactoryFunction f) :
                 _f(std::move(f)) {}
 
-            std::unique_ptr<ChannelBase> CreateChannel(std::shared_ptr<FileStream> stream, Channel::Throttlers t) override {
-                return _f(std::move(stream), std::move(t));
+            std::unique_ptr<ChannelBase> CreateChannel(std::shared_ptr<FileStream> stream) override {
+                return _f(std::move(stream));
             }
 
             FactoryFunction _f;
@@ -96,8 +96,8 @@ protected:
     template <class Processor>
     FactoryFunction MakeProcessor(Processor processor) {
         struct CustomChannel : ChannelBase {
-            CustomChannel(std::shared_ptr<FileStream> fs, Channel::Throttlers t, Processor p) :
-                ChannelBase(std::move(fs), std::move(t)),
+            CustomChannel(std::shared_ptr<FileStream> fs, Processor p) :
+                ChannelBase(std::move(fs)),
                 _p(std::move(p)) {
                 SetAutoFetchContent(false);
             }
@@ -109,8 +109,8 @@ protected:
             Processor _p;
         };
 
-        return [=](std::shared_ptr<FileStream> fs, Channel::Throttlers t) {
-            return std::make_unique<CustomChannel>(std::move(fs), std::move(t), std::move(processor));
+        return [=](std::shared_ptr<FileStream> fs) {
+            return std::make_unique<CustomChannel>(std::move(fs), std::move(processor));
         };
     }
 

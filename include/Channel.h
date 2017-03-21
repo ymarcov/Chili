@@ -37,7 +37,7 @@ public:
         SendResponse
     };
 
-    Channel(std::shared_ptr<FileStream>, Throttlers);
+    Channel(std::shared_ptr<FileStream>);
     virtual ~Channel();
 
 protected:

@@ -30,9 +30,8 @@ class HelloWorldChannel : public ChannelBase {
 };
 
 class HelloWorldChannelFactory : public ChannelFactory {
-    std::unique_ptr<ChannelBase> CreateChannel(std::shared_ptr<FileStream> fs,
-                                               Channel::Throttlers throttlers) override {
-        return std::make_unique<HelloWorldChannel>(std::move(fs), std::move(throttlers));
+    std::unique_ptr<ChannelBase> CreateChannel(std::shared_ptr<FileStream> fs) override {
+        return std::make_unique<HelloWorldChannel>(std::move(fs));
     }
 };
 

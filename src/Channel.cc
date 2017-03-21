@@ -8,10 +8,9 @@ namespace Http {
 
 std::atomic<std::uint64_t> nextChannelId{0};
 
-Channel::Channel(std::shared_ptr<FileStream> stream, Throttlers throttlers) :
+Channel::Channel(std::shared_ptr<FileStream> stream) :
     _id(++nextChannelId),
     _stream(std::move(stream)),
-    _throttlers(std::move(throttlers)),
     _request(_stream),
     _responder(_stream),
     _timeout(std::chrono::steady_clock::now()),
