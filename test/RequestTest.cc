@@ -52,7 +52,7 @@ namespace {
 
 template <std::size_t N>
 constexpr std::size_t NonTerminatedSize(const char (&s)[N]) {
-    return s[N] ? N : N - 1;
+    return s[N - 1] ? N : N - 1;
 }
 
 template <std::size_t N>
@@ -168,7 +168,7 @@ TEST_F(RequestTest, non_contiguous_header_and_body) {
 
 TEST_F(RequestTest, invalid_header_throws) {
     char buffer[0x2000] = {0};
-    std::iota(std::begin(buffer), std::end(buffer), 1);
+    std::fill(std::begin(buffer), std::end(buffer), 1);
     EXPECT_THROW(MakeRequest(MakeInputStream(buffer)), std::runtime_error);
 }
 
