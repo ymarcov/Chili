@@ -184,21 +184,20 @@ void Orchestrator::OnEvent(std::shared_ptr<FileStream> fs, int events) {
 
     lock.unlock();
 
-    {
+    auto& channel = task->GetChannel();
+
+    if (events & Poller::Events::Completion) {
+        Log::Default()->Verbose("Channel {} received completion event", channel.GetId());
+        channel.RequestClose();
+    } else {
         std::lock_guard<std::mutex> taskLock(task->GetMutex());
-        HandleChannelEvent(task->GetChannel(), events);
+        HandleChannelEvent(channel, events);
     }
 
     _newEvent.notify_one();
 }
 
 void Orchestrator::HandleChannelEvent(AbstractChannel& channel, int events) {
-    if (events & Poller::Events::Completion) {
-        Log::Default()->Verbose("Channel {} received completion event", channel.GetId());
-        channel.Close();
-        return;
-    }
-
     switch (channel.GetStage()) {
         case AbstractChannel::Stage::WaitReadable: {
             if (events & Poller::Events::Readable) {

@@ -74,6 +74,7 @@ private:
 
     const std::shared_ptr<FileStream>& GetStream() const;
     int GetId() const;
+    void RequestClose();
 
     bool FetchData(std::pair<bool, std::size_t>(Request::*)(std::size_t), std::size_t maxRead);
     void LogNewRequest();
@@ -88,6 +89,7 @@ private:
     Responder _responder;
     std::atomic<std::chrono::time_point<std::chrono::steady_clock>> _timeout;
     std::atomic<Stage> _stage;
+    std::atomic_bool _requestClose{false};
     bool _forceClose = false;
     bool _fetchingContent = false;
     bool _autoFetchContent = true;

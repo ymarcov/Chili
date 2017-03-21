@@ -21,6 +21,11 @@ AbstractChannel::AbstractChannel(std::shared_ptr<FileStream> stream) :
 AbstractChannel::~AbstractChannel() {}
 
 void AbstractChannel::Advance() {
+    if (_requestClose) {
+        Close();
+        return;
+    }
+
     try {
         switch (_stage) {
             case Stage::ReadTimeout:
@@ -297,6 +302,10 @@ const std::shared_ptr<FileStream>& AbstractChannel::GetStream() const {
 
 int AbstractChannel::GetId() const {
     return _id;
+}
+
+void AbstractChannel::RequestClose() {
+    _requestClose = true;
 }
 
 } // namespace Http
