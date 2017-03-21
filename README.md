@@ -88,7 +88,7 @@ $ bin/sandbox_echo 3000 4 0 & # Run sandbox server with 4 threads
 $ ab -c4 -n100000 http://127.0.0.1:3000/
 ```
 
-### Yam::HTTP
+#### Yam::HTTP
 
 ```
 Concurrency Level:      4
@@ -103,7 +103,7 @@ Time per request:       0.042 [ms] (mean, across all concurrent requests)
 Transfer rate:          36682.77 [Kbytes/sec] received
 ```
 
-### Apache 2.4.10
+#### Apache 2.4.10
 
 In comparison, here's the same benchmark targeting my local Apache server. In this case, Yam::HTTP yielded about 5x better performance. The Apache response has a few more headers which affects the size a little bit, but this has a very negligible impact on the results.
 
