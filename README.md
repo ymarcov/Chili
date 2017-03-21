@@ -61,7 +61,7 @@ int main() {
 Assuming you're on Ubuntu/Debian,
 
 ```bash
-$ sudo apt-get install cmake libgtest-dev google-mock
+$ sudo apt-get install cmake libgtest-dev google-mock libunwind-dev
 ```
 ### Compile & Run
 
