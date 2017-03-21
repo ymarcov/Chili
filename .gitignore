@@ -6,3 +6,7 @@ ROADMAP
 .tup
 /build-debug
 /build-release
+CMakeCache.txt
+CMakeFiles
+Makefile
+cmake_install.cmake
