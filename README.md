@@ -61,7 +61,7 @@ int main() {
 Assuming you're on Ubuntu/Debian,
 
 ```bash
-$ sudo apt-get install cmake libgtest-dev google-mock
+$ sudo apt-get install cmake libgtest-dev
 ```
 ### Compile & Run
 
@@ -70,7 +70,7 @@ $ git clone https://github.com/ymarcov/http
 $ cd http
 $ git submodule update --init
 $ cmake .
-$ make
+$ make hello_world
 $ bin/hello_world
 ```
 
