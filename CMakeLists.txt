@@ -34,6 +34,10 @@ file(GLOB SOURCES "examples/*.cc")
 add_executable(hello_world ${SOURCES})
 target_link_libraries(hello_world yam_http)
 
+project(sandbox_echo)
+add_executable(sandbox_echo "sandbox/echo.cc")
+target_link_libraries(sandbox_echo yam_http_static curl pthread unwind)
+
 project(tests)
 include_directories(test)
 file(GLOB SOURCES "test/*.cc")
