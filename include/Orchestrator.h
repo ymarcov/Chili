@@ -48,6 +48,7 @@ private:
         std::shared_ptr<AbstractChannel> _channel;
         std::chrono::time_point<std::chrono::steady_clock> _lastActive;
         std::mutex _mutex;
+        mutable std::mutex _lastActiveMutex;
         std::atomic_bool _inProcess{false};
 
         friend void Orchestrator::Add(std::shared_ptr<FileStream>);

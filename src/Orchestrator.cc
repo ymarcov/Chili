@@ -27,7 +27,13 @@ void Orchestrator::Task::Activate() {
     }
 
     channel.Advance();
-    _lastActive = std::chrono::steady_clock::now();
+
+    {
+        std::lock_guard<std::mutex> lock(_lastActiveMutex);
+        _lastActive = std::chrono::steady_clock::now();
+    }
+
+    bool notify = false;
 
     switch (channel.GetStage()) {
         case AbstractChannel::Stage::WaitReadable: {
@@ -41,15 +47,25 @@ void Orchestrator::Task::Activate() {
         } break;
 
         default:
-            _orchestrator->_newEvent.notify_one();
+            notify = true;
             break; // Don't need to get involved
     }
 
     _inProcess = false;
+
+    if (notify)
+        _orchestrator->_newEvent.notify_one();
 }
 
 bool Orchestrator::Task::ReachedInactivityTimeout() const {
-    auto diff = std::chrono::steady_clock::now() - _lastActive;
+    decltype(_lastActive) lastActive;
+
+    {
+        std::lock_guard<std::mutex> lock(_lastActiveMutex);
+        lastActive = _lastActive;
+    }
+
+    auto diff = std::chrono::steady_clock::now() - lastActive;
     return diff >= _orchestrator->_inactivityTimeout.load();
 }
 
