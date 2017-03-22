@@ -37,6 +37,7 @@ public:
 
     bool IsEnabled() const;
     std::chrono::time_point<Clock> GetFillTime() const;
+    std::chrono::time_point<Clock> GetFillTime(std::size_t desiredQuota) const;
     std::size_t GetCurrentQuota() const;
     void Consume(std::size_t);
     std::size_t GetCapacity() const;

@@ -83,7 +83,8 @@ void AbstractChannel::OnRead() {
     if (maxRead < minCapacity) {
         Log::Default()->Verbose("Channel {} throttled. Waiting for read quota to fill.", _id);
         _stage = Stage::ReadTimeout;
-        _timeout = _throttlers.Read.Dedicated.GetFillTime();
+        _timeout = std::max(_throttlers.Read.Dedicated.GetFillTime(minCapacity),
+                            _throttlers.Read.Master->GetFillTime(minCapacity));
         return;
     }
 
@@ -242,7 +243,8 @@ void AbstractChannel::OnWrite() {
     if (maxWrite < minCapacity) {
         Log::Default()->Verbose("Channel {} throttled. Waiting for write quota to fill.", _id);
         _stage = Stage::WriteTimeout;
-        _timeout = _throttlers.Write.Dedicated.GetFillTime();
+        _timeout = std::max(_throttlers.Write.Dedicated.GetFillTime(minCapacity),
+                            _throttlers.Write.Master->GetFillTime(minCapacity));
         return;
     }
 

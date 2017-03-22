@@ -40,6 +40,18 @@ TEST_F(ThrottlerTest, gets_allowed_size_by_elapsed_time) {
     EXPECT_EQ(0x1000, throttler.GetCurrentQuota());
 }
 
+TEST_F(ThrottlerTest, gets_desired_quota_fill_time) {
+    Throttler throttler(1e9, 1s);
+
+    throttler.Consume(1e9);
+
+    std::this_thread::sleep_until(throttler.GetFillTime(1e9 / 2));
+    auto quota = throttler.GetCurrentQuota();
+
+    EXPECT_LT(int(1e9 / 2 - 1e3), quota);
+    EXPECT_GT(int(1e9 / 2 + 1e3), quota);
+}
+
 } // namespace Http
 } // namespace Yam
 

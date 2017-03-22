@@ -48,6 +48,22 @@ std::chrono::time_point<Throttler::Clock> Throttler::GetFillTime() const {
     return Clock::now() + remainingMs;
 }
 
+std::chrono::time_point<Throttler::Clock> Throttler::GetFillTime(std::size_t desiredQuota) const {
+    std::lock_guard<std::mutex> lock(_mutex);
+
+    if (!_enabled)
+        return Clock::now();
+
+    UpdateCurrentQuota();
+
+    auto ratio = _currentQuota / double(_capacity);
+    auto remainingMsTillFull = milliseconds(std::size_t(_interval.count() * (1 - ratio)));
+    auto desiredRatio = desiredQuota / double(_capacity);
+    auto timeout = std::size_t(remainingMsTillFull.count() * desiredRatio);
+
+    return Clock::now() + std::chrono::milliseconds(timeout);
+}
+
 std::size_t Throttler::GetCurrentQuota() const {
     std::lock_guard<std::mutex> lock(_mutex);
 
