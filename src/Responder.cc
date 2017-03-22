@@ -1,4 +1,5 @@
 #include "Responder.h"
+#include "TcpConnection.h"
 
 #include <algorithm>
 #include <array>
@@ -106,7 +107,7 @@ void Responder::Prepare(Status status) {
     for (auto& nv : _fields)
         w.write("{}: {}\r\n", nv.first, nv.second);
 
-    if (GetResponse()._body)
+    if (GetResponse()._transferMode == TransferMode::Normal && GetResponse()._body)
         w.write("Content-Length: {}\r\n", GetResponse()._body->size());
 
     w.write("\r\n");
@@ -117,33 +118,130 @@ void Responder::Prepare(Status status) {
 }
 
 std::pair<bool, std::size_t> Responder::Flush(std::size_t maxBytes) {
-    std::size_t bytesWritten = 0;
-    auto& header = GetResponse()._header;
-    auto& body = GetResponse()._body;
+    std::size_t totalBytesWritten = 0;
+    auto& response = GetResponse();
+    auto& header = response._header;
 
-    if (_writePosition < header.size()) {
-        auto quota = std::min(maxBytes, header.size() - _writePosition);
-        bytesWritten = _stream->Write(header.c_str() + _writePosition, quota);
+    { // send header
 
-        _writePosition += bytesWritten;
-        maxBytes -= bytesWritten;
+        if (_writePosition < header.size()) {
+            auto quota = std::min(maxBytes, header.size() - _writePosition);
+            auto bytesWritten = _stream->Write(header.c_str() + _writePosition, quota);
 
-        if (_writePosition != header.size())
-            return std::make_pair(false, bytesWritten);
+            totalBytesWritten += bytesWritten;
+            _writePosition += bytesWritten;
+            maxBytes -= bytesWritten;
+
+            if (_writePosition != header.size())
+                return std::make_pair(false, totalBytesWritten);
+        }
     }
 
-    if (body) {
-        auto bodyBytesConsumed = _writePosition - header.size();
-        auto quota = std::min(maxBytes, body->size() - bodyBytesConsumed);
-        bytesWritten = _stream->Write(body->data() + bodyBytesConsumed, quota);
+    { // send content
+        if (response._transferMode == TransferMode::Normal) {
+            if (auto& body = response._body) {
+                auto bodyBytesConsumed = _writePosition - header.size();
+                auto quota = std::min(maxBytes, body->size() - bodyBytesConsumed);
+                auto bytesWritten = _stream->Write(body->data() + bodyBytesConsumed, quota);
 
-        _writePosition += bytesWritten;
+                totalBytesWritten += bytesWritten;
+                _writePosition += bytesWritten;
 
-        if (_writePosition - header.size() != body->size())
-            return std::make_pair(false, bytesWritten);
+                if (_writePosition - header.size() != body->size())
+                    return std::make_pair(false, bytesWritten);
+            }
+        } else if (response._transferMode == TransferMode::Chunked) {
+            if (auto& input = response._stream) {
+                auto& buffer = response._body; // use as buffer
+                auto quota = std::min(maxBytes, buffer->size());
+                auto newChunk = (_chunkWritePosition == 0);
+
+                if (newChunk) {
+                    // heuristic to make sure we can always send chunk header.
+                    // this should be okay since our max chunk isn't that big anyway,
+                    // so 16 bytes should always be enough to send the size header in hex.
+                    if (quota < 0x10)
+                        return std::make_pair(false, totalBytesWritten);
+                    else
+                        quota -= 0x10;
+
+                    if (!quota)
+                        return std::make_pair(false, totalBytesWritten);
+
+                    // read and store next chunk data
+                    _chunkSize = input->Read(buffer->data(), quota);
+                    _chunkWritePosition = 0;
+
+                    // send new chunk header
+                    auto chunkHeader = std::string();
+
+                    if (!_chunkSize) // end of stream
+                        chunkHeader = "0\r\n\r\n";
+                    else
+                        chunkHeader = fmt::format("{:X}\r\n", _chunkSize);
+
+                    if (auto tcp = std::dynamic_pointer_cast<TcpConnection>(_stream))
+                        tcp->SetCork(true);
+
+                    auto bytesWritten = _stream->Write(chunkHeader.data(), chunkHeader.size());
+
+                    if (bytesWritten != chunkHeader.size()) {
+                        // okay, this makes it a bit easier to program,
+                        // and it's *supposed* to be very unlikely anyway,
+                        // since it's so small.
+                        // FIXME: this will make throttler discount all data written thus far!
+                        throw std::runtime_error("Failed to write chunk size; dropping response!");
+                    }
+
+                    totalBytesWritten += bytesWritten;
+
+                    if (!_chunkSize) { // end of stream
+                        if (auto tcp = std::dynamic_pointer_cast<TcpConnection>(_stream))
+                            tcp->SetCork(false);
+
+                        return std::make_pair(true, totalBytesWritten);
+                    } else { // reclaim leftovers
+                        quota += (0x10 - bytesWritten);
+                    }
+                }
+
+                // send chunk data
+                if (quota <= 2)
+                    return std::make_pair(false, totalBytesWritten);
+                else
+                    quota -= 2; // trailing CRLF
+
+                auto bytesWritten = _stream->Write(buffer->data() + _chunkWritePosition,
+                                                   std::min(quota, _chunkSize - _chunkWritePosition));
+
+                _chunkWritePosition += bytesWritten;
+                totalBytesWritten += bytesWritten;
+
+                if (_chunkWritePosition == _chunkSize) {
+                    if (2 != _stream->Write("\r\n", 2)) {
+                        // okay, this makes it a bit easier to program,
+                        // and it's *supposed* to be very unlikely anyway,
+                        // since it's so small.
+                        // FIXME: this will make throttler discount all data written thus far!
+                        throw std::runtime_error("Failed to write chunk trailing CRLF; dropping response!");
+                    }
+
+                    if (auto tcp = std::dynamic_pointer_cast<TcpConnection>(_stream))
+                        tcp->SetCork(false);
+
+                    _chunkWritePosition = 0;
+                }
+
+                return std::make_pair(false, totalBytesWritten);
+            } else {
+                throw std::logic_error("No stream provided");
+            }
+        } else {
+            throw std::logic_error("Unsupported transfer mode");
+        }
     }
 
-    return std::make_pair(true, bytesWritten);
+    return std::make_pair(true, totalBytesWritten);
 }
 
 bool Responder::GetKeepAlive() const {
@@ -196,7 +294,17 @@ void Responder::SetCookie(std::string name, std::string value, const CookieOptio
 }
 
 void Responder::SetContent(std::shared_ptr<std::vector<char>> body) {
-    GetResponse()._body = std::move(body);
+    auto& r = GetResponse();
+    r._transferMode = TransferMode::Normal;
+    r._body = std::move(body);
+}
+
+void Responder::SetContent(std::shared_ptr<InputStream> stream) {
+    auto& r = GetResponse();
+    r._transferMode = TransferMode::Chunked;
+    r._stream = std::move(stream);
+    r._body = std::make_shared<std::vector<char>>(0x1000); // use as buffer
+    SetField("Transfer-Encoding", "chunked");
 }
 
 Status Responder::GetStatus() const {

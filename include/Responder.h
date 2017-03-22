@@ -1,5 +1,6 @@
 #pragma once
 
+#include "InputStream.h"
 #include "OutputStream.h"
 #include "Protocol.h"
 
@@ -12,10 +13,13 @@ namespace Yam {
 namespace Http {
 
 class CachedResponse {
+    TransferMode _transferMode;
     Status _status;
     bool _keepAlive = true;
     std::string _header;
+    std::shared_ptr<InputStream> _stream;
     std::shared_ptr<std::vector<char>> _body;
+
     friend class Responder;
 };
 
@@ -73,6 +77,14 @@ public:
     void SetContent(std::shared_ptr<std::vector<char>> data);
 
     /**
+     * Sets the response message content from a stream.
+     * This will cause the response to be chunked.
+     *
+     * @param stream The stream containing the data to be sent
+     */
+    void SetContent(std::shared_ptr<InputStream> stream);
+
+    /**
      * @internal
      * Writes response data to the output stream.
      * Returns whether the operation completed, and how many bytes were written.
@@ -109,6 +121,8 @@ private:
     std::vector<std::pair<std::string, std::string>> _fields;
     mutable std::shared_ptr<CachedResponse> _response;
     std::size_t _writePosition = 0;
+    std::size_t _chunkSize = 0;
+    std::size_t _chunkWritePosition = 0;
 };
 
 } // namespace Http

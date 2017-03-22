@@ -2,8 +2,10 @@
 
 #include "Responder.h"
 
+#include <algorithm>
 #include <chrono>
 #include <ctime>
+#include <cstring>
 #include <sstream>
 #include <time.h> // some functions aren't in <ctime>
 
@@ -29,6 +31,33 @@ private:
     std::ostringstream _stream;
 };
 
+class ChunkedStringInputStream : public InputStream {
+public:
+    ChunkedStringInputStream(std::vector<std::string> chunks) :
+        _chunks(std::move(chunks)) {}
+
+    std::size_t Read(void* buffer, std::size_t size) override {
+        if (_currentChunk >= _chunks.size())
+            return 0;
+
+        auto& chunk = _chunks[_currentChunk];
+        std::strncpy(static_cast<char*>(buffer), chunk.data(), size);
+        ++_currentChunk;
+        return std::min(size, chunk.size());
+    }
+
+    std::string ToString() const {
+        std::ostringstream stream;
+        for (auto& c : _chunks)
+            stream << c;
+        return stream.str();
+    }
+
+private:
+    std::vector<std::string> _chunks;
+    std::size_t _currentChunk = 0;
+};
+
 } // unnamed namespace
 
 class ResponderTest : public Test {
@@ -45,8 +74,12 @@ protected:
         return std::make_shared<std::vector<char>>(s.data(), s.data() + s.size());
     }
 
-    void Flush(std::unique_ptr<Responder>& r) {
-        while (!r->Flush(1).first)
+    auto MakeChunkedStream(std::vector<std::string> chunks) {
+        return std::make_shared<ChunkedStringInputStream>(std::move(chunks));
+    }
+
+    void Flush(std::unique_ptr<Responder>& r, std::size_t quota = 1) {
+        while (!r->Flush(quota).first)
             ;
     }
 };
@@ -191,6 +224,38 @@ TEST_F(ResponderTest, send_cached) {
 
     auto expected = "HTTP/1.1 200 OK\r\n"
         "Set-Cookie: First=One; HttpOnly; Secure\r\n"
+        "\r\n";
+
+    EXPECT_EQ(expected, stream->ToString());
+}
+
+TEST_F(ResponderTest, chunked) {
+    auto stream = MakeStream();
+    auto r = MakeResponder(stream);
+
+    auto data = MakeChunkedStream({
+        "<b>",
+        "hello ",
+        "world",
+        "</b>"
+    });
+
+    r->SetContent(data);
+    r->Send(Status::Ok);
+    Flush(r, 0x1000);
+
+    auto expected = "HTTP/1.1 200 OK\r\n"
+        "Transfer-Encoding: chunked\r\n"
+        "\r\n"
+        "3\r\n"
+        "<b>\r\n"
+        "6\r\n"
+        "hello \r\n"
+        "5\r\n"
+        "world\r\n"
+        "4\r\n"
+        "</b>\r\n"
+        "0\r\n"
         "\r\n";
 
     EXPECT_EQ(expected, stream->ToString());

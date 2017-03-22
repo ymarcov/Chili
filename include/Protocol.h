@@ -83,6 +83,23 @@ enum class Status {
 };
 
 /**
+ * Request/Response Transfer mode.
+ */
+enum class TransferMode {
+    Normal, ///< Sends entire content in one chunk
+    Chunked ///< Sends content in chunks
+};
+
+/**
+ * Content compression type.
+ */
+enum class Compression {
+    None, ///< No compression
+    Deflate, ///< Compress using the deflate algorithm
+    Gzip ///< Compress using the gzip algorithm
+};
+
+/**
  * Extra options to specify for cookies.
  */
 class CookieOptions {
