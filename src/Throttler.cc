@@ -19,7 +19,8 @@ Throttler::Throttler(const Throttler& other) {
 }
 
 Throttler& Throttler::operator=(const Throttler& rhs) {
-    std::lock_guard<std::mutex> lock(_mutex);
+    std::lock_guard<std::mutex> lock1(_mutex);
+    std::lock_guard<std::mutex> lock2(rhs._mutex);
     _enabled = rhs._enabled;
     _capacity = rhs._capacity;
     _interval = rhs._interval;
