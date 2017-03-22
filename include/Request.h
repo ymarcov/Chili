@@ -42,6 +42,11 @@ public:
     std::vector<std::string_view> GetFieldNames() const;
 
     /**
+     * Returns true if the request contains a field with the specified name.
+     */
+    bool HasField(const std::string_view& name) const;
+
+    /**
      * Tries to get a field by name, returns true if it was found.
      *
      * If field was found and value is not null, then value is set.

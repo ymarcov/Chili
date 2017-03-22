@@ -166,6 +166,10 @@ void AbstractChannel::OnProcess() {
 
     try {
         if (_autoFetchContent && _request.HasContent() && !_request.IsContentAvailable()) {
+            if (_request.HasField("Transfer-Encoding"))
+                if (_request.GetField("Transfer-Encoding").find("chunked") != std::string::npos)
+                    return SendInternalError(); // FIXME support chunked requests
+
             HandleControlDirective(Control::FetchContent);
         } else {
             auto directive = Process();

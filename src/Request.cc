@@ -115,6 +115,10 @@ std::vector<std::string_view> Request::GetFieldNames() const {
     return result;
 }
 
+bool Request::HasField(const std::string_view& name) const {
+    return GetField(name, nullptr);
+}
+
 bool Request::GetField(const std::string_view& name, std::string* value) const {
     Parser::Field f;
 
