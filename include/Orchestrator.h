@@ -57,6 +57,7 @@ private:
     void HandleChannelEvent(AbstractChannel&, int events);
     void IterateOnce();
     std::vector<std::shared_ptr<Task>> CaptureTasks();
+    std::vector<std::shared_ptr<Task>> FilterReadyTasks();
     void InternalStop();
     void InternalForceStopOnError();
     bool AtLeastOneTaskIsReady();

@@ -26,11 +26,6 @@ void Orchestrator::Task::Activate() {
         return;
     }
 
-    if (!channel.IsReady()) {
-        _inProcess = false;
-        return;
-    }
-
     channel.Advance();
 
     switch (channel.GetStage()) {
@@ -238,14 +233,12 @@ void Orchestrator::IterateOnce() {
         if (_stop)
             break;
 
-        if (!task->IsHandlingInProcess()) {
-            task->MarkHandlingInProcess(true);
+        task->MarkHandlingInProcess(true);
 
-            _threadPool.Post([=] {
-                std::lock_guard<std::mutex> lock(task->GetMutex());
-                task->Activate();
-            });
-        }
+        _threadPool.Post([=] {
+            std::lock_guard<std::mutex> lock(task->GetMutex());
+            task->Activate();
+        });
     }
 }
 
@@ -263,7 +256,19 @@ std::vector<std::shared_ptr<Orchestrator::Task>> Orchestrator::CaptureTasks() {
 
     CollectGarbage();
 
-    auto snapshot = _tasks;
+    return FilterReadyTasks();
+}
+
+std::vector<std::shared_ptr<Orchestrator::Task>> Orchestrator::FilterReadyTasks() {
+    auto snapshot = std::vector<std::shared_ptr<Orchestrator::Task>>();
+    snapshot.reserve(_tasks.size());
+
+    std::copy_if(begin(_tasks), end(_tasks), back_inserter(snapshot), [&](auto& t) {
+        if (t->IsHandlingInProcess())
+            return false;
+
+        return t->GetChannel().IsReady() || t->ReachedInactivityTimeout();
+    });
 
     return snapshot;
 }
