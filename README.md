@@ -11,6 +11,7 @@ It has a light footprint, since it only uses a small external library, *fmtlib*,
 
 - Asynchronous I/O
 - Independent Read/Write throttling, both for the server as a whole and for individual connections
+- Supports streaming
 - Supports conditional message body fetching & rejection
 - Supports cached responses for added efficiency
 - Efficient, does not overload the CPU or memory when not required
