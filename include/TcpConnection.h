@@ -33,7 +33,7 @@ public:
     TcpConnection(SocketStream, const IPEndpoint&);
 
     const IPEndpoint& Endpoint() const noexcept;
-    void SetCork(bool);
+    void Cork(bool);
 
 private:
     IPEndpoint _endpoint;

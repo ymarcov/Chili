@@ -67,7 +67,7 @@ TcpConnection::TcpConnection(SocketStream s, const IPEndpoint& ep) :
     SocketStream{std::move(s)},
     _endpoint{ep} {}
 
-void TcpConnection::SetCork(bool enabled) {
+void TcpConnection::Cork(bool enabled) {
     int value = enabled ? 1 : 0;
     if (-1 == ::setsockopt(_nativeHandle, IPPROTO_TCP, TCP_CORK, &value, sizeof(value)))
         throw SystemError();

@@ -195,7 +195,7 @@ std::pair<bool, std::size_t> Responder::Flush(std::size_t maxBytes) {
                     }
 
                     if (auto tcp = std::dynamic_pointer_cast<TcpConnection>(_stream))
-                        tcp->SetCork(true);
+                        tcp->Cork(true);
 
                     auto bytesWritten = _stream->Write(chunkHeader.data(), chunkHeader.size());
 
@@ -211,7 +211,7 @@ std::pair<bool, std::size_t> Responder::Flush(std::size_t maxBytes) {
 
                     if (lastPseudoChunk) {
                         if (auto tcp = std::dynamic_pointer_cast<TcpConnection>(_stream))
-                            tcp->SetCork(false);
+                            tcp->Cork(false);
 
                         return std::make_pair(true, totalBytesWritten);
                     } else { // reclaim leftovers
@@ -241,7 +241,7 @@ std::pair<bool, std::size_t> Responder::Flush(std::size_t maxBytes) {
                     }
 
                     if (auto tcp = std::dynamic_pointer_cast<TcpConnection>(_stream))
-                        tcp->SetCork(false);
+                        tcp->Cork(false);
 
                     _chunkWritePosition = 0;
                 }
