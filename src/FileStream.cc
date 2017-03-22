@@ -15,10 +15,10 @@ const FileStream::NativeHandle FileStream::InvalidHandle = -1;
 
 namespace {
 
-mode_t FileModeToNative(FileMode mode) {
-    mode_t result = 0;
+int FileModeToNative(FileMode mode) {
+    int result = 0;
 
-    if (mode & (FileMode::Read | FileMode::Write))
+    if ((mode & (FileMode::Read | FileMode::Write)) == (FileMode::Read | FileMode::Write))
         result |= O_RDWR;
     else if (mode & FileMode::Read)
         result |= O_RDONLY;
@@ -39,8 +39,8 @@ mode_t FileModeToNative(FileMode mode) {
 
 } // unnamed namespace
 
-std::unique_ptr<FileStream> FileStream::Open(const std::string_view& path, FileMode mode) {
-    auto fd = ::open(path.data(), FileModeToNative(mode));
+std::unique_ptr<FileStream> FileStream::Open(const std::string& path, FileMode mode) {
+    auto fd = ::open(path.c_str(), FileModeToNative(mode));
 
     if (fd == -1)
         throw SystemError{};

@@ -6,7 +6,7 @@
 #include <atomic>
 #include <chrono>
 #include <memory>
-#include <string_view>
+#include <string>
 
 namespace Yam {
 namespace Http {
@@ -23,7 +23,7 @@ class FileStream : public InputStream, public OutputStream {
 public:
     using NativeHandle = int;
 
-    static std::unique_ptr<FileStream> Open(const std::string_view& path, FileMode mode);
+    static std::unique_ptr<FileStream> Open(const std::string& path, FileMode mode);
 
     static const NativeHandle InvalidHandle;
 
