@@ -41,5 +41,7 @@ int main() {
 
     HttpServer server(endpoint, std::move(factory), processingThreads);
     Log::Default()->SetLevel(Log::Level::Info);
-    server.Start().wait();
+    auto task = server.Start();
+    Log::Default()->Info("HelloWorld Server Started");
+    task.wait();
 }
