@@ -84,7 +84,7 @@ Method Request::GetMethod() const {
     throw std::runtime_error("Unknown HTTP method");
 }
 
-std::string Request::GetUri() const {
+std::string_view Request::GetUri() const {
     auto f = _parser.GetUri();
     return {f.Data, f.Size};
 }
@@ -108,14 +108,14 @@ Version Request::GetVersion() const {
     throw std::runtime_error("Unsupported HTTP method");
 }
 
-std::vector<std::string> Request::GetFieldNames() const {
-    std::vector<std::string> result;
+std::vector<std::string_view> Request::GetFieldNames() const {
+    std::vector<std::string_view> result;
     for (auto& f : _parser.GetFieldNames())
         result.emplace_back(f.Data, f.Size);
     return result;
 }
 
-bool Request::GetField(const std::string& name, std::string* value) const {
+bool Request::GetField(const std::string_view& name, std::string* value) const {
     Parser::Field f;
 
     if (_parser.GetField(name, &f)) {
@@ -127,18 +127,18 @@ bool Request::GetField(const std::string& name, std::string* value) const {
     return false;
 }
 
-std::string Request::GetField(const std::string& name) const {
+std::string_view Request::GetField(const std::string_view& name) const {
     auto f = _parser.GetField(name);
     return {f.Data, f.Size};
 }
 
-std::string Request::GetCookie(const std::string& name) const {
+std::string_view Request::GetCookie(const std::string_view& name) const {
     auto f = _parser.GetCookie(name);
     return {f.Data, f.Size};
 }
 
-std::vector<std::string> Request::GetCookieNames() const {
-    std::vector<std::string> result;
+std::vector<std::string_view> Request::GetCookieNames() const {
+    std::vector<std::string_view> result;
     for (auto& f : _parser.GetCookieNames())
         result.emplace_back(f.Data, f.Size);
     return result;
@@ -159,7 +159,8 @@ bool Request::IsContentAvailable() const {
 
 std::size_t Request::GetContentLength() const {
     try {
-        return stoi(GetField("Content-Length"));
+        char* endptr;
+        return strtoul(GetField("Content-Length").data(), &endptr, 10);
     } catch (const Parser::Error&) {
         return 0;
     }

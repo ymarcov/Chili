@@ -6,6 +6,7 @@
 
 #include <memory>
 #include <string>
+#include <string_view>
 #include <utility>
 #include <vector>
 
@@ -28,7 +29,7 @@ public:
     /**
      * Gets the URI string of the request.
      */
-    std::string GetUri() const;
+    std::string_view GetUri() const;
 
     /**
      * Gets the HTTP version of the request.
@@ -38,7 +39,7 @@ public:
     /**
      * Gets the names of all header fields present in the request.
      */
-    std::vector<std::string> GetFieldNames() const;
+    std::vector<std::string_view> GetFieldNames() const;
 
     /**
      * Tries to get a field by name, returns true if it was found.
@@ -46,24 +47,24 @@ public:
      * If field was found and value is not null, then value is set.
      * Otherwise, value is ignored.
      */
-    bool GetField(const std::string& name, std::string* value) const;
+    bool GetField(const std::string_view& name, std::string* value) const;
 
     /**
      * Gets a field by name.
      * Throws if the field does not exist.
      */
-    std::string GetField(const std::string& name) const;
+    std::string_view GetField(const std::string_view& name) const;
 
     /**
      * Gets the names of all cookies present in the request.
      */
-    std::vector<std::string> GetCookieNames() const;
+    std::vector<std::string_view> GetCookieNames() const;
 
     /**
      * Gets a cookie by name.
      * Throws if the cookie does not exist.
      */
-    std::string GetCookie(const std::string& name) const;
+    std::string_view GetCookie(const std::string_view& name) const;
 
     /**
      * Returns true if the request has a message
