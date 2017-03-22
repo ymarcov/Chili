@@ -29,9 +29,14 @@ add_library(yam_http SHARED "")
 target_link_libraries(yam_http yam_http_static)
 
 project(example_hello_world)
-file(GLOB SOURCES "examples/*.cc")
+file(GLOB SOURCES "examples/hello_world.cc")
 add_executable(hello_world ${SOURCES})
 target_link_libraries(hello_world yam_http)
+
+project(example_streamer)
+file(GLOB SOURCES "examples/streamer.cc")
+add_executable(streamer ${SOURCES})
+target_link_libraries(streamer yam_http)
 
 project(sandbox_echo)
 add_executable(sandbox_echo "sandbox/echo.cc")
