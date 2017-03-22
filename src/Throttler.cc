@@ -64,7 +64,11 @@ void Throttler::Consume(std::size_t n) {
 
     UpdateCurrentQuota();
 
-    _currentQuota -= n;
+    if (n > _currentQuota)
+        _currentQuota = 0;
+    else
+        _currentQuota -= n;
+
     _lastConsumption = Clock::now();
 }
 
