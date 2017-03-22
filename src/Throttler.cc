@@ -57,6 +57,10 @@ std::size_t Throttler::GetCurrentQuota() const {
     return UpdateCurrentQuota();
 }
 
+std::size_t Throttler::GetCapacity() const {
+    return _capacity;
+}
+
 void Throttler::Consume(std::size_t n) {
     std::lock_guard<std::mutex> lock(_mutex);
 

@@ -77,7 +77,10 @@ void AbstractChannel::OnRead() {
     auto maxRead = std::min(_throttlers.Read.Dedicated.GetCurrentQuota(),
                             _throttlers.Read.Master->GetCurrentQuota());
 
-    if (maxRead == 0) {
+    auto minCapacity = std::min(_throttlers.Read.Dedicated.GetCapacity(),
+                                _throttlers.Read.Master->GetCapacity());
+
+    if (maxRead < minCapacity) {
         Log::Default()->Verbose("Channel {} throttled. Waiting for read quota to fill.", _id);
         _stage = Stage::ReadTimeout;
         _timeout = _throttlers.Read.Dedicated.GetFillTime();
@@ -233,7 +236,10 @@ void AbstractChannel::OnWrite() {
     auto maxWrite = std::min(_throttlers.Write.Dedicated.GetCurrentQuota(),
                              _throttlers.Write.Master->GetCurrentQuota());
 
-    if (maxWrite == 0) {
+    auto minCapacity = std::min(_throttlers.Write.Dedicated.GetCapacity(),
+                                _throttlers.Write.Master->GetCapacity());
+
+    if (maxWrite < minCapacity) {
         Log::Default()->Verbose("Channel {} throttled. Waiting for write quota to fill.", _id);
         _stage = Stage::WriteTimeout;
         _timeout = _throttlers.Write.Dedicated.GetFillTime();
@@ -275,8 +281,10 @@ bool AbstractChannel::FlushData(std::size_t maxWrite) {
 
     if (!done) {
         if (bytesFlushed < maxWrite) {
-            Log::Default()->Verbose("Channel {} socket buffer full. Waiting for writability.", _id);
-            _stage = Stage::WaitWritable;
+            if (bytesFlushed < _responder.GetBufferSize()) {
+                Log::Default()->Verbose("Channel {} socket buffer full. Waiting for writability.", _id);
+                _stage = Stage::WaitWritable;
+            }
         } else {
             Log::Default()->Verbose("Channel {} throttled. Waiting for write quota to fill.", _id);
             _stage = Stage::WriteTimeout;

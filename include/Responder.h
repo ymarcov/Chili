@@ -32,8 +32,21 @@ public:
     Responder(std::shared_ptr<OutputStream>);
 
     /**
+     * Resets the state of the responder.
+     * This might be useful if you're going to change
+     * whatever properties you set earlier, for example
+     * if now you're going to send a different kind of
+     * response, like an error.
+     */
+    void Reset();
+
+    /**
      * Creates a cached response which can later
      * be sent through to improve efficiency.
+     *
+     * NOTE: A response that has a stream as its
+     * content cannot be cached, and attempting
+     * to cache it will throw an error.
      */
     std::shared_ptr<CachedResponse> CacheAs(Status);
 
@@ -111,6 +124,12 @@ public:
      * Gets the status that was requested to be sent.
      */
     Status GetStatus() const;
+
+    /**
+     * @internal
+     * Gets the chunk buffer size.
+     */
+    std::size_t GetBufferSize() const;
 
 private:
     void Prepare(Status);

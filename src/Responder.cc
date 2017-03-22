@@ -3,8 +3,9 @@
 
 #include <algorithm>
 #include <array>
-#include <fmtlib/format.h>
 #include <cstring>
+#include <fmtlib/format.h>
+#include <limits>
 #include <stdexcept>
 #include <string>
 #include <time.h>
@@ -84,6 +85,11 @@ std::string CookieDate(const std::time_t& t) {
 Responder::Responder(std::shared_ptr<OutputStream> stream) :
     _stream(std::move(stream)) {}
 
+void Responder::Reset() {
+    auto stream = std::move(_stream);
+    *this = Responder(std::move(stream));
+}
+
 void Responder::Send(Status status) {
     if (!_prepared)
         Prepare(status);
@@ -95,6 +101,9 @@ void Responder::SendCached(std::shared_ptr<CachedResponse> cr) {
 }
 
 std::shared_ptr<CachedResponse> Responder::CacheAs(Status status) {
+    if (GetResponse()._stream)
+        throw std::logic_error("Cannot cache response with streaming content");
+
     Prepare(status);
     return _response;
 }
@@ -308,8 +317,15 @@ void Responder::SetContent(std::shared_ptr<InputStream> stream) {
     auto& r = GetResponse();
     r._transferMode = TransferMode::Chunked;
     r._stream = std::move(stream);
-    r._body = std::make_shared<std::vector<char>>(0x1000); // use as buffer
+    r._body = std::make_shared<std::vector<char>>(GetBufferSize()); // use as buffer
     SetField("Transfer-Encoding", "chunked");
+}
+
+std::size_t Responder::GetBufferSize() const {
+    if (GetResponse()._transferMode == TransferMode::Chunked)
+        return 0x1000;
+    else
+        return std::numeric_limits<std::size_t>::max();
 }
 
 Status Responder::GetStatus() const {
