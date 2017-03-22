@@ -27,6 +27,7 @@ void Orchestrator::Task::Activate() {
     }
 
     channel.Advance();
+    _lastActive = std::chrono::steady_clock::now();
 
     switch (channel.GetStage()) {
         case AbstractChannel::Stage::WaitReadable: {
@@ -40,7 +41,6 @@ void Orchestrator::Task::Activate() {
         } break;
 
         default:
-            _lastActive = std::chrono::steady_clock::now();
             _orchestrator->_newEvent.notify_one();
             break; // Don't need to get involved
     }
@@ -263,11 +263,8 @@ std::vector<std::shared_ptr<Orchestrator::Task>> Orchestrator::FilterReadyTasks(
     auto snapshot = std::vector<std::shared_ptr<Orchestrator::Task>>();
     snapshot.reserve(_tasks.size());
 
-    std::copy_if(begin(_tasks), end(_tasks), back_inserter(snapshot), [&](auto& t) {
-        if (t->IsHandlingInProcess())
-            return false;
-
-        return t->GetChannel().IsReady() || t->ReachedInactivityTimeout();
+    std::copy_if(begin(_tasks), end(_tasks), back_inserter(snapshot), [this](auto& t) {
+        return this->IsTaskReady(*t);
     });
 
     return snapshot;
@@ -275,8 +272,21 @@ std::vector<std::shared_ptr<Orchestrator::Task>> Orchestrator::FilterReadyTasks(
 
 bool Orchestrator::AtLeastOneTaskIsReady() {
     return end(_tasks) != std::find_if(begin(_tasks), end(_tasks), [this](auto& t) {
-        return !t->IsHandlingInProcess() && t->GetChannel().IsReady();
+        return this->IsTaskReady(*t);
     });
+}
+
+bool Orchestrator::IsTaskReady(Task& t) {
+    if (t.IsHandlingInProcess())
+        return false;
+
+    if (t.GetChannel().IsCloseRequested())
+        return true;
+
+    if (t.ReachedInactivityTimeout())
+        return true;
+
+    return t.GetChannel().IsReady();
 }
 
 std::chrono::time_point<std::chrono::steady_clock> Orchestrator::GetLatestAllowedWakeup() {

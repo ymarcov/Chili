@@ -312,5 +312,9 @@ void AbstractChannel::RequestClose() {
     _requestClose = true;
 }
 
+bool AbstractChannel::IsCloseRequested() const {
+    return _requestClose;
+}
+
 } // namespace Http
 } // namespace Yam

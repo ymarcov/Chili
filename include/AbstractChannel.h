@@ -75,6 +75,7 @@ private:
     const std::shared_ptr<FileStream>& GetStream() const;
     int GetId() const;
     void RequestClose();
+    bool IsCloseRequested() const;
 
     bool FetchData(std::pair<bool, std::size_t>(Request::*)(std::size_t), std::size_t maxRead);
     void LogNewRequest();

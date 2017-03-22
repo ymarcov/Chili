@@ -61,6 +61,7 @@ private:
     void InternalStop();
     void InternalForceStopOnError();
     bool AtLeastOneTaskIsReady();
+    bool IsTaskReady(Task&);
     std::chrono::time_point<std::chrono::steady_clock> GetLatestAllowedWakeup();
     void CollectGarbage();
 
