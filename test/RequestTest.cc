@@ -73,6 +73,10 @@ public:
         return readBytes;
     }
 
+    bool EndOfStream() const override {
+        return false; // ignored here
+    }
+
     std::size_t Remaining() const {
         return _str.size() - _position;
     }
@@ -96,6 +100,10 @@ public:
             _streams.erase(begin(_streams));
 
         return bytesRead;
+    }
+
+    bool EndOfStream() const override {
+        return false; // ignored here
     }
 
 private:

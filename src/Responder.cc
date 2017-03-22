@@ -150,7 +150,11 @@ std::pair<bool, std::size_t> Responder::Flush(std::size_t maxBytes) {
                 if (_writePosition - header.size() != body->size())
                     return std::make_pair(false, bytesWritten);
             }
+
+            // that was easy.
         } else if (response._transferMode == TransferMode::Chunked) {
+            // this is less easy.
+
             if (auto& input = response._stream) {
                 auto& buffer = response._body; // use as buffer
                 auto quota = std::min(maxBytes, buffer->size());
@@ -168,17 +172,18 @@ std::pair<bool, std::size_t> Responder::Flush(std::size_t maxBytes) {
                     if (!quota)
                         return std::make_pair(false, totalBytesWritten);
 
-                    // read and store next chunk data
-                    _chunkSize = input->Read(buffer->data(), quota);
-                    _chunkWritePosition = 0;
-
                     // send new chunk header
                     auto chunkHeader = std::string();
+                    auto lastPseudoChunk = false;
 
-                    if (!_chunkSize) // end of stream
+                    if (input->EndOfStream()) {
                         chunkHeader = "0\r\n\r\n";
-                    else
+                        lastPseudoChunk = true;
+                    } else {
+                        _chunkSize = input->Read(buffer->data(), quota);
+                        _chunkWritePosition = 0;
                         chunkHeader = fmt::format("{:X}\r\n", _chunkSize);
+                    }
 
                     if (auto tcp = std::dynamic_pointer_cast<TcpConnection>(_stream))
                         tcp->SetCork(true);
@@ -195,7 +200,7 @@ std::pair<bool, std::size_t> Responder::Flush(std::size_t maxBytes) {
 
                     totalBytesWritten += bytesWritten;
 
-                    if (!_chunkSize) { // end of stream
+                    if (lastPseudoChunk) {
                         if (auto tcp = std::dynamic_pointer_cast<TcpConnection>(_stream))
                             tcp->SetCork(false);
 

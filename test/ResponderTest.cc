@@ -37,13 +37,14 @@ public:
         _chunks(std::move(chunks)) {}
 
     std::size_t Read(void* buffer, std::size_t size) override {
-        if (_currentChunk >= _chunks.size())
-            return 0;
-
         auto& chunk = _chunks[_currentChunk];
         std::strncpy(static_cast<char*>(buffer), chunk.data(), size);
         ++_currentChunk;
         return std::min(size, chunk.size());
+    }
+
+    bool EndOfStream() const override {
+        return _currentChunk == _chunks.size();
     }
 
     std::string ToString() const {

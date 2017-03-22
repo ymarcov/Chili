@@ -13,6 +13,41 @@ namespace Http {
 
 const FileStream::NativeHandle FileStream::InvalidHandle = -1;
 
+namespace {
+
+mode_t FileModeToNative(FileMode mode) {
+    mode_t result = 0;
+
+    if (mode & (FileMode::Read | FileMode::Write))
+        result |= O_RDWR;
+    else if (mode & FileMode::Read)
+        result |= O_RDONLY;
+    else if (mode & FileMode::Write)
+        result |= O_WRONLY;
+
+    if (mode & FileMode::Append)
+        result |= O_APPEND;
+
+    if (mode & FileMode::Create)
+        result |= O_CREAT;
+
+    if (mode & FileMode::Truncate)
+        result |= O_TRUNC;
+
+    return result;
+}
+
+} // unnamed namespace
+
+std::unique_ptr<FileStream> FileStream::Open(const std::string_view& path, FileMode mode) {
+    auto fd = ::open(path.data(), FileModeToNative(mode));
+
+    if (fd == -1)
+        throw SystemError{};
+
+    return std::make_unique<FileStream>(fd);
+}
+
 FileStream::FileStream() :
     _nativeHandle{InvalidHandle} {}
 
@@ -21,6 +56,7 @@ FileStream::FileStream(FileStream::NativeHandle nh) :
 
 FileStream::FileStream(const FileStream& rhs) {
     _nativeHandle = ::dup(rhs._nativeHandle);
+    _endOfStream = rhs._endOfStream;
 
     if (_nativeHandle == -1)
         throw SystemError{};
@@ -28,6 +64,7 @@ FileStream::FileStream(const FileStream& rhs) {
 
 FileStream::FileStream(FileStream&& rhs) {
     _nativeHandle = rhs._nativeHandle.exchange(InvalidHandle);
+    _endOfStream = rhs._endOfStream;
 }
 
 FileStream::~FileStream() {
@@ -49,7 +86,9 @@ FileStream& FileStream::operator=(const FileStream& rhs) {
     }
 
     Close();
+
     _nativeHandle = result;
+    _endOfStream = rhs._endOfStream;
 
     return *this;
 }
@@ -58,7 +97,9 @@ FileStream& FileStream::operator=(FileStream&& rhs) {
     auto result = rhs._nativeHandle.exchange(InvalidHandle);
 
     Close();
+
     _nativeHandle = result;
+    _endOfStream = rhs._endOfStream;
 
     return *this;
 }
@@ -89,6 +130,9 @@ std::size_t FileStream::Read(void* buffer, std::size_t maxBytes) {
             throw SystemError{};
     }
 
+    if (result == 0)
+        _endOfStream = true;
+
     return result;
 }
 
@@ -105,7 +149,16 @@ std::size_t FileStream::Read(void* buffer, std::size_t maxBytes, std::chrono::mi
     if (result == 0)
         throw Timeout{};
 
-    return Read(buffer, maxBytes);
+    auto bytesRead = Read(buffer, maxBytes);
+
+    if (bytesRead == 0)
+        _endOfStream = true;
+
+    return bytesRead;
+}
+
+bool FileStream::EndOfStream() const {
+    return _endOfStream;
 }
 
 std::size_t FileStream::Write(const void* buffer, std::size_t maxBytes) {

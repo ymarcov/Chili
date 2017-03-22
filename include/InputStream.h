@@ -10,6 +10,7 @@ class InputStream {
 public:
     virtual std::size_t Read(void*, std::size_t) = 0;
     virtual std::size_t Read(void* buffer, std::size_t maxBytes, std::chrono::milliseconds timeout);
+    virtual bool EndOfStream() const = 0;
 
     virtual ~InputStream() = default;
 };

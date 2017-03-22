@@ -5,13 +5,26 @@
 
 #include <atomic>
 #include <chrono>
+#include <memory>
+#include <string_view>
 
 namespace Yam {
 namespace Http {
 
+enum FileMode {
+    Read = 0x1,
+    Write = 0x2,
+    Append = 0x4,
+    Create = 0x8,
+    Truncate = 0x10
+};
+
 class FileStream : public InputStream, public OutputStream {
 public:
     using NativeHandle = int;
+
+    static std::unique_ptr<FileStream> Open(const std::string_view& path, FileMode mode);
+
     static const NativeHandle InvalidHandle;
 
     FileStream();
@@ -32,10 +45,13 @@ public:
     std::size_t Write(const void* buffer, std::size_t maxBytes) override;
     virtual std::size_t WriteTo(FileStream&, std::size_t maxBytes);
 
+    bool EndOfStream() const override;
+
 protected:
     virtual void Close();
 
     std::atomic<NativeHandle> _nativeHandle;
+    bool _endOfStream = false;
 };
 
 class SeekableFileStream : public FileStream {
