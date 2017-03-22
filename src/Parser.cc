@@ -45,7 +45,7 @@ std::size_t Parser::GetHeaderLength() const {
     return _lexer.GetConsumption();
 }
 
-Parser::Field Parser::GetField(const std::string& name) const {
+Parser::Field Parser::GetField(const std::string_view& name) const {
     auto i = _fields.find(name);
 
     if (i != end(_fields))
@@ -54,7 +54,7 @@ Parser::Field Parser::GetField(const std::string& name) const {
         throw Error{"Field does not exist"};
 }
 
-bool Parser::GetField(const std::string& name, Field* value) const {
+bool Parser::GetField(const std::string_view& name, Field* value) const {
     auto i = _fields.find(name);
     auto found = i != end(_fields);
 
@@ -75,7 +75,7 @@ std::vector<Parser::Field> Parser::GetFieldNames() const {
     return result;
 }
 
-Parser::Field Parser::GetCookie(const std::string& name) const {
+Parser::Field Parser::GetCookie(const std::string_view& name) const {
     if (!_cookiesHaveBeenParsed)
         ParseCookies();
 

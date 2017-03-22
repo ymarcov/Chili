@@ -3,9 +3,9 @@
 #include "Lexer.h"
 
 #include <algorithm>
-#include <experimental/string_view>
 #include <stdexcept>
 #include <string>
+#include <string_view>
 #include <strings.h>
 #include <unordered_map>
 #include <vector>
@@ -52,9 +52,9 @@ public: // public functions
 
     std::vector<Field> GetFieldNames() const;
     std::vector<Field> GetCookieNames() const;
-    Field GetCookie(const std::string& name) const;
-    Field GetField(const std::string& name) const;
-    bool GetField(const std::string& name, Field* value) const;
+    Field GetCookie(const std::string_view& name) const;
+    Field GetField(const std::string_view& name) const;
+    bool GetField(const std::string_view& name, Field* value) const;
     Field GetMethod() const;
     Field GetVersion() const;
     Field GetUri() const;
@@ -62,8 +62,6 @@ public: // public functions
     const char* GetBody() const;
 
 private: // private aliases and helper types
-    using string_view = std::experimental::string_view;
-
     struct CIHash {
         template <class S>
         std::size_t operator()(const S& val) const {
@@ -81,7 +79,7 @@ private: // private aliases and helper types
         }
     };
 
-    using InternalHash = std::unordered_map<string_view, Field, CIHash, CICmp>;
+    using InternalHash = std::unordered_map<std::string_view, Field, CIHash, CICmp>;
 
 private: // private functions
     Parser(const char* buf, std::size_t bufSize);

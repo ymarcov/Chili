@@ -3,7 +3,7 @@ ROOT=$(TUP_CWD)
 AR=ar
 CXX=g++
 CXXFLAGS=-g -std=c++1y -I$(ROOT)/include -Wall -Werror -pedantic
-CXXFLAGS+=-isystem $(ROOT)/ext
+CXXFLAGS+=-isystem $(ROOT)/ext -isystem $(ROOT)/ext/std
 
 !c++ = |> $(CXX) -fPIC $(CXXFLAGS) @(CXXFLAGS) -c %f -o %o |>
 !link_shared = |> $(CXX) -shared -fPIC %f -o %o -lpthread -lcurl -lunwind |>
