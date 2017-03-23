@@ -49,7 +49,7 @@ ServerConfiguration CreateConfiguration(std::vector<std::string> argv) {
     return {endpoint, std::make_shared<Poller>(2), threadCount, verbose};
 }
 
-void PrintInfo(Request& request) {
+void PrintInfo(const Request& request) {
     /*
      * Print request line
      */
@@ -125,11 +125,11 @@ std::unique_ptr<ChannelFactory> CreateChannelFactory(const ServerConfiguration& 
             Channel(std::move(fs)),
             _verbose(verbose) {}
 
-        Control Process() override {
+        Control Process(const Request& req, Response& res) override {
             if (_verbose) {
                 std::lock_guard<std::mutex> lock(_outputMutex);
                 std::cout << "\n";
-                PrintInfo(GetRequest());
+                PrintInfo(req);
                 std::cout << "\n";
             }
 
@@ -138,9 +138,9 @@ std::unique_ptr<ChannelFactory> CreateChannelFactory(const ServerConfiguration& 
 
             const char msg[] = "<b><u>Hello world!</u></b>";
             auto data = std::make_shared<std::vector<char>>(std::begin(msg), std::end(msg) - 1);
-            GetResponse().SetContent(data);
+            res.SetContent(data);
 
-            cr = GetResponse().CacheAs(Status::Ok);
+            cr = res.CacheAs(Status::Ok);
             crSet = true;
 
             return SendResponse(cr);

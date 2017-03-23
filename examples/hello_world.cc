@@ -9,6 +9,8 @@ using Yam::Http::FileStream;
 using Yam::Http::HttpServer;
 using Yam::Http::IPEndpoint;
 using Yam::Http::Log;
+using Yam::Http::Request;
+using Yam::Http::Response;
 using Yam::Http::Status;
 
 class HelloWorldChannel : public Channel {
@@ -16,9 +18,9 @@ class HelloWorldChannel : public Channel {
     using Channel::Channel;
 
     // Process incoming requests
-    Control Process() override {
-        GetResponse().SetContent(CreateHtml());
-        GetResponse().SetField("Content-Type", "text/html");
+    Control Process(const Request&, Response& res) override {
+        res.SetContent(CreateHtml());
+        res.SetField("Content-Type", "text/html");
         return SendResponse(Status::Ok);
     }
 

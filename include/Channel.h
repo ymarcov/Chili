@@ -123,7 +123,8 @@ protected:
      * requests that the rest of the message's body be retrieved.
      * Once it is retrieved, this function will be called a 2nd time.
      */
-    Control Process() override = 0;
+    Control Process() override;
+    virtual Control Process(const Request&, Response&) = 0;
 };
 
 } // namespace Http

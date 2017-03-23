@@ -102,7 +102,7 @@ protected:
                 SetAutoFetchContent(false);
             }
 
-            Control Process() override {
+            Control Process(const Request&, Response&) override {
                 return _p(*this);
             }
 

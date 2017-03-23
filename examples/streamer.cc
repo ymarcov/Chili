@@ -12,6 +12,8 @@ using Yam::Http::FileStream;
 using Yam::Http::HttpServer;
 using Yam::Http::IPEndpoint;
 using Yam::Http::Log;
+using Yam::Http::Request;
+using Yam::Http::Response;
 using Yam::Http::Status;
 
 using namespace std::literals;
@@ -24,12 +26,12 @@ public:
     }
 
     // Process incoming requests
-    Control Process() override {
+    Control Process(const Request& req, Response& res) override {
         try {
-            std::string uri(GetRequest().GetUri());
+            std::string uri(req.GetUri());
             std::shared_ptr<FileStream> stream = FileStream::Open(uri, FileMode::Read);
-            GetResponse().SetContent(stream);
-            GetResponse().SetField("Content-Type", "application/octet-stream");
+            res.SetContent(stream);
+            res.SetField("Content-Type", "application/octet-stream");
             return SendResponse(Status::Ok);
         } catch (const std::exception& ex) {
             Log::Default()->Error("Error: {}", ex.what());

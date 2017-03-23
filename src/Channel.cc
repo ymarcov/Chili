@@ -55,6 +55,10 @@ void Channel::ThrottleWrite(Throttler t) {
     _throttlers.Write.Dedicated = std::move(t);
 }
 
+Channel::Control Channel::Process() {
+    return Process(GetRequest(), GetResponse());
+}
+
 } // namespace Http
 } // namespace Yam
 
