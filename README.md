@@ -5,7 +5,7 @@
 This is a library for developing HTTP servers with custom request processing. \
 It uses asynchronous I/O operations, relying on *epoll* (so it is Linux-only), and reaches some very good numbers in terms of performance. At the same time, it's very easy to set up, as shown below.
 
-It has a light footprint, since it only uses a small external library, *fmtlib*, and the standard C++ library, not even relying on *Boost*. In addition, it employs modern C++ constructs, and compiles well under G++ 4.9.2 with `-std=c++14`.
+It has a light footprint, and it employs modern C++ constructs, and compiles well under G++ 4.9.2 with `-std=c++14`.
 
 ### Feature Summary
 
