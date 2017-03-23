@@ -35,7 +35,7 @@ public:
             return SendResponse(Status::Ok);
         } catch (const std::exception& ex) {
             Log::Default()->Error("Error: {}", ex.what());
-            GetResponse().Reset();
+            res.Reset();
             return SendFinalResponse(Status::InternalServerError);
         }
     }
