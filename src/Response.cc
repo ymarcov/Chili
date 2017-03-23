@@ -101,7 +101,7 @@ void Response::SendCached(std::shared_ptr<CachedResponse> cr) {
 }
 
 std::shared_ptr<CachedResponse> Response::CacheAs(Status status) {
-    if (GetResponse()._stream)
+    if (GetState()._stream)
         throw std::logic_error("Cannot cache response with streaming content");
 
     Prepare(status);
@@ -116,19 +116,19 @@ void Response::Prepare(Status status) {
     for (auto& nv : _fields)
         w.write("{}: {}\r\n", nv.first, nv.second);
 
-    if (GetResponse()._transferMode == TransferMode::Normal && GetResponse()._body)
-        w.write("Content-Length: {}\r\n", GetResponse()._body->size());
+    if (GetState()._transferMode == TransferMode::Normal && GetState()._body)
+        w.write("Content-Length: {}\r\n", GetState()._body->size());
 
     w.write("\r\n");
 
-    GetResponse()._header = w.str();
+    GetState()._header = w.str();
 
-    GetResponse()._status = status;
+    GetState()._status = status;
 }
 
 std::pair<bool, std::size_t> Response::Flush(std::size_t maxBytes) {
     std::size_t totalBytesWritten = 0;
-    auto& response = GetResponse();
+    auto& response = GetState();
     auto& header = response._header;
 
     { // send header
@@ -259,16 +259,16 @@ std::pair<bool, std::size_t> Response::Flush(std::size_t maxBytes) {
 }
 
 bool Response::GetKeepAlive() const {
-    return GetResponse()._keepAlive;
+    return GetState()._keepAlive;
 }
 
 void Response::SetExplicitKeepAlive(bool b) {
     if (b) {
         SetField("Connection", "keep-alive");
-        GetResponse()._keepAlive = true;
+        GetState()._keepAlive = true;
     } else {
         SetField("Connection", "close");
-        GetResponse()._keepAlive = false;
+        GetState()._keepAlive = false;
     }
 }
 
@@ -308,13 +308,13 @@ void Response::SetCookie(std::string name, std::string value, const CookieOption
 }
 
 void Response::SetContent(std::shared_ptr<std::vector<char>> body) {
-    auto& r = GetResponse();
+    auto& r = GetState();
     r._transferMode = TransferMode::Normal;
     r._body = std::move(body);
 }
 
 void Response::SetContent(std::shared_ptr<InputStream> stream) {
-    auto& r = GetResponse();
+    auto& r = GetState();
     r._transferMode = TransferMode::Chunked;
     r._stream = std::move(stream);
     r._body = std::make_shared<std::vector<char>>(GetBufferSize()); // use as buffer
@@ -322,17 +322,17 @@ void Response::SetContent(std::shared_ptr<InputStream> stream) {
 }
 
 std::size_t Response::GetBufferSize() const {
-    if (GetResponse()._transferMode == TransferMode::Chunked)
+    if (GetState()._transferMode == TransferMode::Chunked)
         return 0x1000;
     else
         return std::numeric_limits<std::size_t>::max();
 }
 
 Status Response::GetStatus() const {
-    return GetResponse()._status;
+    return GetState()._status;
 }
 
-CachedResponse& Response::GetResponse() const {
+CachedResponse& Response::GetState() const {
     if (!_response)
         _response = std::make_shared<CachedResponse>();
     return *_response;

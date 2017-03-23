@@ -133,7 +133,7 @@ public:
 
 private:
     void Prepare(Status);
-    CachedResponse& GetResponse() const;
+    CachedResponse& GetState() const;
 
     std::shared_ptr<OutputStream> _stream;
     bool _prepared = false;
