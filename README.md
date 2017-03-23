@@ -62,7 +62,7 @@ int main() {
 Assuming you're on Ubuntu/Debian,
 
 ```bash
-$ sudo apt-get install cmake libgtest-dev google-mock libunwind-dev
+$ sudo apt-get install cmake libcurl4-gnutls-dev libgtest-dev google-mock libunwind-dev
 ```
 ### Compile & Run
 
