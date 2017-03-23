@@ -29,8 +29,8 @@ class HelloWorldChannel : public Channel {
 
     // Process incoming requests
     Control Process() override {
-        GetResponder().SetContent(CreateHtml());
-        GetResponder().SetField("Content-Type", "text/html");
+        GetResponse().SetContent(CreateHtml());
+        GetResponse().SetField("Content-Type", "text/html");
         return SendResponse(Status::Ok);
     }
 

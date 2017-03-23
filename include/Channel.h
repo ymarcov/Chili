@@ -33,9 +33,9 @@ public:
     Request& GetRequest();
 
     /**
-     * Gets the responder associated with the current processing call.
+     * Gets the response associated with the current processing call.
      */
-    Responder& GetResponder();
+    Response& GetResponse();
 
     /**
      * Instructs the server to fetch the rest of the content
@@ -57,7 +57,7 @@ public:
      * Sends a cached response back to the client.
      *
      * The response would have been previously cached
-     * by a call to Responder::CacheAs(), after configuring
+     * by a call to Response::CacheAs(), after configuring
      * its various properties.
      */
     Control SendResponse(std::shared_ptr<CachedResponse>);
@@ -66,8 +66,8 @@ public:
      * Sends a response back to the client.
      *
      * The actual response can be customized by configuring
-     * the responder properties -- which you can access by
-     * calling GetResponder().
+     * the response properties -- which you can access by
+     * calling GetResponse().
      */
     Control SendResponse(Status);
 
@@ -75,8 +75,8 @@ public:
      * Sends a response back to the client and closes the channel.
      *
      * The actual response can be customized by configuring
-     * the responder properties -- which you can access by
-     * calling GetResponder().
+     * the response properties -- which you can access by
+     * calling GetResponse().
      */
     Control SendFinalResponse(Status);
 

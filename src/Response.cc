@@ -1,4 +1,4 @@
-#include "Responder.h"
+#include "Response.h"
 #include "TcpConnection.h"
 
 #include <algorithm>
@@ -82,25 +82,25 @@ std::string CookieDate(const std::time_t& t) {
 
 } // unnamed namespace
 
-Responder::Responder(std::shared_ptr<OutputStream> stream) :
+Response::Response(std::shared_ptr<OutputStream> stream) :
     _stream(std::move(stream)) {}
 
-void Responder::Reset() {
+void Response::Reset() {
     auto stream = std::move(_stream);
-    *this = Responder(std::move(stream));
+    *this = Response(std::move(stream));
 }
 
-void Responder::Send(Status status) {
+void Response::Send(Status status) {
     if (!_prepared)
         Prepare(status);
     _response->_status = status;
 }
 
-void Responder::SendCached(std::shared_ptr<CachedResponse> cr) {
+void Response::SendCached(std::shared_ptr<CachedResponse> cr) {
     _response = std::move(cr);
 }
 
-std::shared_ptr<CachedResponse> Responder::CacheAs(Status status) {
+std::shared_ptr<CachedResponse> Response::CacheAs(Status status) {
     if (GetResponse()._stream)
         throw std::logic_error("Cannot cache response with streaming content");
 
@@ -108,7 +108,7 @@ std::shared_ptr<CachedResponse> Responder::CacheAs(Status status) {
     return _response;
 }
 
-void Responder::Prepare(Status status) {
+void Response::Prepare(Status status) {
     fmt::MemoryWriter w;
 
     w.write("{} {}\r\n", HttpVersion, ToString(status));
@@ -126,7 +126,7 @@ void Responder::Prepare(Status status) {
     GetResponse()._status = status;
 }
 
-std::pair<bool, std::size_t> Responder::Flush(std::size_t maxBytes) {
+std::pair<bool, std::size_t> Response::Flush(std::size_t maxBytes) {
     std::size_t totalBytesWritten = 0;
     auto& response = GetResponse();
     auto& header = response._header;
@@ -258,11 +258,11 @@ std::pair<bool, std::size_t> Responder::Flush(std::size_t maxBytes) {
     return std::make_pair(true, totalBytesWritten);
 }
 
-bool Responder::GetKeepAlive() const {
+bool Response::GetKeepAlive() const {
     return GetResponse()._keepAlive;
 }
 
-void Responder::SetExplicitKeepAlive(bool b) {
+void Response::SetExplicitKeepAlive(bool b) {
     if (b) {
         SetField("Connection", "keep-alive");
         GetResponse()._keepAlive = true;
@@ -272,15 +272,15 @@ void Responder::SetExplicitKeepAlive(bool b) {
     }
 }
 
-void Responder::SetField(std::string name, std::string value) {
+void Response::SetField(std::string name, std::string value) {
     _fields.emplace_back(std::move(name), std::move(value));
 }
 
-void Responder::SetCookie(std::string name, std::string value) {
+void Response::SetCookie(std::string name, std::string value) {
     SetField("Set-Cookie", fmt::format("{}={}", std::move(name), std::move(value)));
 }
 
-void Responder::SetCookie(std::string name, std::string value, const CookieOptions& opts) {
+void Response::SetCookie(std::string name, std::string value, const CookieOptions& opts) {
     fmt::MemoryWriter w;
     std::string stringOpt;
     std::chrono::seconds durationOpt;
@@ -307,13 +307,13 @@ void Responder::SetCookie(std::string name, std::string value, const CookieOptio
     SetField("Set-Cookie", fmt::format("{}={}{}", std::move(name), std::move(value), w.str()));
 }
 
-void Responder::SetContent(std::shared_ptr<std::vector<char>> body) {
+void Response::SetContent(std::shared_ptr<std::vector<char>> body) {
     auto& r = GetResponse();
     r._transferMode = TransferMode::Normal;
     r._body = std::move(body);
 }
 
-void Responder::SetContent(std::shared_ptr<InputStream> stream) {
+void Response::SetContent(std::shared_ptr<InputStream> stream) {
     auto& r = GetResponse();
     r._transferMode = TransferMode::Chunked;
     r._stream = std::move(stream);
@@ -321,18 +321,18 @@ void Responder::SetContent(std::shared_ptr<InputStream> stream) {
     SetField("Transfer-Encoding", "chunked");
 }
 
-std::size_t Responder::GetBufferSize() const {
+std::size_t Response::GetBufferSize() const {
     if (GetResponse()._transferMode == TransferMode::Chunked)
         return 0x1000;
     else
         return std::numeric_limits<std::size_t>::max();
 }
 
-Status Responder::GetStatus() const {
+Status Response::GetStatus() const {
     return GetResponse()._status;
 }
 
-CachedResponse& Responder::GetResponse() const {
+CachedResponse& Response::GetResponse() const {
     if (!_response)
         _response = std::make_shared<CachedResponse>();
     return *_response;

@@ -28,12 +28,12 @@ public:
         try {
             std::string uri(GetRequest().GetUri());
             std::shared_ptr<FileStream> stream = FileStream::Open(uri, FileMode::Read);
-            GetResponder().SetContent(stream);
-            GetResponder().SetField("Content-Type", "application/octet-stream");
+            GetResponse().SetContent(stream);
+            GetResponse().SetField("Content-Type", "application/octet-stream");
             return SendResponse(Status::Ok);
         } catch (const std::exception& ex) {
             Log::Default()->Error("Error: {}", ex.what());
-            GetResponder().Reset();
+            GetResponse().Reset();
             return SendFinalResponse(Status::InternalServerError);
         }
     }

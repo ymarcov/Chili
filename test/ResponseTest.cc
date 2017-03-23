@@ -1,6 +1,6 @@
 #include <gmock/gmock.h>
 
-#include "Responder.h"
+#include "Response.h"
 
 #include <algorithm>
 #include <chrono>
@@ -61,10 +61,10 @@ private:
 
 } // unnamed namespace
 
-class ResponderTest : public Test {
+class ResponseTest : public Test {
 protected:
-    auto MakeResponder(std::shared_ptr<StringOutputStream> s) const {
-        return std::make_unique<Responder>(std::move(s));
+    auto MakeResponse(std::shared_ptr<StringOutputStream> s) const {
+        return std::make_unique<Response>(std::move(s));
     }
 
     auto MakeStream() const {
@@ -79,15 +79,15 @@ protected:
         return std::make_shared<ChunkedStringInputStream>(std::move(chunks));
     }
 
-    void Flush(std::unique_ptr<Responder>& r, std::size_t quota = 1) {
+    void Flush(std::unique_ptr<Response>& r, std::size_t quota = 1) {
         while (!r->Flush(quota).first)
             ;
     }
 };
 
-TEST_F(ResponderTest, just_status) {
+TEST_F(ResponseTest, just_status) {
     auto stream = MakeStream();
-    auto r = MakeResponder(stream);
+    auto r = MakeResponse(stream);
 
     r->Send(Status::Continue);
     Flush(r);
@@ -95,9 +95,9 @@ TEST_F(ResponderTest, just_status) {
     EXPECT_EQ("HTTP/1.1 100 Continue\r\n\r\n", stream->ToString());
 }
 
-TEST_F(ResponderTest, some_headers) {
+TEST_F(ResponseTest, some_headers) {
     auto stream = MakeStream();
-    auto r = MakeResponder(stream);
+    auto r = MakeResponse(stream);
 
     r->SetField("First", "Hello world!");
     r->SetField("Second", "v4r!0u$ sYm80;5");
@@ -112,9 +112,9 @@ TEST_F(ResponderTest, some_headers) {
     EXPECT_EQ(expected, stream->ToString());
 }
 
-TEST_F(ResponderTest, headers_and_body) {
+TEST_F(ResponseTest, headers_and_body) {
     auto stream = MakeStream();
-    auto r = MakeResponder(stream);
+    auto r = MakeResponse(stream);
 
     r->SetContent(MakeBodyFromString("Hello world!"));
     r->Send(Status::BadGateway);
@@ -128,9 +128,9 @@ TEST_F(ResponderTest, headers_and_body) {
     EXPECT_EQ(expected, stream->ToString());
 }
 
-TEST_F(ResponderTest, simple_cookies) {
+TEST_F(ResponseTest, simple_cookies) {
     auto stream = MakeStream();
-    auto r = MakeResponder(stream);
+    auto r = MakeResponse(stream);
 
     r->SetCookie("First", "One");
     r->SetCookie("Second", "Two");
@@ -145,11 +145,11 @@ TEST_F(ResponderTest, simple_cookies) {
     EXPECT_EQ(expected, stream->ToString());
 }
 
-TEST_F(ResponderTest, cookie_with_simple_options) {
+TEST_F(ResponseTest, cookie_with_simple_options) {
     using namespace std::literals;
 
     auto stream = MakeStream();
-    auto r = MakeResponder(stream);
+    auto r = MakeResponse(stream);
 
     CookieOptions opts;
     opts.SetDomain("example.com");
@@ -167,9 +167,9 @@ TEST_F(ResponderTest, cookie_with_simple_options) {
     EXPECT_EQ(expected, stream->ToString());
 }
 
-TEST_F(ResponderTest, cookie_with_expiration_date) {
+TEST_F(ResponseTest, cookie_with_expiration_date) {
     auto stream = MakeStream();
-    auto r = MakeResponder(stream);
+    auto r = MakeResponse(stream);
 
     struct tm tm;
     if (!::strptime("2013-01-15 21:47:38", "%Y-%m-%d %T", &tm))
@@ -190,9 +190,9 @@ TEST_F(ResponderTest, cookie_with_expiration_date) {
     EXPECT_EQ(expected, stream->ToString());
 }
 
-TEST_F(ResponderTest, cookie_with_httponly_and_secure) {
+TEST_F(ResponseTest, cookie_with_httponly_and_secure) {
     auto stream = MakeStream();
-    auto r = MakeResponder(stream);
+    auto r = MakeResponse(stream);
 
     CookieOptions opts;
     opts.SetHttpOnly();
@@ -209,9 +209,9 @@ TEST_F(ResponderTest, cookie_with_httponly_and_secure) {
     EXPECT_EQ(expected, stream->ToString());
 }
 
-TEST_F(ResponderTest, send_cached) {
+TEST_F(ResponseTest, send_cached) {
     auto stream = MakeStream();
-    auto r = MakeResponder(stream);
+    auto r = MakeResponse(stream);
 
     CookieOptions opts;
     opts.SetHttpOnly();
@@ -219,7 +219,7 @@ TEST_F(ResponderTest, send_cached) {
     r->SetCookie("First", "One", opts);
     auto cached = r->CacheAs(Status::Ok);
 
-    r = MakeResponder(stream);
+    r = MakeResponse(stream);
     r->SendCached(cached);
     Flush(r);
 
@@ -230,9 +230,9 @@ TEST_F(ResponderTest, send_cached) {
     EXPECT_EQ(expected, stream->ToString());
 }
 
-TEST_F(ResponderTest, chunked) {
+TEST_F(ResponseTest, chunked) {
     auto stream = MakeStream();
-    auto r = MakeResponder(stream);
+    auto r = MakeResponse(stream);
 
     auto data = MakeChunkedStream({
         "<b>",

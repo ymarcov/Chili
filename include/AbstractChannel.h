@@ -2,7 +2,7 @@
 
 #include "Poller.h"
 #include "Request.h"
-#include "Responder.h"
+#include "Response.h"
 #include "Signal.h"
 #include "Throttler.h"
 
@@ -87,7 +87,7 @@ private:
     std::shared_ptr<FileStream> _stream;
     Throttlers _throttlers;
     Request _request;
-    Responder _responder;
+    Response _response;
     std::atomic<std::chrono::time_point<std::chrono::steady_clock>> _timeout;
     std::atomic<Stage> _stage;
     std::atomic_bool _requestClose{false};

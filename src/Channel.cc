@@ -11,8 +11,8 @@ Request& Channel::GetRequest() {
     return _request;
 }
 
-Responder& Channel::GetResponder() {
-    return _responder;
+Response& Channel::GetResponse() {
+    return _response;
 }
 
 Channel::Control Channel::FetchContent() {
@@ -24,18 +24,18 @@ Channel::Control Channel::RejectContent() {
 }
 
 Channel::Control Channel::SendResponse(std::shared_ptr<CachedResponse> cr) {
-    _responder.SendCached(std::move(cr));
+    _response.SendCached(std::move(cr));
     return Control::SendResponse;
 }
 
 Channel::Control Channel::SendResponse(Status status) {
-    _responder.Send(status);
+    _response.Send(status);
     return Control::SendResponse;
 }
 
 Channel::Control Channel::SendFinalResponse(Status status) {
-    _responder.SetExplicitKeepAlive(false);
-    _responder.Send(status);
+    _response.SetExplicitKeepAlive(false);
+    _response.Send(status);
     return Control::SendResponse;
 }
 

@@ -20,19 +20,19 @@ class CachedResponse {
     std::shared_ptr<InputStream> _stream;
     std::shared_ptr<std::vector<char>> _body;
 
-    friend class Responder;
+    friend class Response;
 };
 
 /**
- * An HTTP responder.
+ * An HTTP response.
  */
-class Responder {
+class Response {
 public:
-    Responder() = default;
-    Responder(std::shared_ptr<OutputStream>);
+    Response() = default;
+    Response(std::shared_ptr<OutputStream>);
 
     /**
-     * Resets the state of the responder.
+     * Resets the state of the response.
      * This might be useful if you're going to change
      * whatever properties you set earlier, for example
      * if now you're going to send a different kind of

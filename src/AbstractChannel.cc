@@ -12,7 +12,7 @@ AbstractChannel::AbstractChannel(std::shared_ptr<FileStream> stream) :
     _id(++nextChannelId),
     _stream(std::move(stream)),
     _request(_stream),
-    _responder(_stream),
+    _response(_stream),
     _timeout(std::chrono::steady_clock::now()),
     _stage(Stage::WaitReadable) {
     Log::Default()->Verbose("Channel {} created", _id);
@@ -99,10 +99,10 @@ void AbstractChannel::OnRead() {
     }
 
     if (doneReading) {
-        _responder = Responder(_stream);
+        _response = Response(_stream);
 
         if (!_request.KeepAlive())
-            _responder.SetExplicitKeepAlive(false);
+            _response.SetExplicitKeepAlive(false);
 
         OnProcess();
     }
@@ -188,9 +188,9 @@ void AbstractChannel::OnProcess() {
 void AbstractChannel::SendInternalError() {
     Log::Default()->Error("Channel {} processor error ignored! Please handle internally.", _id);
     _forceClose = true;
-    _responder = Responder(_stream);
-    _responder.SetExplicitKeepAlive(false);
-    _responder.Send(Status::InternalServerError);
+    _response = Response(_stream);
+    _response.SetExplicitKeepAlive(false);
+    _response.Send(Status::InternalServerError);
     _stage = Stage::Write;
 }
 
@@ -206,8 +206,8 @@ void AbstractChannel::HandleControlDirective(Control directive) {
 
             if (_request.GetField("Expect", &value)) {
                 if (value == "100-continue") {
-                    _responder = Responder(_stream);
-                    _responder.Send(Status::Continue);
+                    _response = Response(_stream);
+                    _response.Send(Status::Continue);
                     _stage = Stage::Write;
                 }
             } else {
@@ -221,8 +221,8 @@ void AbstractChannel::HandleControlDirective(Control directive) {
 
             if (_request.GetField("Expect", &value)) {
                 if (value == "100-continue") {
-                    _responder = Responder(_stream);
-                    _responder.Send(Status::ExpectationFailed);
+                    _response = Response(_stream);
+                    _response.Send(Status::ExpectationFailed);
                     _stage = Stage::Write;
                 }
             } else {
@@ -261,7 +261,7 @@ void AbstractChannel::OnWrite() {
         // This means that we just sent a response requesting
         // the client to send more data to the channel.
         _stage = Stage::Read;
-    } else if (_responder.GetKeepAlive()) {
+    } else if (_response.GetKeepAlive()) {
         Log::Default()->Verbose("Channel {} sent response and keeps alive", _id);
         _request = Request(_stream);
         _fetchingContent = false;
@@ -276,14 +276,14 @@ bool AbstractChannel::FlushData(std::size_t maxWrite) {
     bool done;
     std::size_t bytesFlushed;
 
-    std::tie(done, bytesFlushed) = _responder.Flush(maxWrite);
+    std::tie(done, bytesFlushed) = _response.Flush(maxWrite);
 
     _throttlers.Write.Dedicated.Consume(bytesFlushed);
     _throttlers.Write.Master->Consume(bytesFlushed);
 
     if (!done) {
         if (bytesFlushed < maxWrite) {
-            if (bytesFlushed < _responder.GetBufferSize()) {
+            if (bytesFlushed < _response.GetBufferSize()) {
                 Log::Default()->Verbose("Channel {} socket buffer full. Waiting for writability.", _id);
                 _stage = Stage::WaitWritable;
             }
@@ -305,7 +305,7 @@ void AbstractChannel::Close() {
 
     _timeout = std::chrono::steady_clock::now();
     _request = Request();
-    _responder = Responder();
+    _response = Response();
     _stream.reset();
     _stage = Stage::Closed;
 }

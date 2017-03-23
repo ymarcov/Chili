@@ -1,7 +1,7 @@
 #include "Log.h"
 #include "HttpServer.h"
 #include "Request.h"
-#include "Responder.h"
+#include "Response.h"
 #include "SystemError.h"
 
 #include <chrono>
@@ -138,9 +138,9 @@ std::unique_ptr<ChannelFactory> CreateChannelFactory(const ServerConfiguration& 
 
             const char msg[] = "<b><u>Hello world!</u></b>";
             auto data = std::make_shared<std::vector<char>>(std::begin(msg), std::end(msg) - 1);
-            GetResponder().SetContent(data);
+            GetResponse().SetContent(data);
 
-            cr = GetResponder().CacheAs(Status::Ok);
+            cr = GetResponse().CacheAs(Status::Ok);
             crSet = true;
 
             return SendResponse(cr);
