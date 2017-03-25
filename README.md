@@ -86,7 +86,7 @@ Running on Intel i7-4790 @ 3.6GHz with 8GB of memory, here are SIEGE results. In
 
 ```bash
 $ bin/sandbox_echo 3000 4 0 & # Run sandbox server with 4 threads
-$ siege -b -c50 -t5S http://localhost:<PORT>
+$ siege -b -c20 -t5S http://localhost:<PORT>
 ```
 
 #### Yam::HTTP
