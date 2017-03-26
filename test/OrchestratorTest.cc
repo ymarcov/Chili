@@ -313,7 +313,7 @@ TEST_F(OrchestratorTest, multiple_clients) {
         poller.Poll(client, Poller::Events::EndOfStream);
     }
 
-    ASSERT_TRUE(ready->Wait(1000ms));
+    ASSERT_TRUE(ready->Wait(2000ms));
     ASSERT_TRUE(allWritten.Wait(2000ms));
 }
 
