@@ -73,6 +73,13 @@ bool AbstractChannel::IsReady() const {
             (stage != Stage::Closed);
 }
 
+bool AbstractChannel::IsWaitingForClient() const {
+    auto stage = _stage.load();
+
+    return (stage == Stage::WaitReadable) ||
+            (stage == Stage::WaitWritable);
+}
+
 void AbstractChannel::OnRead() {
     auto maxRead = std::min(_throttlers.Read.Dedicated.GetCurrentQuota(),
                             _throttlers.Read.Master->GetCurrentQuota());

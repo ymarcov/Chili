@@ -15,18 +15,16 @@ bool Orchestrator::Task::IsHandlingInProcess() const {
 }
 
 void Orchestrator::Task::Activate() {
-    auto& channel = GetChannel();
-
     if (ReachedInactivityTimeout()) {
-        Log::Default()->Info("Channel {} reached inactivity timeout", channel.GetId());
-        _orchestrator->_poller.Remove(channel.GetStream());
-        channel.Close();
+        Log::Default()->Info("Channel {} reached inactivity timeout", _channel->GetId());
+        _orchestrator->_poller.Remove(_channel->GetStream());
+        _channel->Close();
         _inProcess = false;
         _orchestrator->_newEvent.notify_one();
         return;
     }
 
-    channel.Advance();
+    _channel->Advance();
 
     {
         std::lock_guard<std::mutex> lock(_lastActiveMutex);
@@ -35,14 +33,14 @@ void Orchestrator::Task::Activate() {
 
     bool notify = false;
 
-    switch (channel.GetStage()) {
+    switch (_channel->GetStage()) {
         case AbstractChannel::Stage::WaitReadable: {
-            _orchestrator->_poller.Poll(channel.GetStream(),
+            _orchestrator->_poller.Poll(_channel->GetStream(),
                                         Poller::Events::Completion | Poller::Events::Readable);
         } break;
 
         case AbstractChannel::Stage::WaitWritable: {
-            _orchestrator->_poller.Poll(channel.GetStream(),
+            _orchestrator->_poller.Poll(_channel->GetStream(),
                                         Poller::Events::Completion | Poller::Events::Writable);
         } break;
 
@@ -58,6 +56,12 @@ void Orchestrator::Task::Activate() {
 }
 
 bool Orchestrator::Task::ReachedInactivityTimeout() const {
+    if (!_channel->IsWaitingForClient()) {
+        // can't blame the client, we just
+        // haven't go to handling it yet
+        return false;
+    }
+
     decltype(_lastActive) lastActive;
 
     {

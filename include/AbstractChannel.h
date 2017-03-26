@@ -67,6 +67,12 @@ private:
      */
     bool IsReady() const;
 
+    /**
+     * Gets whether the channel cannot make progress
+     * until the client does something.
+     */
+    bool IsWaitingForClient() const;
+
     void OnRead();
     void OnProcess();
     void OnWrite();
