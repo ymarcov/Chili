@@ -46,7 +46,7 @@ void Orchestrator::Task::Activate() {
 
         default:
             notify = true;
-            break; // Don't need to get involved
+            break;
     }
 
     _inProcess = false;
