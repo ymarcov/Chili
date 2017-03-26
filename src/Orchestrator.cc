@@ -58,7 +58,7 @@ void Orchestrator::Task::Activate() {
 bool Orchestrator::Task::ReachedInactivityTimeout() const {
     if (!_channel->IsWaitingForClient()) {
         // can't blame the client, we just
-        // haven't go to handling it yet
+        // haven't got to handling it yet
         return false;
     }
 
