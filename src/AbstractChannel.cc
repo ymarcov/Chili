@@ -131,6 +131,8 @@ bool AbstractChannel::FetchData(std::pair<bool, std::size_t>(Request::*func)(std
         } else {
             Log::Default()->Verbose("Channel {} throttled. Waiting for read quota to fill.", _id);
             _stage = Stage::ReadTimeout;
+            // if we'd still be limited by the master throttler,
+            // it'll work itself out on the next iteration anyway.
             _timeout = _throttlers.Read.Dedicated.GetFillTime();
         }
     }
@@ -297,6 +299,8 @@ bool AbstractChannel::FlushData(std::size_t maxWrite) {
         } else {
             Log::Default()->Verbose("Channel {} throttled. Waiting for write quota to fill.", _id);
             _stage = Stage::WriteTimeout;
+            // if we'd still be limited by the master throttler,
+            // it'll work itself out on the next iteration anyway.
             _timeout = _throttlers.Write.Dedicated.GetFillTime();
         }
     }
