@@ -126,8 +126,9 @@ void Response::Prepare(Status status) {
     GetState()._status = status;
 }
 
-std::pair<bool, std::size_t> Response::Flush(std::size_t maxBytes) {
-    std::size_t totalBytesWritten = 0;
+bool Response::Flush(std::size_t maxBytes, std::size_t& totalBytesWritten) {
+    totalBytesWritten = 0;
+
     auto& response = GetState();
     auto& header = response._header;
 
@@ -142,7 +143,7 @@ std::pair<bool, std::size_t> Response::Flush(std::size_t maxBytes) {
             maxBytes -= bytesWritten;
 
             if (_writePosition != header.size())
-                return std::make_pair(false, totalBytesWritten);
+                return false;
         }
     }
 
@@ -157,7 +158,7 @@ std::pair<bool, std::size_t> Response::Flush(std::size_t maxBytes) {
                 _writePosition += bytesWritten;
 
                 if (_writePosition - header.size() != body->size())
-                    return std::make_pair(false, bytesWritten);
+                    return false;
             }
 
             // that was easy.
@@ -174,12 +175,12 @@ std::pair<bool, std::size_t> Response::Flush(std::size_t maxBytes) {
                     // this should be okay since our max chunk isn't that big anyway,
                     // so 16 bytes should always be enough to send the size header in hex.
                     if (quota < 0x10)
-                        return std::make_pair(false, totalBytesWritten);
+                        return false;
                     else
                         quota -= 0x10;
 
                     if (!quota)
-                        return std::make_pair(false, totalBytesWritten);
+                        return false;
 
                     // send new chunk header
                     auto chunkHeader = std::string();
@@ -199,21 +200,20 @@ std::pair<bool, std::size_t> Response::Flush(std::size_t maxBytes) {
 
                     auto bytesWritten = _stream->Write(chunkHeader.data(), chunkHeader.size());
 
+                    totalBytesWritten += bytesWritten;
+
                     if (bytesWritten != chunkHeader.size()) {
                         // okay, this makes it a bit easier to program,
                         // and it's *supposed* to be very unlikely anyway,
                         // since it's so small.
-                        // FIXME: this will make throttler discount all data written thus far!
                         throw std::runtime_error("Failed to write chunk size; dropping response!");
                     }
-
-                    totalBytesWritten += bytesWritten;
 
                     if (lastPseudoChunk) {
                         if (auto tcp = std::dynamic_pointer_cast<TcpConnection>(_stream))
                             tcp->Cork(false);
 
-                        return std::make_pair(true, totalBytesWritten);
+                        return true;
                     } else { // reclaim leftovers
                         quota += (0x10 - bytesWritten);
                     }
@@ -221,7 +221,7 @@ std::pair<bool, std::size_t> Response::Flush(std::size_t maxBytes) {
 
                 // send chunk data
                 if (quota <= 2)
-                    return std::make_pair(false, totalBytesWritten);
+                    return false;
                 else
                     quota -= 2; // trailing CRLF
 
@@ -236,7 +236,6 @@ std::pair<bool, std::size_t> Response::Flush(std::size_t maxBytes) {
                         // okay, this makes it a bit easier to program,
                         // and it's *supposed* to be very unlikely anyway,
                         // since it's so small.
-                        // FIXME: this will make throttler discount all data written thus far!
                         throw std::runtime_error("Failed to write chunk trailing CRLF; dropping response!");
                     }
 
@@ -246,7 +245,7 @@ std::pair<bool, std::size_t> Response::Flush(std::size_t maxBytes) {
                     _chunkWritePosition = 0;
                 }
 
-                return std::make_pair(false, totalBytesWritten);
+                return false;
             } else {
                 throw std::logic_error("No stream provided");
             }
@@ -255,7 +254,7 @@ std::pair<bool, std::size_t> Response::Flush(std::size_t maxBytes) {
         }
     }
 
-    return std::make_pair(true, totalBytesWritten);
+    return true;
 }
 
 bool Response::GetKeepAlive() const {

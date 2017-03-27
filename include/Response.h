@@ -100,9 +100,10 @@ public:
     /**
      * @internal
      * Writes response data to the output stream.
-     * Returns whether the operation completed, and how many bytes were written.
+     * Returns whether the operation completed,
+     * and how many bytes were written (as an out variable).
      */
-    std::pair<bool, std::size_t> Flush(std::size_t maxBytes);
+    bool Flush(std::size_t maxBytes, std::size_t& consumed);
 
     /**
      * @internal

@@ -1,5 +1,6 @@
 #include "AbstractChannel.h"
 #include "Log.h"
+#include "Try.h"
 
 #include <atomic>
 
@@ -282,13 +283,15 @@ void AbstractChannel::OnWrite() {
 }
 
 bool AbstractChannel::FlushData(std::size_t maxWrite) {
-    bool done;
     std::size_t bytesFlushed;
+    bool done;
 
-    std::tie(done, bytesFlushed) = _response.Flush(maxWrite);
-
-    _throttlers.Write.Dedicated.Consume(bytesFlushed);
-    _throttlers.Write.Master->Consume(bytesFlushed);
+    Try([&] {
+        done = _response.Flush(maxWrite, bytesFlushed);
+    }).Finally([&] {
+        _throttlers.Write.Dedicated.Consume(bytesFlushed);
+        _throttlers.Write.Master->Consume(bytesFlushed);
+    });
 
     if (!done) {
         if (bytesFlushed < maxWrite) {

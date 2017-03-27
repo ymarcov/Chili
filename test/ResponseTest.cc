@@ -80,7 +80,8 @@ protected:
     }
 
     void Flush(std::unique_ptr<Response>& r, std::size_t quota = 1) {
-        while (!r->Flush(quota).first)
+        std::size_t consumed;
+        while (!r->Flush(quota, consumed))
             ;
     }
 };
