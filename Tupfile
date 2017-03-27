@@ -20,3 +20,4 @@ LINK_DEPS=-l:$(LIB_NAME).a -lfmt -lpthread -lcurl -lunwind
 
 : examples/hello_world.o | $(BIN_DIR)/$(LIB_NAME).a |> !link_bin |> bin/hello_world
 : examples/streamer.o | $(BIN_DIR)/$(LIB_NAME).a |> !link_bin |> bin/streamer
+: examples/routed.o | $(BIN_DIR)/$(LIB_NAME).a |> !link_bin |> bin/routed
