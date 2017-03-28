@@ -104,21 +104,20 @@ public:
      * Reads and parses the request.
      * Returns whether the opreation is completed, and how many bytes were read.
      */
-    std::pair<bool, std::size_t> ConsumeHeader(std::size_t maxBytes);
+    bool ConsumeHeader(std::size_t maxBytes, std::size_t& totalBytesRead);
 
     /*
      * @internal
      * Read data from the request content body and advances the stream position.
      * Returns whether the opreation is completed, and how many bytes were read.
      */
-    std::pair<bool, std::size_t> ConsumeContent(std::size_t maxBytes);
+    bool ConsumeContent(std::size_t maxBytes, std::size_t& totalBytesRead);
 
 private:
     std::vector<char> _buffer;
     std::size_t _bufferPosition = 0;
     std::shared_ptr<InputStream> _input;
     Parser _parser;
-    std::size_t _contentBytesReadFromInitialBuffer = 0;
     bool _onlySentHeaderFirst = false;
     std::vector<char> _content;
     std::size_t _contentPosition = 0;

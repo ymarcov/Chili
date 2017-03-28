@@ -116,17 +116,18 @@ void AbstractChannel::OnRead() {
     }
 }
 
-bool AbstractChannel::FetchData(std::pair<bool, std::size_t>(Request::*func)(std::size_t), std::size_t maxRead) {
-    bool done;
-    std::size_t bytesConsumed;
+bool AbstractChannel::FetchData(bool(Request::*func)(std::size_t, std::size_t&), std::size_t maxRead) {
+    std::size_t bytesFetched = 0;
 
-    std::tie(done, bytesConsumed) = (_request.*func)(maxRead);
+    auto alwaysConsume = CreateExitTrap([&] {
+        _throttlers.Read.Dedicated.Consume(bytesFetched);
+        _throttlers.Read.Master->Consume(bytesFetched);
+    });
 
-    _throttlers.Read.Dedicated.Consume(bytesConsumed);
-    _throttlers.Read.Master->Consume(bytesConsumed);
+    bool done = (_request.*func)(maxRead, bytesFetched);
 
     if (!done) {
-        if (bytesConsumed < maxRead) {
+        if (bytesFetched < maxRead) {
             Log::Default()->Verbose("Channel {} socket buffer empty. Waiting for readability.", _id);
             _stage = Stage::WaitReadable;
         } else {

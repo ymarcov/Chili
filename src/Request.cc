@@ -32,15 +32,15 @@ Request::Request(std::shared_ptr<InputStream> input) :
     _buffer(BufferSize),
     _input{std::move(input)} {}
 
-std::pair<bool, std::size_t> Request::ConsumeHeader(std::size_t maxBytes) {
+bool Request::ConsumeHeader(std::size_t maxBytes, std::size_t& bytesRead) {
     if (_bufferPosition == 0)
         std::memset(_buffer.data(), 0, BufferSize);
 
     auto quota = std::min(maxBytes, BufferSize - _bufferPosition);
-    auto bytesRead = _input->Read(_buffer.data() + _bufferPosition, quota);
+    bytesRead = _input->Read(_buffer.data() + _bufferPosition, quota);
 
     if (!bytesRead)
-        return std::make_pair(false, std::size_t(0));
+        return false;
 
     _bufferPosition += bytesRead;
 
@@ -50,13 +50,13 @@ std::pair<bool, std::size_t> Request::ConsumeHeader(std::size_t maxBytes) {
         if (_bufferPosition == BufferSize)
             throw std::runtime_error("No end-of-header found in request header");
 
-        return std::make_pair(false, bytesRead);
+        return false;
     }
 
     _parser = Parser::Parse(static_cast<char*>(_buffer.data()), _bufferPosition);
     _onlySentHeaderFirst = (_bufferPosition == _parser.GetHeaderLength());
 
-    return std::make_pair(true, bytesRead);
+    return true;
 }
 
 Method Request::GetMethod() const {
@@ -185,7 +185,9 @@ bool Request::KeepAlive() const {
     return !::strncasecmp(f.Data, "HTTP/1.1", f.Size);
 }
 
-std::pair<bool, std::size_t> Request::ConsumeContent(std::size_t maxBytes) {
+bool Request::ConsumeContent(std::size_t maxBytes, std::size_t& totalBytesRead) {
+    totalBytesRead = 0;
+
     /*
      * The initial request buffer is quite large.
      * There's a good chance it contains lots of data.
@@ -197,44 +199,38 @@ std::pair<bool, std::size_t> Request::ConsumeContent(std::size_t maxBytes) {
      * only sent the header first and waited for body
      * retrievals to be done in subsequent ones.
      */
+    // FIXME: what if too big? potential hole
     auto contentLength = GetContentLength();
 
-    if (_contentPosition == 0)
+    if (_contentPosition == 0) {
         _content.resize(contentLength);
 
-    if (!_onlySentHeaderFirst) {
-        auto nonHeaderDataInInitialBuffer = _bufferPosition - _parser.GetHeaderLength();
-        auto contentInInitialBuffer = std::min(nonHeaderDataInInitialBuffer, contentLength);
+        if (!_onlySentHeaderFirst) {
+            auto nonHeaderDataInInitialBuffer = _bufferPosition - _parser.GetHeaderLength();
+            auto contentInInitialBuffer = std::min(nonHeaderDataInInitialBuffer, contentLength);
 
-        if (_contentBytesReadFromInitialBuffer < contentInInitialBuffer) {
-            auto remaining = contentInInitialBuffer - _contentBytesReadFromInitialBuffer;
-            auto bytesRead = std::min(remaining, maxBytes);
+            // not modifying maxBytes or totalBytesRead on purpose,
+            // since this is data we already received during out
+            // header consumption stage and was already counted.
+            auto remaining = contentInInitialBuffer;
 
-            std::memcpy(_content.data() + _contentPosition, _parser.GetBody() + _contentBytesReadFromInitialBuffer, bytesRead);
-            _contentBytesReadFromInitialBuffer += bytesRead;
+            std::memcpy(_content.data() + _contentPosition, _parser.GetBody(), remaining);
 
-            _contentPosition += bytesRead;
-            maxBytes -= bytesRead;
-            contentLength -= _contentBytesReadFromInitialBuffer;
+            _contentPosition += remaining;
 
-            if (!contentLength)
-                return std::make_pair(true, bytesRead);
-
-            if (!maxBytes)
-                return std::make_pair(false, bytesRead);
+            if (_contentPosition == contentLength)
+                return true;
         }
     }
 
-    auto readLength = std::min(maxBytes, contentLength);
-
-    if (readLength == 0)
-        return std::make_pair(true, std::size_t(0));
+    auto readLength = std::min(maxBytes, contentLength - _contentPosition);
 
     auto bytesRead = _input->Read(_content.data() + _contentPosition, readLength);
 
     _contentPosition += bytesRead;
+    totalBytesRead += bytesRead;
 
-    return std::make_pair(bytesRead == contentLength, bytesRead);
+    return _contentPosition == contentLength;
 }
 
 const std::vector<char>& Request::GetContent() const {

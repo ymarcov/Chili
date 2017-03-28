@@ -48,6 +48,16 @@ const char requestMissingEndOfHeaderData[] =
 
 const char requestBodyData[] = "Request body!";
 
+const char hugeRequestHeaderData[] =
+"GET /path/to/res HTTP/1.1\r\n"
+"User-agent: Mozilla/5.0 (X11; Linux x86_64; rv:31.0) Gecko/20100101 Firefox/31.0 Iceweasel/31.8.0\r\n"
+"Cookie: Session=abcd1234; User=Yam\r\n"
+"Connection: Keep-alive\r\n"
+"Expect: 100-continue\r\n"
+"Content-Length: 10013\r\n"
+"\r\n"
+"Request body!";
+
 namespace {
 
 template <std::size_t N>
@@ -116,8 +126,9 @@ class RequestTest : public Test {
 protected:
     auto MakeRequest(std::shared_ptr<InputStream>&& s) {
         auto req = std::make_unique<Request>(std::move(s));
+        std::size_t totalBytesRead = 0;
 
-        while (!req->ConsumeHeader(16).first)
+        while (!req->ConsumeHeader(16, totalBytesRead))
             ;
 
         return req;
@@ -134,6 +145,12 @@ protected:
 
     auto MakeNonContiguousInputStream() const {
         auto streams = { ToString(requestHeaderData), ToString(requestBodyData) };
+        return std::make_shared<NonContiguousInputStream>(streams);
+    }
+
+    auto MakeHugeAndMessyInputStream() const {
+        std::string oneMillionChars(10000, 'a');
+        auto streams = { ToString(hugeRequestHeaderData), oneMillionChars};
         return std::make_shared<NonContiguousInputStream>(streams);
     }
 };
@@ -154,17 +171,32 @@ TEST_F(RequestTest, header_getters) {
 TEST_F(RequestTest, body) {
     auto r = MakeRequest(MakeContiguousInputStream());
 
-    auto result = r->ConsumeContent(0x1000);
+    std::size_t totalBytesRead = 0;
+    while (!r->ConsumeContent(0x10, totalBytesRead))
+        ;
 
-    EXPECT_TRUE(result.first);
     EXPECT_EQ("Request body!", std::string(r->GetContent().data(), r->GetContent().size()));
+}
+
+TEST_F(RequestTest, huge_body) {
+    auto r = MakeRequest(MakeHugeAndMessyInputStream());
+
+    std::size_t totalBytesRead = 0;
+    while (!r->ConsumeContent(0x10, totalBytesRead))
+        ;
+
+    auto expected = std::string("Request body!") + std::string(10000, 'a');
+    auto actual = std::string(r->GetContent().data(), r->GetContent().size());
+
+    EXPECT_EQ(expected, actual);
 }
 
 TEST_F(RequestTest, non_contiguous_header_and_body) {
     auto r = MakeRequest(MakeNonContiguousInputStream());
-    auto result = r->ConsumeContent(0x1000);
+    std::size_t totalBytesRead = 0;
+    while (!r->ConsumeContent(0x10, totalBytesRead))
+        ;
 
-    EXPECT_TRUE(result.first);
     EXPECT_EQ(Method::Get, r->GetMethod());
     EXPECT_EQ(Version::Http11, r->GetVersion());
     EXPECT_EQ("/path/to/res", r->GetUri());
@@ -182,10 +214,11 @@ TEST_F(RequestTest, invalid_header_throws) {
 
 TEST_F(RequestTest, missing_end_of_header_in_small_buffer_never_finishes_consuming) {
     Request req(MakeInputStream(requestMissingEndOfHeaderData));
+    std::size_t totalBytesRead = 0;
 
-    EXPECT_FALSE(req.ConsumeHeader(-1).first);
-    EXPECT_FALSE(req.ConsumeHeader(-1).first);
-    EXPECT_FALSE(req.ConsumeHeader(-1).first);
+    EXPECT_FALSE(req.ConsumeHeader(-1, totalBytesRead));
+    EXPECT_FALSE(req.ConsumeHeader(-1, totalBytesRead));
+    EXPECT_FALSE(req.ConsumeHeader(-1, totalBytesRead));
 }
 
 } // namespace Http

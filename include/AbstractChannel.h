@@ -83,7 +83,7 @@ private:
     void RequestClose();
     bool IsCloseRequested() const;
 
-    bool FetchData(std::pair<bool, std::size_t>(Request::*)(std::size_t), std::size_t maxRead);
+    bool FetchData(bool(Request::*)(std::size_t, std::size_t&), std::size_t maxRead);
     void LogNewRequest();
     void SendInternalError();
     void HandleControlDirective(Control);
