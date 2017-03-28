@@ -45,7 +45,6 @@ bool Router::FindMatch(const Request& request, const RouteHandler*& outHandler, 
                 outHandler = &handler;
 
                 return true;
-
             }
         }
     }
@@ -59,6 +58,21 @@ void Router::InstallRoute(Method method, std::string pattern, RouteHandler handl
 
 void Router::InstallDefault(RouteHandler handler) {
     _defaultHandler = std::move(handler);
+}
+
+RoutedChannel::RoutedChannel(std::shared_ptr<FileStream> fs, std::shared_ptr<Router> router) :
+    Channel(std::move(fs)),
+    _router(std::move(router)) {}
+
+Channel::Control RoutedChannel::Process(const Request&, Response&) {
+    return _router->InvokeRoute(*this);
+}
+
+RoutedChannelFactory::RoutedChannelFactory(std::shared_ptr<Router> router) :
+    _router(std::move(router)) {}
+
+std::unique_ptr<Channel> RoutedChannelFactory::CreateChannel(std::shared_ptr<FileStream> fs) {
+    return std::make_unique<RoutedChannel>(std::move(fs), _router);
 }
 
 } // namespace Http

@@ -6,33 +6,6 @@
 
 using namespace Yam::Http;
 
-class RoutedChannel : public Channel {
-public:
-    RoutedChannel(std::shared_ptr<FileStream> fs, std::shared_ptr<Router> router) :
-        Channel(std::move(fs)),
-        _router(std::move(router)) {}
-
-    Control Process(const Request&, Response&) override {
-        return _router->InvokeRoute(*this);
-    }
-
-private:
-    std::shared_ptr<Router> _router;
-};
-
-class RoutedChannelFactory : public ChannelFactory {
-public:
-    RoutedChannelFactory(std::shared_ptr<Router> router) :
-        _router(std::move(router)) {}
-
-    std::unique_ptr<Channel> CreateChannel(std::shared_ptr<FileStream> fs) override {
-        return std::make_unique<RoutedChannel>(std::move(fs), _router);
-    }
-
-private:
-    std::shared_ptr<Router> _router;
-};
-
 class Application : public Router {
 public:
     Application() {
