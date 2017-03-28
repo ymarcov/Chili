@@ -49,10 +49,10 @@ class StreamerChannelFactory : public ChannelFactory {
 
 int main() {
     auto endpoint = IPEndpoint({127, 0, 0, 1}, 3000);
-    auto factory = std::make_unique<StreamerChannelFactory>();
+    auto factory = std::make_shared<StreamerChannelFactory>();
     auto processingThreads = 1;
 
-    HttpServer server(endpoint, std::move(factory), processingThreads);
+    HttpServer server(endpoint, factory, processingThreads);
     Log::Default()->SetLevel(Log::Level::Info);
 
     auto task = server.Start();

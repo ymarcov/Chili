@@ -23,7 +23,7 @@ public:
      *                        processing incoming requests.
      */
     HttpServer(const IPEndpoint& endpoint,
-               std::unique_ptr<ChannelFactory> channelFactory,
+               std::shared_ptr<ChannelFactory> channelFactory,
                int threads);
 
     /**

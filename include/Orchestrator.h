@@ -20,7 +20,7 @@ namespace Http {
 
 class Orchestrator {
 public:
-    Orchestrator(std::unique_ptr<ChannelFactory>, int threads);
+    Orchestrator(std::shared_ptr<ChannelFactory>, int threads);
     ~Orchestrator();
 
     std::future<void> Start();
@@ -66,7 +66,7 @@ private:
     std::chrono::time_point<std::chrono::steady_clock> GetLatestAllowedWakeup();
     void CollectGarbage();
 
-    std::unique_ptr<ChannelFactory> _channelFactory;
+    std::shared_ptr<ChannelFactory> _channelFactory;
     std::promise<void> _threadPromise;
     Poller _poller;
     ThreadPool _threadPool;

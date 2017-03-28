@@ -80,10 +80,10 @@ private:
 int main() {
     auto app = std::make_shared<Application>();
     auto endpoint = IPEndpoint({127, 0, 0, 1}, 3000);
-    auto factory = std::make_unique<RoutedChannelFactory>(app);
+    auto factory = std::make_shared<RoutedChannelFactory>(app);
     auto processingThreads = 1;
 
-    HttpServer server(endpoint, std::move(factory), processingThreads);
+    HttpServer server(endpoint, factory, processingThreads);
     Log::Default()->SetLevel(Log::Level::Info);
     auto task = server.Start();
     Log::Default()->Info("Routed Server Started");

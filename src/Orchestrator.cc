@@ -81,7 +81,7 @@ std::mutex& Orchestrator::Task::GetMutex() {
     return _mutex;
 }
 
-Orchestrator::Orchestrator(std::unique_ptr<ChannelFactory> channelFactory, int threads) :
+Orchestrator::Orchestrator(std::shared_ptr<ChannelFactory> channelFactory, int threads) :
     _channelFactory(std::move(channelFactory)),
     _poller(2),
     _threadPool(threads),
