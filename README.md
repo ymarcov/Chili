@@ -18,6 +18,7 @@ It has a light footprint, and it employs modern C++ constructs, and compiles wel
 - Uses modern C++ and is easy to use, and even to customize the code
 - Public API documented with Doxygen
 - Thoroughly tested with Google Test unit & integration tests, and also with Valgrind Memcheck
+- Security tested with SlowHTTPTest (DoS simulator)
 
 ## Example Code (Hello World)
 
