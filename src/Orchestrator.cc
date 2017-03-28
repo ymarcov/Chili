@@ -17,20 +17,32 @@ bool Orchestrator::Task::IsHandlingInProcess() const {
 void Orchestrator::Task::Activate() {
     if (ReachedInactivityTimeout()) {
         Log::Default()->Info("Channel {} reached inactivity timeout", _channel->GetId());
+
+        // If it happened while it was in the poller, then remove
+        // it from there as well. Otherwise, this call should be
+        // okay with us trying to remove a non-existent channel.
         _orchestrator->_poller.Remove(_channel->GetStream());
+
         _channel->Close();
         _inProcess = false;
         _orchestrator->_newEvent.notify_one();
         return;
     }
 
+    // Money line
     _channel->Advance();
 
     {
+        // This is checked from other places in parallel via
+        // ReachedInactivityTimeout(). So we need to lock it.
         std::lock_guard<std::mutex> lock(_lastActiveMutex);
         _lastActive = std::chrono::steady_clock::now();
     }
 
+    // In case we're sending it off to the poller,
+    // we don't need to notify our main thread,
+    // because the task won't be ready until it
+    // comes back from the poller with an event.
     bool notify = false;
 
     switch (_channel->GetStage()) {
@@ -45,14 +57,25 @@ void Orchestrator::Task::Activate() {
         } break;
 
         default:
+            // Ok, it's not going to the poller.
+            // It's ready for its next stage already.
+            // Therefore, wake up our main thread
+            // so that it could schedule its next
+            // stage whenever it sees fit.
             notify = true;
             break;
     }
 
+    // Now it makes sense to be rescheduled again,
+    // either immediately, or when we come back
+    // from the poller with an event.
     _inProcess = false;
 
-    if (notify)
+    if (notify) {
+        // Wake up our main thread so that our
+        // next stage can be scheduled.
         _orchestrator->_newEvent.notify_one();
+    }
 }
 
 bool Orchestrator::Task::ReachedInactivityTimeout() const {
@@ -186,6 +209,9 @@ void Orchestrator::SetInactivityTimeout(std::chrono::milliseconds ms) {
 }
 
 void Orchestrator::OnEvent(std::shared_ptr<FileStream> fs, int events) {
+    // Lock the shared task list state, because we're
+    // going to try to find the relevant task for the
+    // triggered file stream in it.
     std::unique_lock<std::mutex> lock(_mutex);
 
     auto it = std::find_if(begin(_tasks), end(_tasks), [&](auto& t) {
@@ -197,11 +223,14 @@ void Orchestrator::OnEvent(std::shared_ptr<FileStream> fs, int events) {
 
     auto task = *it;
 
+    // Got our task. We can release the lock.
     lock.unlock();
 
     auto& channel = task->GetChannel();
 
     if (events & Poller::Events::Completion) {
+        // No use talking to a wall. Even if we had other events,
+        // no one's going to be listening to our replies.
         Log::Default()->Verbose("Channel {} received completion event", channel.GetId());
         channel.RequestClose();
     } else {
@@ -209,6 +238,10 @@ void Orchestrator::OnEvent(std::shared_ptr<FileStream> fs, int events) {
         HandleChannelEvent(channel, events);
     }
 
+    // Either way, we need to react to what just happened,
+    // either by garbage-collection or by advancing the
+    // relevant task's state-machine. So we need to wake
+    // our main thread up to do the work.
     _newEvent.notify_one();
 }
 
@@ -235,11 +268,17 @@ void Orchestrator::HandleChannelEvent(AbstractChannel& channel, int events) {
         } break;
 
         case AbstractChannel::Stage::Closed: {
+            // I'm not sure this can happen, but I'm not taking any chances.
+            // At any rate, log it so that maybe it'll help understand if
+            // and when it *does* happen.
             Log::Default()->Verbose("Ignoring event on already closed channel {}", channel.GetId());
             return;
          }
 
         default: {
+            // The client is not supposed to be in the poller
+            // if it wasn't waiting for anything... This must
+            // be caused by a programming error.
             Log::Default()->Error("Channel {} was not in a waiting stage but received an event. "
                                   "Check poll logic!", channel.GetId());
             channel.Close();
@@ -250,9 +289,15 @@ void Orchestrator::HandleChannelEvent(AbstractChannel& channel, int events) {
 
 void Orchestrator::IterateOnce() {
     for (auto& task : CaptureTasks()) {
+        // Exit ASAP if server needs to stop,
+        // don't wait for the next call.
         if (_stop)
             break;
 
+        // Mark it ias being handled right here so that we
+        // don't need to wait for the thread to get to it.
+        // This way, the next call of CaptureTasks()
+        // will filter this task out for us.
         task->MarkHandlingInProcess(true);
 
         _threadPool.Post([=] {
@@ -263,14 +308,30 @@ void Orchestrator::IterateOnce() {
 }
 
 std::vector<std::shared_ptr<Orchestrator::Task>> Orchestrator::CaptureTasks() {
+    // We capture ready tasks into a new vector so that
+    // the original vector would be released, in terms
+    // of locks and mutexes, and new tasks could be
+    // added to it even while we're processing tasks
+    // that are already ready to be processed.
+    // This way, we don't take the lock for too long.
     std::unique_lock<std::mutex> lock(_mutex);
 
     auto timeout = GetLatestAllowedWakeup();
 
     if (timeout > std::chrono::steady_clock::now()) {
         _newEvent.wait_until(lock, timeout, [&] {
+            // Should the server stop?
+            if (_stop)
+                return true;
+
+            // We may return and do some work
+            if (AtLeastOneTaskIsReady())
+                return true;
+
+            // Recalculate our new timeout based
+            // on our new circumstances.
             timeout = GetLatestAllowedWakeup();
-            return _stop || AtLeastOneTaskIsReady();
+            return false;
         });
     }
 
@@ -297,28 +358,52 @@ bool Orchestrator::AtLeastOneTaskIsReady() {
 }
 
 bool Orchestrator::IsTaskReady(Task& t) {
+    // Although the task is in our list,
+    // it is in fact currently being
+    // processed by some thread. So
+    // we don't need to do anything
+    // extra about it for now.
     if (t.IsHandlingInProcess())
         return false;
 
+    // If close is only *requested*, it's
+    // actually the task itself that needs
+    // to handle its close request. So
+    // we need to advance it.
     if (t.GetChannel().IsCloseRequested())
         return true;
 
+    // If the task has reached its inactivity
+    // timeout, it has to close itself, by itself.
     if (t.ReachedInactivityTimeout())
         return true;
 
+    // Finally, is it ready for some
+    // actual happy-path processing?
     return t.GetChannel().IsReady();
 }
 
 std::chrono::time_point<std::chrono::steady_clock> Orchestrator::GetLatestAllowedWakeup() {
     auto now = std::chrono::steady_clock::now();
+
+    // Our latest possible timeout (i.e. default)
+    // if nothing else is requested, is in fact
+    // our inactivity timeout, when we check
+    // if any channels have remained inactive
+    // for too long, in which case we close them.
     auto timeout = now + _inactivityTimeout.load();
 
     for (auto& t : _tasks) {
         auto& channel = t->GetChannel();
         auto&& requestedTimeout = channel.GetRequestedTimeout();
 
-        if ((requestedTimeout > now) && (requestedTimeout < timeout))
+        if ((requestedTimeout > now) && (requestedTimeout < timeout)) {
+            // This client has requested an earlier timeout than
+            // the one we were going to use. In order that we can
+            // respond to its event as quickly as possible, we'll
+            // take its request.
             timeout = requestedTimeout;
+        }
     }
 
     return timeout;

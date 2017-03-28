@@ -25,7 +25,7 @@ public:
     };
 
     struct Throttlers {
-        struct {
+        struct Group {
             Throttler Dedicated;
             std::shared_ptr<Throttler> Master;
         } Read, Write;
@@ -44,6 +44,15 @@ protected:
     virtual Control Process() = 0;
 
 private:
+    struct ThrottlingInfo {
+        std::size_t currentQuota;
+        std::size_t capacity;
+        bool full;
+        std::chrono::time_point<Throttler::Clock> fillTime;
+    };
+
+    ThrottlingInfo GetThrottlingInfo(const Throttlers::Group&) const;
+
     /**
      * Take the next step in the state machine.
      */
