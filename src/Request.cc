@@ -199,8 +199,10 @@ bool Request::ConsumeContent(std::size_t maxBytes, std::size_t& totalBytesRead) 
      * only sent the header first and waited for body
      * retrievals to be done in subsequent ones.
      */
-    // FIXME: what if too big? potential hole
     auto contentLength = GetContentLength();
+
+    if (contentLength > 0x100000000)
+        throw std::runtime_error("Request body too big; rejected!");
 
     if (_contentPosition == 0) {
         _content.resize(contentLength);
