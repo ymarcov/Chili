@@ -63,7 +63,7 @@ int main() {
     auto app = std::make_shared<Application>();
     auto endpoint = IPEndpoint({127, 0, 0, 1}, 3000);
     auto factory = std::make_shared<RoutedChannelFactory>(app);
-    auto processingThreads = 1;
+    auto processingThreads = 4;
 
     HttpServer server(endpoint, factory, processingThreads);
     Log::Default()->SetLevel(Log::Level::Info);

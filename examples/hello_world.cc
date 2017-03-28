@@ -19,14 +19,9 @@ class HelloWorldChannel : public Channel {
 
     // Process incoming requests
     Control Process(const Request&, Response& res) override {
-        res.SetContent(CreateHtml());
+        res.SetContent("<h1>Hello world!</h1>");
         res.SetField("Content-Type", "text/html");
         return SendResponse(Status::Ok);
-    }
-
-    std::shared_ptr<std::vector<char>> CreateHtml() const {
-        auto text = std::string("<u><b>Hello world!</b></u>\n");
-        return std::make_shared<std::vector<char>>(begin(text), end(text));
     }
 };
 

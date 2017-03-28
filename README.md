@@ -29,14 +29,9 @@ class HelloWorldChannel : public Channel {
 
     // Process incoming requests
     Control Process(const Request&, Response& res) override {
-        res.SetContent(CreateHtml());
+        res.SetContent("<h1>Hello world!</h1>");
         res.SetField("Content-Type", "text/html");
         return SendResponse(Status::Ok);
-    }
-
-    std::shared_ptr<std::vector<char>> CreateHtml() const {
-        auto text = std::string("<u><b>Hello world!</b></u>\n");
-        return std::make_shared<std::vector<char>>(begin(text), end(text));
     }
 };
 
@@ -48,10 +43,9 @@ class HelloWorldChannelFactory : public ChannelFactory {
 
 int main() {
     auto endpoint = IPEndpoint({127, 0, 0, 1}, 3000);
-    auto factory = std::make_unique<HelloWorldChannelFactory>();
+    auto factory = std::make_shared<HelloWorldChannelFactory>();
     auto processingThreads = 1;
-
-    HttpServer server(endpoint, std::move(factory), processingThreads);
+    HttpServer server(endpoint, factory, processingThreads);
     Log::Default()->SetLevel(Log::Level::Info);
     server.Start().wait();
 }
