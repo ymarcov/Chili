@@ -47,33 +47,15 @@ public:
 
 private:
     Status SayHello(Channel& c, const std::string& name) {
-        auto page = CreateGreetingPage(name);
-        c.GetResponse().SetContent(page);
+        auto html = std::string("<b>Hello, ") + name + "</b>\n";
+        c.GetResponse().SetContent(html);
         return Status::Ok;
     }
 
     Status PageNotFound(Channel& c) {
-        auto page = Create404Page();
-        c.GetResponse().SetContent(page);
-        return Status::NotFound;
-    }
-
-    std::shared_ptr<std::vector<char>> CreateGreetingPage(const std::string& name) {
-        auto html = std::string("<b>Hello, ") + name + "</b>\n";
-
-        return std::make_shared<std::vector<char>>(
-            html.data(),
-            html.data() + html.size()
-        );
-    }
-
-    std::shared_ptr<std::vector<char>> Create404Page() {
         auto html = std::string("<h1>404 Not Found</h1>\n");
-
-        return std::make_shared<std::vector<char>>(
-            html.data(),
-            html.data() + html.size()
-        );
+        c.GetResponse().SetContent(html);
+        return Status::NotFound;
     }
 };
 

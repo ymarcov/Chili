@@ -116,8 +116,19 @@ void Response::Prepare(Status status) {
     for (auto& nv : _fields)
         w.write("{}: {}\r\n", nv.first, nv.second);
 
-    if (GetState()._transferMode == TransferMode::Normal && GetState()._body)
-        w.write("Content-Length: {}\r\n", GetState()._body->size());
+    if (GetState()._transferMode == TransferMode::Normal) {
+        std::size_t contentLength;
+
+        if (GetState()._strBody)
+            contentLength = GetState()._strBody->size();
+        else if (GetState()._body)
+            contentLength = GetState()._body->size();
+        else
+            contentLength = 0;
+
+        if (contentLength)
+            w.write("Content-Length: {}\r\n", contentLength);
+    }
 
     w.write("\r\n");
 
@@ -126,6 +137,148 @@ void Response::Prepare(Status status) {
     GetState()._status = status;
 }
 
+bool Response::Flush(std::size_t maxBytes, std::size_t& totalBytesWritten) {
+    if (!FlushHeader(maxBytes, totalBytesWritten))
+        return false;
+
+   auto& response = GetState();
+
+   if (response._transferMode == TransferMode::Normal) {
+       if (response._strBody)
+           return FlushBody(*response._strBody, maxBytes, totalBytesWritten);
+       else if (response._body)
+           return FlushBody(*response._body, maxBytes, totalBytesWritten);
+       else
+           return true; // no content provided, only send headers
+   } else if (response._transferMode == TransferMode::Chunked) {
+       if (response._stream)
+           return FlushStream(maxBytes, totalBytesWritten);
+       else
+           throw std::logic_error("No stream provided");
+   } else {
+        throw std::logic_error("Unsupported transfer mode");
+   }
+}
+
+bool Response::FlushHeader(std::size_t& maxBytes, std::size_t& totalBytesWritten) {
+    auto& response = GetState();
+    auto& header = response._header;
+
+    if (_writePosition >= header.size())
+        return true; // move on
+
+    auto quota = std::min(maxBytes, header.size() - _writePosition);
+    auto bytesWritten = _stream->Write(header.c_str() + _writePosition, quota);
+
+    totalBytesWritten += bytesWritten;
+    _writePosition += bytesWritten;
+    maxBytes -= bytesWritten;
+
+    return _writePosition == header.size();
+}
+
+template <class T>
+bool Response::FlushBody(T& body, std::size_t& maxBytes, std::size_t& totalBytesWritten) {
+    auto& response = GetState();
+    auto& header = response._header;
+
+    auto bodyBytesConsumed = _writePosition - header.size();
+    auto quota = std::min(maxBytes, body.size() - bodyBytesConsumed);
+    auto bytesWritten = _stream->Write(body.data() + bodyBytesConsumed, quota);
+
+    totalBytesWritten += bytesWritten;
+    _writePosition += bytesWritten;
+
+    return (_writePosition - header.size()) == body.size();
+}
+
+bool Response::FlushStream(std::size_t& maxBytes, std::size_t& totalBytesWritten) {
+    auto& response = GetState();
+    auto& header = response._header;
+    auto& input = response._stream;
+    auto& buffer = response._body; // use as buffer
+    auto quota = std::min(maxBytes, buffer->size());
+    auto newChunk = (_chunkWritePosition == 0);
+
+    if (newChunk) {
+        // heuristic to make sure we can always send chunk header.
+        // this should be okay since our max chunk isn't that big anyway,
+        // so 16 bytes should always be enough to send the size header in hex.
+        if (quota < 0x10)
+            return false;
+        else
+            quota -= 0x10;
+
+        if (!quota)
+            return false;
+
+        // send new chunk header
+        auto chunkHeader = std::string();
+        auto lastPseudoChunk = false;
+
+        if (input->EndOfStream()) {
+            chunkHeader = "0\r\n\r\n";
+            lastPseudoChunk = true;
+        } else {
+            _chunkSize = input->Read(buffer->data(), quota);
+            _chunkWritePosition = 0;
+            chunkHeader = fmt::format("{:X}\r\n", _chunkSize);
+        }
+
+        if (auto tcp = std::dynamic_pointer_cast<TcpConnection>(_stream))
+            tcp->Cork(true);
+
+        auto bytesWritten = _stream->Write(chunkHeader.data(), chunkHeader.size());
+
+        totalBytesWritten += bytesWritten;
+
+        if (bytesWritten != chunkHeader.size()) {
+            // okay, this makes it a bit easier to program,
+            // and it's *supposed* to be very unlikely anyway,
+            // since it's so small.
+            throw std::runtime_error("Failed to write chunk size; dropping response!");
+        }
+
+        if (lastPseudoChunk) {
+            if (auto tcp = std::dynamic_pointer_cast<TcpConnection>(_stream))
+                tcp->Cork(false);
+
+            return true;
+        } else { // reclaim leftovers
+            quota += (0x10 - bytesWritten);
+        }
+    }
+
+    // send chunk data
+    if (quota <= 2)
+        return false;
+    else
+        quota -= 2; // trailing CRLF
+
+    auto bytesWritten = _stream->Write(buffer->data() + _chunkWritePosition,
+                                       std::min(quota, _chunkSize - _chunkWritePosition));
+
+    _chunkWritePosition += bytesWritten;
+    totalBytesWritten += bytesWritten;
+
+    if (_chunkWritePosition == _chunkSize) {
+        if (2 != _stream->Write("\r\n", 2)) {
+            // okay, this makes it a bit easier to program,
+            // and it's *supposed* to be very unlikely anyway,
+            // since it's so small.
+            throw std::runtime_error("Failed to write chunk trailing CRLF; dropping response!");
+        }
+
+        if (auto tcp = std::dynamic_pointer_cast<TcpConnection>(_stream))
+            tcp->Cork(false);
+
+        _chunkWritePosition = 0;
+    }
+
+    return false;
+}
+
+#if 0
 bool Response::Flush(std::size_t maxBytes, std::size_t& totalBytesWritten) {
     totalBytesWritten = 0;
 
@@ -256,6 +409,7 @@ bool Response::Flush(std::size_t maxBytes, std::size_t& totalBytesWritten) {
 
     return true;
 }
+#endif
 
 bool Response::GetKeepAlive() const {
     return GetState()._keepAlive;
@@ -306,10 +460,20 @@ void Response::SetCookie(std::string name, std::string value, const CookieOption
     SetField("Set-Cookie", fmt::format("{}={}{}", std::move(name), std::move(value), w.str()));
 }
 
+void Response::SetContent(std::string body) {
+    auto& r = GetState();
+    r._transferMode = TransferMode::Normal;
+    r._strBody = std::make_shared<std::string>(std::move(body));
+    r._body.reset();
+    r._stream.reset();
+}
+
 void Response::SetContent(std::shared_ptr<std::vector<char>> body) {
     auto& r = GetState();
     r._transferMode = TransferMode::Normal;
     r._body = std::move(body);
+    r._strBody.reset();
+    r._stream.reset();
 }
 
 void Response::SetContent(std::shared_ptr<InputStream> stream) {
@@ -318,6 +482,7 @@ void Response::SetContent(std::shared_ptr<InputStream> stream) {
     r._stream = std::move(stream);
     r._body = std::make_shared<std::vector<char>>(GetBufferSize()); // use as buffer
     SetField("Transfer-Encoding", "chunked");
+    r._strBody.reset();
 }
 
 std::size_t Response::GetBufferSize() const {

@@ -129,6 +129,22 @@ TEST_F(ResponseTest, headers_and_body) {
     EXPECT_EQ(expected, stream->ToString());
 }
 
+TEST_F(ResponseTest, headers_and_body_as_string) {
+    auto stream = MakeStream();
+    auto r = MakeResponse(stream);
+
+    r->SetContent("Hello world!");
+    r->Send(Status::BadGateway);
+    Flush(r);
+
+    auto expected = "HTTP/1.1 502 Bad Gateway\r\n"
+        "Content-Length: 12\r\n"
+        "\r\n"
+        "Hello world!";
+
+    EXPECT_EQ(expected, stream->ToString());
+}
+
 TEST_F(ResponseTest, simple_cookies) {
     auto stream = MakeStream();
     auto r = MakeResponse(stream);

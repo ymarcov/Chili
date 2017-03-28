@@ -18,6 +18,7 @@ class CachedResponse {
     bool _keepAlive = true;
     std::string _header;
     std::shared_ptr<InputStream> _stream;
+    std::shared_ptr<std::string> _strBody;
     std::shared_ptr<std::vector<char>> _body;
 
     friend class Response;
@@ -87,6 +88,13 @@ public:
      *
      * @param data The data to be sent
      */
+    void SetContent(std::string data);
+
+    /**
+     * Sets the response message content (e.g. HTML, or some file data).
+     *
+     * @param data The data to be sent
+     */
     void SetContent(std::shared_ptr<std::vector<char>> data);
 
     /**
@@ -135,6 +143,13 @@ public:
 private:
     void Prepare(Status);
     CachedResponse& GetState() const;
+
+    bool FlushHeader(std::size_t& maxBytes, std::size_t& consumed);
+
+    template <class T>
+    bool FlushBody(T& data, std::size_t& maxBytes, std::size_t& consumed);
+
+    bool FlushStream(std::size_t& maxBytes, std::size_t& consumed);
 
     std::shared_ptr<OutputStream> _stream;
     bool _prepared = false;
