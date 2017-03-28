@@ -11,7 +11,7 @@ public:
             return SayHello(c, args[0]);
         });
 
-        InstallDefault([=](Channel& c, const Args& args) {
+        InstallDefault([=](Channel& c, const Args&) {
             return PageNotFound(c);
         });
     }
