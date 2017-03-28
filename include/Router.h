@@ -17,6 +17,7 @@ public:
     using RouteHandler = std::function<Status(Channel& channel, const Params& params)>;
 
     Router();
+    virtual ~Router() = default;
 
     Channel::Control InvokeRoute(Channel&) const;
     void InstallRoute(Method method, std::string pattern, RouteHandler handler);

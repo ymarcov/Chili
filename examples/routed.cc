@@ -12,7 +12,6 @@ public:
         Channel(std::move(fs)),
         _router(std::move(router)) {}
 
-    // Process incoming requests
     Control Process(const Request&, Response&) override {
         return _router->InvokeRoute(*this);
     }
@@ -34,43 +33,54 @@ private:
     std::shared_ptr<Router> _router;
 };
 
-std::shared_ptr<std::vector<char>> CreateGreetingPage(const std::string& name) {
-    auto html = std::string("<b>Hello, ") + name + "</b>\n";
+class Application : public Router {
+public:
+    Application() {
+        InstallRoute(Method::Get, "/hello/(.+)", [=](Channel& c, const Params& params) {
+            return SayHello(c, params[0]);
+        });
 
-    return std::make_shared<std::vector<char>>(
-        html.data(),
-        html.data() + html.size()
-    );
-}
+        InstallDefault([=](Channel& c, const Params& params) {
+            return PageNotFound(c);
+        });
+    }
 
-std::shared_ptr<std::vector<char>> Create404Page() {
-    auto html = std::string("<h1>404 Not Found</h1>\n");
-
-    return std::make_shared<std::vector<char>>(
-        html.data(),
-        html.data() + html.size()
-    );
-}
-
-std::shared_ptr<Router> CreateRouter() {
-    auto router = std::make_shared<Router>();
-
-    router->InstallRoute(Method::Get, "/hello/(.+)", [](auto& channel, auto& params) {
-        channel.GetResponse().SetContent(CreateGreetingPage(params[0]));
+private:
+    Status SayHello(Channel& c, const std::string& name) {
+        auto page = CreateGreetingPage(name);
+        c.GetResponse().SetContent(page);
         return Status::Ok;
-    });
+    }
 
-    router->InstallDefault([](auto& channel, auto& params) {
-        channel.GetResponse().SetContent(Create404Page());
+    Status PageNotFound(Channel& c) {
+        auto page = Create404Page();
+        c.GetResponse().SetContent(page);
         return Status::NotFound;
-    });
+    }
 
-    return router;
-}
+    std::shared_ptr<std::vector<char>> CreateGreetingPage(const std::string& name) {
+        auto html = std::string("<b>Hello, ") + name + "</b>\n";
+
+        return std::make_shared<std::vector<char>>(
+            html.data(),
+            html.data() + html.size()
+        );
+    }
+
+    std::shared_ptr<std::vector<char>> Create404Page() {
+        auto html = std::string("<h1>404 Not Found</h1>\n");
+
+        return std::make_shared<std::vector<char>>(
+            html.data(),
+            html.data() + html.size()
+        );
+    }
+};
 
 int main() {
+    auto app = std::make_shared<Application>();
     auto endpoint = IPEndpoint({127, 0, 0, 1}, 3000);
-    auto factory = std::make_unique<RoutedChannelFactory>(CreateRouter());
+    auto factory = std::make_unique<RoutedChannelFactory>(app);
     auto processingThreads = 1;
 
     HttpServer server(endpoint, std::move(factory), processingThreads);
