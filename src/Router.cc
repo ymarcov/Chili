@@ -3,26 +3,36 @@
 namespace Yam {
 namespace Http {
 
+class RoutedChannel : public Channel {
+public:
+    RoutedChannel(std::shared_ptr<FileStream> fs, std::shared_ptr<Router> router);
+
+    Control Process(const Request&, Response&) override;
+
+private:
+    std::shared_ptr<Router> _router;
+};
+
 Router::Router() {
-    _defaultHandler = [](auto& channel, auto& params) {
+    _defaultHandler = [](auto& channel, auto& args) {
         return Status::NotFound;
     };
 }
 
 Channel::Control Router::InvokeRoute(Channel& channel) const {
     const RouteHandler* handler;
-    Params params;
+    Args args;
 
-    if (FindMatch(channel.GetRequest(), handler, params)) {
-        auto status = (*handler)(channel, params);
+    if (FindMatch(channel.GetRequest(), handler, args)) {
+        auto status = (*handler)(channel, args);
         return channel.SendResponse(status);
     } else {
-        auto status = _defaultHandler(channel, params);
+        auto status = _defaultHandler(channel, args);
         return channel.SendFinalResponse(status);
     }
 }
 
-bool Router::FindMatch(const Request& request, const RouteHandler*& outHandler, Params& outParams) const {
+bool Router::FindMatch(const Request& request, const RouteHandler*& outHandler, Args& outArgs) const {
     auto method = static_cast<int>(request.GetMethod());
     auto uri = std::string(request.GetUri());
 
@@ -37,10 +47,10 @@ bool Router::FindMatch(const Request& request, const RouteHandler*& outHandler, 
             std::smatch matches;
 
             if (std::regex_match(uri, matches, regex)) {
-                outParams.reserve(matches.size() - 1);
+                outArgs.reserve(matches.size() - 1);
 
                 for (auto i = begin(matches) + 1, e = end(matches); i != e; ++i)
-                    outParams.push_back(std::move(*i));
+                    outArgs.push_back(std::move(*i));
 
                 outHandler = &handler;
 

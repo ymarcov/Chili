@@ -7,11 +7,11 @@ using namespace Yam::Http;
 class Application : public Router {
 public:
     Application() {
-        InstallRoute(Method::Get, "/hello/(.+)", [=](Channel& c, const Params& params) {
-            return SayHello(c, params[0]);
+        InstallRoute(Method::Get, "/hello/(.+)", [=](Channel& c, const Args& args) {
+            return SayHello(c, args[0]);
         });
 
-        InstallDefault([=](Channel& c, const Params& params) {
+        InstallDefault([=](Channel& c, const Args& args) {
             return PageNotFound(c);
         });
     }
