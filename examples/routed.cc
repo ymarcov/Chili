@@ -1,5 +1,3 @@
-#include "Channel.h"
-#include "ChannelFactory.h"
 #include "HttpServer.h"
 #include "Log.h"
 #include "Router.h"
