@@ -38,6 +38,11 @@ file(GLOB SOURCES "examples/streamer.cc")
 add_executable(streamer ${SOURCES})
 target_link_libraries(streamer yam_http)
 
+project(example_routed)
+file(GLOB SOURCES "examples/routed.cc")
+add_executable(routed ${SOURCES})
+target_link_libraries(routed yam_http)
+
 project(sandbox_echo)
 add_executable(sandbox_echo "sandbox/echo.cc")
 target_link_libraries(sandbox_echo yam_http)
