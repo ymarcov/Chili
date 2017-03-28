@@ -15,7 +15,6 @@ It has a light footprint, and it employs modern C++ constructs, and compiles wel
 - Supports conditional message body fetching & rejection
 - Supports cached responses for added efficiency
 - Efficient, does not overload the CPU or memory when not required
-- Lightweight, only depends on the C++ Standard Library and a small external static library for fast string formatting
 - Uses modern C++ and is easy to use, and even to customize the code
 - Public API documented with Doxygen
 - Thoroughly tested with Google Test unit & integration tests, and also with Valgrind Memcheck
