@@ -1,5 +1,7 @@
 #include "WaitEvent.h"
 
+using namespace std::literals;
+
 namespace Yam {
 namespace Http {
 
@@ -21,6 +23,10 @@ void WaitEvent::Wait() const {
     _cv.wait(lock, [this] { return _signalled == true; });
 }
 
+bool WaitEvent::TryWait() const {
+    return Wait(0us);
+}
+
 bool WaitEvent::Wait(std::chrono::microseconds timeout) const {
     std::unique_lock<std::mutex> lock(_mutex);
     return _cv.wait_for(lock, timeout, [this] { return _signalled == true; });
@@ -35,6 +41,10 @@ void WaitEvent::WaitAndReset() {
     std::unique_lock<std::mutex> lock(_mutex);
     _cv.wait(lock, [this] { return _signalled == true; });
     _signalled = false;
+}
+
+bool WaitEvent::TryWaitAndReset() {
+    return WaitAndReset(0us);
 }
 
 bool WaitEvent::WaitAndReset(std::chrono::microseconds timeout) {
