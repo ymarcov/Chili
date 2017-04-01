@@ -273,7 +273,7 @@ TEST_F(OrchestratorTest, multiple_clients) {
     auto ready = std::make_shared<WaitEvent>();
     auto readyCount = std::make_shared<std::atomic_int>(0);
     const auto clientCount = 5000;
-    auto lightLog = TemporaryLogLevel(Log::Level::Info);
+    auto lightLog = TemporaryLogLevel(Log::Level::Warning);
 
     auto server = MakeServer(MakeProcessor([=](Channel& c) {
         if (!c.IsWriteThrottled())
