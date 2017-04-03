@@ -1,7 +1,0 @@
-include_rules
-
-PATH=$(TUP_CWD)/../../fmtlib
-CXXFLAGS=-Wall -Werror -pedantic -std=c++1y
-
-: foreach $(PATH)/format.cc $(PATH)/posix.cc |> $(CXX) $(CXXFLAGS) -fPIC -c %f -o %o |> %B.o
-: *.o |> ar -rv %o %f |> libfmt.a
