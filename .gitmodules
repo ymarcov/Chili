@@ -1,3 +1,3 @@
 [submodule "ext/fmtlib"]
 	path = ext/fmtlib
-	url = http://github.com/fmtlib/fmt
+	url = http://github.com/ymarcov/fmt
