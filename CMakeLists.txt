@@ -1,8 +1,18 @@
 cmake_minimum_required(VERSION 2.6)
 
+get_directory_property(hasParent PARENT_DIRECTORY)
+
 set(CMAKE_ARCHIVE_OUTPUT_DIRECTORY ${CMAKE_BINARY_DIR}/bin)
 set(CMAKE_LIBRARY_OUTPUT_DIRECTORY ${CMAKE_BINARY_DIR}/bin)
 set(CMAKE_RUNTIME_OUTPUT_DIRECTORY ${CMAKE_BINARY_DIR}/bin)
+
+if (hasParent)
+    set(http_INCLUDE_DIRS
+        ${CMAKE_CURRENT_SOURCE_DIR}
+        ${CMAKE_CURRENT_SOURCE_DIR}/ext
+        ${CMAKE_CURRENT_SOURCE_DIR}/ext/std
+        PARENT_SCOPE)
+endif()
 
 add_compile_options(-std=c++14 -fPIC -O3 -Werror -Wall -Wpedantic -isystem ext/std)
 
