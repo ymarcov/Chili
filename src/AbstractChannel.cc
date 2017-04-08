@@ -391,6 +391,14 @@ void AbstractChannel::LogNewRequest() {
             method = "POST";
             break;
 
+        case Method::Put:
+            method = "PUT";
+            break;
+
+        case Method::Delete:
+            method = "DELETE";
+            break;
+
         default:
             Log::Default()->Info("Unsupported method for {}! Dropping request on channel {}.", _request.GetUri(), _id);
             break;
