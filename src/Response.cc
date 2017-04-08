@@ -126,8 +126,7 @@ void Response::Prepare(Status status) {
         else
             contentLength = 0;
 
-        if (contentLength)
-            w.write("Content-Length: {}\r\n", contentLength);
+        w.write("Content-Length: {}\r\n", contentLength);
     }
 
     w.write("\r\n");
