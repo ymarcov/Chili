@@ -212,7 +212,7 @@ bool Request::ConsumeContent(std::size_t maxBytes, std::size_t& totalBytesRead) 
             auto contentInInitialBuffer = std::min(nonHeaderDataInInitialBuffer, contentLength);
 
             // not modifying maxBytes or totalBytesRead on purpose,
-            // since this is data we already received during out
+            // since this is data we already received during our
             // header consumption stage and was already counted.
             auto remaining = contentInInitialBuffer;
 
