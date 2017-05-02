@@ -100,8 +100,8 @@ TEST_F(ResponseTest, some_headers) {
     auto stream = MakeStream();
     auto r = MakeResponse(stream);
 
-    r->SetField("First", "Hello world!");
-    r->SetField("Second", "v4r!0u$ sYm80;5");
+    r->AppendField("First", "Hello world!");
+    r->AppendField("Second", "v4r!0u$ sYm80;5");
     r->Send(Status::Ok);
     Flush(r);
 

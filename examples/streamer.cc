@@ -31,7 +31,7 @@ public:
             std::string uri(req.GetUri());
             std::shared_ptr<FileStream> stream = FileStream::Open(uri, FileMode::Read);
             res.SetContent(stream);
-            res.SetField("Content-Type", "application/octet-stream");
+            res.AppendField("Content-Type", "application/octet-stream");
             return SendResponse(Status::Ok);
         } catch (const std::exception& ex) {
             Log::Default()->Error("Error: {}", ex.what());

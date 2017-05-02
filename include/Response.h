@@ -64,7 +64,7 @@ public:
      * @param name  The HTTP response field name
      * @param value The field's value
      */
-    void SetField(std::string name, std::string value);
+    void AppendField(std::string name, std::string value);
 
     /**
      * Sets a cookie.

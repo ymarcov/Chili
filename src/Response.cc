@@ -283,20 +283,20 @@ bool Response::GetKeepAlive() const {
 
 void Response::SetExplicitKeepAlive(bool b) {
     if (b) {
-        SetField("Connection", "keep-alive");
+        AppendField("Connection", "keep-alive");
         GetState()._keepAlive = true;
     } else {
-        SetField("Connection", "close");
+        AppendField("Connection", "close");
         GetState()._keepAlive = false;
     }
 }
 
-void Response::SetField(std::string name, std::string value) {
+void Response::AppendField(std::string name, std::string value) {
     _fields.emplace_back(std::move(name), std::move(value));
 }
 
 void Response::SetCookie(std::string name, std::string value) {
-    SetField("Set-Cookie", fmt::format("{}={}", std::move(name), std::move(value)));
+    AppendField("Set-Cookie", fmt::format("{}={}", std::move(name), std::move(value)));
 }
 
 void Response::SetCookie(std::string name, std::string value, const CookieOptions& opts) {
@@ -323,7 +323,7 @@ void Response::SetCookie(std::string name, std::string value, const CookieOption
     if (opts.IsSecure())
         w << "; Secure";
 
-    SetField("Set-Cookie", fmt::format("{}={}{}", std::move(name), std::move(value), w.str()));
+    AppendField("Set-Cookie", fmt::format("{}={}{}", std::move(name), std::move(value), w.str()));
 }
 
 void Response::SetContent(std::string body) {
@@ -347,7 +347,7 @@ void Response::SetContent(std::shared_ptr<InputStream> stream) {
     r._transferMode = TransferMode::Chunked;
     r._stream = std::move(stream);
     r._body = std::make_shared<std::vector<char>>(GetBufferSize()); // use as buffer
-    SetField("Transfer-Encoding", "chunked");
+    AppendField("Transfer-Encoding", "chunked");
     r._strBody.reset();
 }
 

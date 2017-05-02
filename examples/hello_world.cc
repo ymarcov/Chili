@@ -20,7 +20,7 @@ class HelloWorldChannel : public Channel {
     // Process incoming requests
     Control Process(const Request&, Response& res) override {
         res.SetContent("<h1>Hello world!</h1>");
-        res.SetField("Content-Type", "text/html");
+        res.AppendField("Content-Type", "text/html");
         return SendResponse(Status::Ok);
     }
 };
