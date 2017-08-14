@@ -2,7 +2,7 @@
 
 #include "Lexer.h"
 
-#include <algorithm>
+#include <numeric>
 #include <stdexcept>
 #include <string>
 #include <string_view>
