@@ -41,7 +41,7 @@ bool Router::FindMatch(const Request& request, const RouteHandler*& outHandler, 
     if (methodRoutes != end(_routes)) {
         auto& routes = methodRoutes->second;
 
-        for (auto& route : methodRoutes->second) {
+        for (auto& route : routes) {
             auto& regex = route.first;
             auto& handler = route.second;
             std::smatch matches;

@@ -193,7 +193,6 @@ bool Response::FlushBody(T& body, std::size_t& maxBytes, std::size_t& totalBytes
 
 bool Response::FlushStream(std::size_t& maxBytes, std::size_t& totalBytesWritten) {
     auto& response = GetState();
-    auto& header = response._header;
     auto& input = response._stream;
     auto& buffer = response._body; // use as buffer
     auto quota = std::min(maxBytes, buffer->size());
