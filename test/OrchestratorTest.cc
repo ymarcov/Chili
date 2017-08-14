@@ -55,6 +55,7 @@ const char requestDataWithExpect[] =
 const char okResponse[] =
 "HTTP/1.1 200 OK\r\n"
 "Connection: close\r\n"
+"Content-Length: 0\r\n"
 "\r\n";
 
 const char requestDataWithExpectBody[] = "Request body!";
@@ -238,7 +239,7 @@ TEST_F(OrchestratorTest, one_client_header_and_body_with_expect) {
     ASSERT_TRUE(sentContinue->Wait(200ms));
     std::this_thread::sleep_for(50ms);
     response = ReadAvailable(*client);
-    ASSERT_EQ("HTTP/1.1 100 Continue\r\n\r\n", response);
+    ASSERT_EQ("HTTP/1.1 100 Continue\r\nContent-Length: 0\r\n\r\n", response);
 
     client->Write(requestDataWithExpectBody, sizeof(requestDataWithExpectBody));
 
@@ -266,7 +267,7 @@ TEST_F(OrchestratorTest, one_client_header_and_body_with_expect_reject) {
 
     std::string response;
     ASSERT_NO_THROW(response = ReadAvailable(*client));
-    ASSERT_EQ("HTTP/1.1 417 Expectation Failed\r\n\r\n", response);
+    ASSERT_EQ("HTTP/1.1 417 Expectation Failed\r\nContent-Length: 0\r\n\r\n", response);
 }
 
 TEST_F(OrchestratorTest, multiple_clients) {

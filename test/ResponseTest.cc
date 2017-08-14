@@ -93,7 +93,7 @@ TEST_F(ResponseTest, just_status) {
     r->Send(Status::Continue);
     Flush(r);
 
-    EXPECT_EQ("HTTP/1.1 100 Continue\r\n\r\n", stream->ToString());
+    EXPECT_EQ("HTTP/1.1 100 Continue\r\nContent-Length: 0\r\n\r\n", stream->ToString());
 }
 
 TEST_F(ResponseTest, some_headers) {
@@ -108,6 +108,7 @@ TEST_F(ResponseTest, some_headers) {
     auto expected = "HTTP/1.1 200 OK\r\n"
         "First: Hello world!\r\n"
         "Second: v4r!0u$ sYm80;5\r\n"
+	"Content-Length: 0\r\n"
         "\r\n";
 
     EXPECT_EQ(expected, stream->ToString());
@@ -157,6 +158,7 @@ TEST_F(ResponseTest, simple_cookies) {
     auto expected = "HTTP/1.1 404 Not Found\r\n"
         "Set-Cookie: First=One\r\n"
         "Set-Cookie: Second=Two\r\n"
+	"Content-Length: 0\r\n"
         "\r\n";
 
     EXPECT_EQ(expected, stream->ToString());
@@ -179,6 +181,7 @@ TEST_F(ResponseTest, cookie_with_simple_options) {
 
     auto expected = "HTTP/1.1 200 OK\r\n"
         "Set-Cookie: First=One; Domain=example.com; Path=/some/path; Max-Age=600\r\n"
+	"Content-Length: 0\r\n"
         "\r\n";
 
     EXPECT_EQ(expected, stream->ToString());
@@ -202,6 +205,7 @@ TEST_F(ResponseTest, cookie_with_expiration_date) {
 
     auto expected = "HTTP/1.1 200 OK\r\n"
         "Set-Cookie: First=One; Expires=Tue, 15 Jan 2013 21:47:38 GMT\r\n"
+	"Content-Length: 0\r\n"
         "\r\n";
 
     EXPECT_EQ(expected, stream->ToString());
@@ -221,6 +225,7 @@ TEST_F(ResponseTest, cookie_with_httponly_and_secure) {
 
     auto expected = "HTTP/1.1 200 OK\r\n"
         "Set-Cookie: First=One; HttpOnly; Secure\r\n"
+	"Content-Length: 0\r\n"
         "\r\n";
 
     EXPECT_EQ(expected, stream->ToString());
@@ -242,6 +247,7 @@ TEST_F(ResponseTest, send_cached) {
 
     auto expected = "HTTP/1.1 200 OK\r\n"
         "Set-Cookie: First=One; HttpOnly; Secure\r\n"
+	"Content-Length: 0\r\n"
         "\r\n";
 
     EXPECT_EQ(expected, stream->ToString());
