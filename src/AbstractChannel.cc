@@ -7,10 +7,10 @@
 namespace Yam {
 namespace Http {
 
-std::atomic<std::uint64_t> nextChannelId{0};
+std::atomic<std::uint64_t> nextChannelId{1};
 
 AbstractChannel::AbstractChannel(std::shared_ptr<FileStream> stream) :
-    _id(++nextChannelId),
+    _id(nextChannelId++),
     _stream(std::move(stream)),
     _request(_stream),
     _response(_stream),
