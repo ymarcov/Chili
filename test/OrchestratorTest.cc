@@ -1,6 +1,8 @@
 #include <gmock/gmock.h>
 
 #include "HttpServer.h"
+#include "Countdown.h"
+#include "ExitTrap.h"
 #include "FileStream.h"
 #include "Log.h"
 #include "LogUtils.h"
