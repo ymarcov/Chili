@@ -21,7 +21,7 @@ public:
 protected:
 };
 
-TEST_F(CountdownTest, constructs) {
+TEST_F(CountdownTest, basic_operation) {
     Countdown c(10);
     std::atomic_int count(0);
 
