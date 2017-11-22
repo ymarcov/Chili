@@ -26,7 +26,7 @@ TEST_F(CountdownTest, basic_operation) {
     std::atomic_int count(0);
 
     auto task = std::async([&] {
-        while (c.Decrement()) {
+        while (c.Tick()) {
             ++count;
             std::this_thread::sleep_for(10ms);
         }

@@ -272,7 +272,7 @@ TEST_F(OrchestratorTest, one_client_header_and_body_with_expect_reject) {
     ASSERT_EQ("HTTP/1.1 417 Expectation Failed\r\nContent-Length: 0\r\n\r\n", response);
 }
 
-TEST_F(OrchestratorTest, multiple_clients) {
+TEST_F(OrchestratorTest, stress_sync) {
     auto ready = std::make_shared<WaitEvent>();
     auto readyCount = std::make_shared<std::atomic_int>(0);
     const auto clientCount = 5000;
@@ -317,7 +317,7 @@ TEST_F(OrchestratorTest, multiple_clients) {
     }
 
     ASSERT_TRUE(ready->Wait(10s));
-    ASSERT_TRUE(allWritten.Wait(5000ms));
+    ASSERT_TRUE(allWritten.Wait(10s));
 }
 
 } // namespace Http

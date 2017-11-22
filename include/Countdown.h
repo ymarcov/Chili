@@ -25,7 +25,7 @@ public:
      * Decrements the current value.
      * Returns false if the count is at or has reached zero.
      */
-    bool Decrement();
+    bool Tick();
 
     /**
      * Waits for the value to reach zero.
