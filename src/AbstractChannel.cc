@@ -22,13 +22,6 @@ AbstractChannel::AbstractChannel(std::shared_ptr<FileStream> stream) :
 AbstractChannel::~AbstractChannel() {}
 
 void AbstractChannel::Advance() {
-    if (_requestClose) {
-        // Got an async close request, most likely because
-        // the underlying socket has been closed.
-        Close();
-        return;
-    }
-
     try {
         switch (_stage) {
             case Stage::ReadTimeout: // returned from timeout
@@ -345,14 +338,6 @@ const std::shared_ptr<FileStream>& AbstractChannel::GetStream() const {
 
 int AbstractChannel::GetId() const {
     return _id;
-}
-
-void AbstractChannel::RequestClose() {
-    _requestClose = true;
-}
-
-bool AbstractChannel::IsCloseRequested() const {
-    return _requestClose;
 }
 
 AbstractChannel::ThrottlingInfo AbstractChannel::GetThrottlingInfo(const Throttlers::Group& group) const {

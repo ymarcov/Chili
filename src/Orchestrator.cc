@@ -232,7 +232,7 @@ void Orchestrator::OnEvent(std::shared_ptr<FileStream> fs, int events) {
         // No use talking to a wall. Even if we had other events,
         // no one's going to be listening to our replies.
         Log::Default()->Verbose("Channel {} received completion event", channel.GetId());
-        channel.RequestClose();
+        channel.Close();
     } else {
         std::lock_guard<std::mutex> taskLock(task->GetMutex());
         HandleChannelEvent(channel, events);
@@ -365,13 +365,6 @@ bool Orchestrator::IsTaskReady(Task& t) {
     // extra about it for now.
     if (t.IsHandlingInProcess())
         return false;
-
-    // If close is only *requested*, it's
-    // actually the task itself that needs
-    // to handle its close request. So
-    // we need to advance it.
-    if (t.GetChannel().IsCloseRequested())
-        return true;
 
     // If the task has reached its inactivity
     // timeout, it has to close itself, by itself.
