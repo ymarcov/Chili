@@ -1,4 +1,6 @@
-# Yam::HTTP Library
+![Logo](https://raw.githubusercontent.com/ymarcov/Nitra/master/logo.png)
+
+# Nitra HTTP Library
 
 ***A simple to use, yet efficient, modern C++ HTTP server library***
 
