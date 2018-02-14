@@ -62,6 +62,10 @@ void Orchestrator::Task::Activate() {
             // Therefore, wake up our main thread
             // so that it could schedule its next
             // stage whenever it sees fit.
+            //
+            // If we got a throttling timeout, then
+            // we will still wake up the main thread
+            // in order to recalculate the new timeout.
             notify = true;
             break;
     }
