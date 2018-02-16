@@ -1,0 +1,39 @@
+.++++++++++++++++++++++++++.
+| Tracer: Feature Overview |
+'++++++++++++++++++++++++++'
+
+.------------.
+| Motivation |
+'------------'
+
+Some problems are very hard to debug, because the server
+is mostly asynchronous, and handles lots and lots of work
+in parallel and very quickly. Using a sampling profiler,
+like perf, reveals Heisenbugs which cannot be debugged
+with such means. Therefore, a tracer is proposed here
+that will log important events in the system that would
+help in identifying and analyzing strange behavior.
+
+.--------------.
+| Requirements |
+'--------------'
+
+  1) Know how much time each channel was:
+       - In each stage
+       - Throttled
+
+.-------------------.
+| Feature Proposals |
+'-------------------'
+
+  1) Trace whenever a channel's stage changes.
+
+
+.-------------------.
+| Design Guidelines |
+'-------------------'
+
+  1) Custom events per component. Events should be easy
+     to add and hopefully to modify or remove.
+     Events should be structured, but flexible in terms
+     of the data they carry.
