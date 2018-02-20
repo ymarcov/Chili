@@ -1,6 +1,6 @@
-.++++++++++++++++++++++++++.
-| Tracer: Feature Overview |
-'++++++++++++++++++++++++++'
+.++++++++++++++++++++++++++++.
+| Profiler: Feature Overview |
+'++++++++++++++++++++++++++++'
 
 .------------.
 | Motivation |
@@ -22,11 +22,16 @@ help in identifying and analyzing strange behavior.
        - In each stage
        - Throttled
 
+  2) Know how much work has been done for
+     lexing and parsing per channel.
+
+  3) Know how long the orchestrator was awake vs. asleep.
+
 .-------------------.
 | Feature Proposals |
 '-------------------'
 
-  1) Trace whenever a channel's stage changes.
+  1) Profile whenever a channel's stage changes.
 
 
 .-------------------.
@@ -37,3 +42,36 @@ help in identifying and analyzing strange behavior.
      to add and hopefully to modify or remove.
      Events should be structured, but flexible in terms
      of the data they carry.
+
+.--------.
+| Design |
+'--------'
+
+  ProfileEvent
+  ============
+    # string GetSource() const
+    # string GetSummary() const
+    # friend ProfileReader void Accept(ProfileReader&)
+
+
+  Profile
+  =======
+    # vector<reference_wrapper<const ProfileEvent>> GetEvents() const
+
+
+  Profiler
+  ========
+    # void Record(unique_ptr<ProfileEvent>)
+
+
+  ProfileReader
+  =============
+    # void Visit(ProfileEvent&)
+    # void Read(* : ProfileEvent&)
+
+
+.---------.
+| Example |
+'---------'
+
+
