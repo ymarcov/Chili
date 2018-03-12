@@ -49,14 +49,16 @@ help in identifying and analyzing strange behavior.
 
   ProfileEvent
   ============
-    # string GetSource() const
-    # string GetSummary() const
-    # friend ProfileReader void Accept(ProfileReader&)
+    ProfileEvent() # sets time point
+    # virtual string GetSource() const = 0
+    # virtual string GetSummary() const = 0
+    # const time_point& GetTimePoint() const
+    # virtual void Accept(ProfileReader&) = 0
 
 
   Profile
   =======
-    # vector<reference_wrapper<const ProfileEvent>> GetEvents() const
+    # vector<const ProfileEvent*> GetEvents() const
 
 
   Profiler
@@ -66,12 +68,50 @@ help in identifying and analyzing strange behavior.
 
   ProfileReader
   =============
-    # void Visit(ProfileEvent&)
-    # void Read(* : ProfileEvent&)
+    # virtual void Read(* : ProfileEvent&) {}
 
 
 .---------.
 | Example |
 '---------'
 
+  struct ChannelEvent : ProfileEvent {
+    ChannelEvent(const char* source, int channelId)
+        : _source(source)
+        , ChannelId(channelId) {}
 
+    string GetSource() const override {
+        return _source;
+    }
+
+    const char* _source;
+    int ChannelId;
+  }
+
+  struct ChannelReadable : ChannelEvent {
+    using ChannelEvent::ChannelEvent;
+
+    string GetSummary() const override {
+        fmt::format("Channel {} became readable", _channelId);
+    }
+
+    void Accept(ProfileReader& pr) override {
+        pr.Read(*this);
+    }
+  }
+
+  ...
+
+  Profiler& p;
+
+  p.Record(make_unique<ChannelReadable>("AbstractChannel", _id));
+
+  ...
+
+  struct MyProfileReader : ProfileReader {
+      void Read(ChannelEvent& e) override {
+          ++_channelEvents;
+          Log::Default()->Info("Event on channel {}", e.ChannelId);
+          e.Accept(_channelEventReader);
+      }
+  }
