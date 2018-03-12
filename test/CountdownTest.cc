@@ -10,8 +10,7 @@
 using namespace ::testing;
 using namespace std::literals;
 
-namespace Yam {
-namespace Http {
+namespace Nitra {
 
 class CountdownTest : public Test {
 public:
@@ -36,6 +35,5 @@ TEST_F(CountdownTest, basic_operation) {
     ASSERT_EQ(c.GetInitialValue() - 1, count);
 }
 
-} // namespace Http
-} // namespace Yam
+} // namespace Nitra
 

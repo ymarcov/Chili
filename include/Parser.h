@@ -10,8 +10,7 @@
 #include <unordered_map>
 #include <vector>
 
-namespace Yam {
-namespace Http {
+namespace Nitra {
 
 /*
  * Parses an HTTP request efficiently.
@@ -98,6 +97,5 @@ private: // private variables
     mutable bool _cookiesHaveBeenParsed = false;
 };
 
-} // namespace Http
-} // namespace Yam
+} // namespace Nitra
 

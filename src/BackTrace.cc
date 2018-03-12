@@ -11,8 +11,7 @@
 #include <execinfo.h>
 #include <ostream>
 
-namespace Yam {
-namespace Http {
+namespace Nitra {
 
 namespace {
 
@@ -111,6 +110,5 @@ std::ostream& operator<<(std::ostream& os, const BackTrace& bt) {
     return os;
 }
 
-} // namespace Http
-} // namespace Yam
+} // namespace Nitra
 

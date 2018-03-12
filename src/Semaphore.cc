@@ -4,8 +4,7 @@
 #include <semaphore.h>
 #include <time.h>
 
-namespace Yam {
-namespace Http {
+namespace Nitra {
 
 Semaphore::Semaphore(unsigned initialValue) {
     _nativeHandle = std::make_shared<sem_t>();
@@ -82,6 +81,5 @@ bool Semaphore::TryDecrement() {
     return true;
 }
 
-} // namespace Http
-} // namespace Yam
+} // namespace Nitra
 

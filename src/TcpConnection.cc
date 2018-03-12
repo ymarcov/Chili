@@ -12,8 +12,7 @@
 #include <sys/types.h>
 #include <unistd.h>
 
-namespace Yam {
-namespace Http {
+namespace Nitra {
 
 namespace {
 
@@ -73,6 +72,5 @@ void TcpConnection::Cork(bool enabled) {
         throw SystemError();
 }
 
-} // namespace Http
-} // namespace Yam
+} // namespace Nitra
 

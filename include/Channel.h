@@ -2,8 +2,7 @@
 
 #include "AbstractChannel.h"
 
-namespace Yam {
-namespace Http {
+namespace Nitra {
 
 /**
  * Base class for custom channels.
@@ -127,6 +126,5 @@ protected:
     virtual Control Process(const Request&, Response&) = 0;
 };
 
-} // namespace Http
-} // namespace Yam
+} // namespace Nitra
 

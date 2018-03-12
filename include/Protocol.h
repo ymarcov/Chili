@@ -5,8 +5,7 @@
 #include <string>
 #include <utility>
 
-namespace Yam {
-namespace Http {
+namespace Nitra {
 
 /**
  * Test
@@ -180,6 +179,5 @@ private:
 };
 
 } // namespace Protocol
-} // namespace Http
-} // namespace Yam
+} // namespace Nitra
 

@@ -1,7 +1,6 @@
 #pragma once
 
-namespace Yam {
-namespace Http {
+namespace Nitra {
 
 template <class Callable>
 class ExitTrap {
@@ -22,6 +21,5 @@ ExitTrap<Callable> CreateExitTrap(Callable c) {
     return ExitTrap<Callable>(std::move(c));
 }
 
-} // namespace Http
-} // namespace Yam
+} // namespace Nitra
 

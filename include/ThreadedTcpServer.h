@@ -6,8 +6,7 @@
 #include <functional>
 #include <memory>
 
-namespace Yam {
-namespace Http {
+namespace Nitra {
 
 class ThreadedTcpServer : public TcpServer {
 public:
@@ -25,6 +24,5 @@ private:
     ConnectionHandler _handler;
 };
 
-} // namespace Http
-} // namespace Yam
+} // namespace Nitra
 

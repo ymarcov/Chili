@@ -2,8 +2,7 @@
 
 #include <cstddef>
 
-namespace Yam {
-namespace Http {
+namespace Nitra {
 
 class OutputStream {
 public:
@@ -11,6 +10,5 @@ public:
     virtual ~OutputStream() = default;
 };
 
-} // namespace Http
-} // namespace Yam
+} // namespace Nitra
 

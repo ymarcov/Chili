@@ -2,8 +2,7 @@
 
 #include "SystemError.h"
 
-namespace Yam {
-namespace Http {
+namespace Nitra {
 
 inline int OpenTempFile() {
     int fd = fileno(std::tmpfile());
@@ -14,6 +13,5 @@ inline int OpenTempFile() {
     return fd;
 }
 
-} // namespace Http
-} // namespace Yam
+} // namespace Nitra
 

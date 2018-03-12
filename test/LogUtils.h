@@ -2,8 +2,7 @@
 
 #include "Log.h"
 
-namespace Yam {
-namespace Http {
+namespace Nitra {
 
 struct TemporaryLogLevel {
     TemporaryLogLevel(Log::Level level, Log* log = Log::Default()) :
@@ -20,6 +19,5 @@ struct TemporaryLogLevel {
     Log::Level _previousLevel;
 };
 
-} // namespace Http
-} // namespace Yam
+} // namespace Nitra
 

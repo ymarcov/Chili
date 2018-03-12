@@ -5,8 +5,7 @@
 #include <limits>
 #include <mutex>
 
-namespace Yam {
-namespace Http {
+namespace Nitra {
 
 /**
  * Throttles I/O operations.
@@ -53,6 +52,5 @@ private:
     mutable std::size_t _currentQuota;
 };
 
-} // namespace Http
-} // namespace Yam
+} // namespace Nitra
 

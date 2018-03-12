@@ -6,8 +6,7 @@
 
 #include <atomic>
 
-namespace Yam {
-namespace Http {
+namespace Nitra {
 
 /**
  * Just a regular spinlock.
@@ -58,8 +57,7 @@ inline void Spinlock::Unlock() {
     _flag.clear(std::memory_order_release);
 }
 
-} // namespace Http
-} // namespace Yam
+} // namespace Nitra
 
 /**
  * @endcond INTERNAL

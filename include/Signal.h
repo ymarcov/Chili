@@ -3,8 +3,7 @@
 #include <functional>
 #include <vector>
 
-namespace Yam {
-namespace Http {
+namespace Nitra {
 
 template <class... Param>
 class Signal {
@@ -26,6 +25,5 @@ private:
     std::vector<Callback> _subscribers;
 };
 
-} // namespace Http
-} // namespace Yam
+} // namespace Nitra
 

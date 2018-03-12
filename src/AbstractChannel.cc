@@ -4,8 +4,7 @@
 
 #include <atomic>
 
-namespace Yam {
-namespace Http {
+namespace Nitra {
 
 std::atomic<std::uint64_t> nextChannelId{1};
 
@@ -402,5 +401,4 @@ void AbstractChannel::LogNewRequest() {
     Log::Default()->Info("Channel {} Received \"{} {} {}\"", _id, method, _request.GetUri(), version);
 }
 
-} // namespace Http
-} // namespace Yam
+} // namespace Nitra

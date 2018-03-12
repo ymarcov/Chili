@@ -3,15 +3,15 @@
 #include "HttpServer.h"
 #include "Log.h"
 
-using Yam::Http::Channel;
-using Yam::Http::ChannelFactory;
-using Yam::Http::FileStream;
-using Yam::Http::HttpServer;
-using Yam::Http::IPEndpoint;
-using Yam::Http::Log;
-using Yam::Http::Request;
-using Yam::Http::Response;
-using Yam::Http::Status;
+using Nitra::Channel;
+using Nitra::ChannelFactory;
+using Nitra::FileStream;
+using Nitra::HttpServer;
+using Nitra::IPEndpoint;
+using Nitra::Log;
+using Nitra::Request;
+using Nitra::Response;
+using Nitra::Status;
 
 class HelloWorldChannel : public Channel {
     // Use constructors from Channel

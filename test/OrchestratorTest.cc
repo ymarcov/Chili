@@ -17,8 +17,7 @@
 using namespace ::testing;
 using namespace std::literals;
 
-namespace Yam {
-namespace Http {
+namespace Nitra {
 
 const char requestData[] =
 "GET /path/to/res HTTP/1.1\r\n"
@@ -320,7 +319,6 @@ TEST_F(OrchestratorTest, stress_sync) {
     ASSERT_TRUE(allWritten.Wait(10s));
 }
 
-} // namespace Http
-} // namespace Yam
+} // namespace Nitra
 
 

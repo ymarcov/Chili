@@ -3,8 +3,7 @@
 #include <chrono>
 #include <cstddef>
 
-namespace Yam {
-namespace Http {
+namespace Nitra {
 
 /**
  * A stream of bytes.
@@ -39,6 +38,5 @@ inline std::size_t InputStream::Read(void* buffer, std::size_t maxBytes, std::ch
     return Read(buffer, maxBytes);
 }
 
-} // namespace Http
-} // namespace Yam
+} // namespace Nitra
 

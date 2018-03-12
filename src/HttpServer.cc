@@ -1,7 +1,6 @@
 #include "HttpServer.h"
 
-namespace Yam {
-namespace Http {
+namespace Nitra {
 
 HttpServer::HttpServer(const IPEndpoint& ep, std::shared_ptr<ChannelFactory> factory, int threads) :
     TcpServer(ep),
@@ -27,6 +26,5 @@ void HttpServer::SetInactivityTimeout(std::chrono::milliseconds ms) {
     _orchestrator->SetInactivityTimeout(std::move(ms));
 }
 
-} // namespace Http
-} // namespace Yam
+} // namespace Nitra
 

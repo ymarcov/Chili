@@ -2,7 +2,7 @@
 #include "Log.h"
 #include "Router.h"
 
-using namespace Yam::Http;
+using namespace Nitra;
 
 class Application : public Router {
 public:

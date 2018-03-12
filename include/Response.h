@@ -9,8 +9,7 @@
 #include <utility>
 #include <vector>
 
-namespace Yam {
-namespace Http {
+namespace Nitra {
 
 class CachedResponse {
     TransferMode _transferMode;
@@ -160,6 +159,5 @@ private:
     std::size_t _chunkWritePosition = 0;
 };
 
-} // namespace Http
-} // namespace Yam
+} // namespace Nitra
 

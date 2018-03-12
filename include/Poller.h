@@ -13,8 +13,7 @@
 #include <mutex>
 #include <thread>
 
-namespace Yam {
-namespace Http {
+namespace Nitra {
 
 class Poller {
 public:
@@ -61,6 +60,5 @@ private:
     std::mutex _filesMutex;
 };
 
-} // namespace Http
-} // namespace Yam
+} // namespace Nitra
 

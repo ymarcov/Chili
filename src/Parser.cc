@@ -1,7 +1,6 @@
 #include "Parser.h"
 
-namespace Yam {
-namespace Http {
+namespace Nitra {
 
 namespace {
 namespace RequestField {
@@ -171,6 +170,5 @@ void Parser::ParseNextFieldLine() {
     _fields[{key.first, key.second}] = {value.first, value.second};
 }
 
-} // namespace Http
-} // namespace Yam
+} // namespace Nitra
 

@@ -1,7 +1,6 @@
 #include "ThreadedTcpServer.h"
 
-namespace Yam {
-namespace Http {
+namespace Nitra {
 
 ThreadedTcpServer::ThreadedTcpServer(const IPEndpoint& ep, std::shared_ptr<ThreadPool> tp) :
     TcpServer{ep},
@@ -18,6 +17,5 @@ void ThreadedTcpServer::OnAccepted(std::shared_ptr<TcpConnection> conn) {
     });
 }
 
-} // namespace Http
-} // namespace Yam
+} // namespace Nitra
 

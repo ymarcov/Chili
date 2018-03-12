@@ -9,8 +9,7 @@
 using namespace ::testing;
 using namespace std::literals;
 
-namespace Yam {
-namespace Http {
+namespace Nitra {
 
 struct ThreadCount {
     ThreadCount(int n = 1) : _n(n) {}
@@ -117,6 +116,5 @@ TEST_F(TcpTest, server_restart) {
     task.get();
 }
 
-} // namespace Http
-} // namespace Yam
+} // namespace Nitra
 

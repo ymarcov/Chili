@@ -10,8 +10,7 @@
 #include <netinet/in.h>
 #include <thread>
 
-namespace Yam {
-namespace Http {
+namespace Nitra {
 
 /**
  * A TCP server.
@@ -44,6 +43,5 @@ inline const IPEndpoint& TcpServer::GetEndpoint() const {
     return _endpoint;
 }
 
-} // namespace Http
-} // namespace Yam
+} // namespace Nitra
 

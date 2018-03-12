@@ -4,8 +4,7 @@
 #include <condition_variable>
 #include <mutex>
 
-namespace Yam {
-namespace Http {
+namespace Nitra {
 
 class WaitEvent {
 public:
@@ -26,6 +25,5 @@ private:
     bool _signalled = false;
 };
 
-} // namespace Http
-} // namespace Yam
+} // namespace Nitra
 

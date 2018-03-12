@@ -3,8 +3,7 @@
 
 #include <algorithm>
 
-namespace Yam {
-namespace Http {
+namespace Nitra {
 
 void Orchestrator::Task::MarkHandlingInProcess(bool b) {
     _inProcess = b;
@@ -412,6 +411,5 @@ void Orchestrator::CollectGarbage() {
     }), end(_tasks));
 }
 
-} // namespace Http
-} // namespace Yam
+} // namespace Nitra
 

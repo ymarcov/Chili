@@ -7,8 +7,7 @@
 #include <memory>
 #include <thread>
 
-namespace Yam {
-namespace Http {
+namespace Nitra {
 
 /**
  * A socket server.
@@ -45,6 +44,5 @@ private:
     std::atomic_bool _stop{true};
 };
 
-} // namespace Http
-} // namespace Yam
+} // namespace Nitra
 

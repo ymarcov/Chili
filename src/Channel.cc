@@ -1,7 +1,6 @@
 #include "Channel.h"
 
-namespace Yam {
-namespace Http {
+namespace Nitra {
 
 void Channel::SetAutoFetchContent(bool b) {
     _autoFetchContent = b;
@@ -59,6 +58,5 @@ Channel::Control Channel::Process() {
     return Process(GetRequest(), GetResponse());
 }
 
-} // namespace Http
-} // namespace Yam
+} // namespace Nitra
 

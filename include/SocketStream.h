@@ -5,8 +5,7 @@
 #include <atomic>
 #include <memory>
 
-namespace Yam {
-namespace Http {
+namespace Nitra {
 
 class SocketStream : public FileStream {
 public:
@@ -30,6 +29,5 @@ protected:
     std::shared_ptr<std::atomic_int> _useCount;
 };
 
-} // namespace Http
-} // namespace Yam
+} // namespace Nitra
 

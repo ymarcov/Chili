@@ -2,14 +2,12 @@
 
 #include <string>
 
-namespace Yam {
-namespace Http {
+namespace Nitra {
 
 class Logger {
 public:
     virtual void Log(const char* levelTag, const std::string& message) = 0;
 };
 
-} // namespace Http
-} // namespace Yam
+} // namespace Nitra
 

@@ -3,8 +3,7 @@
 #include <curl/curl.h>
 #include <stdexcept>
 
-namespace Yam {
-namespace Http {
+namespace Nitra {
 
 namespace {
 
@@ -54,6 +53,5 @@ std::string Uri::Decode(const std::string& s) {
     return str;
 }
 
-} // namespace Http
-} // namespace Yam
+} // namespace Nitra
 

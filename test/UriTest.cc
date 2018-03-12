@@ -4,8 +4,7 @@
 
 using namespace ::testing;
 
-namespace Yam {
-namespace Http {
+namespace Nitra {
 
 class UriTest : public Test {
 public:
@@ -20,6 +19,5 @@ TEST_F(UriTest, encode_decode) {
     ASSERT_EQ(str, Uri::Decode(Uri::Encode(str)));
 }
 
-} // namespace Http
-} // namespace Yam
+} // namespace Nitra
 

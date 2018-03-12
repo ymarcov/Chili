@@ -7,8 +7,7 @@
 #include <fcntl.h>
 #include <unistd.h>
 
-namespace Yam {
-namespace Http {
+namespace Nitra {
 
 struct Pipe {
     static auto Create() {
@@ -25,6 +24,5 @@ struct Pipe {
     std::shared_ptr<FileStream> Write;
 };
 
-} // namespace Http
-} // namespace Yam
+} // namespace Nitra
 

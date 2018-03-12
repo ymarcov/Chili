@@ -10,8 +10,7 @@
 #include <string>
 #include <time.h>
 
-namespace Yam {
-namespace Http {
+namespace Nitra {
 
 namespace {
 #define UPTR_PAIR(a, b) \
@@ -367,6 +366,5 @@ CachedResponse& Response::GetState() const {
     return *_response;
 }
 
-} // namespace Http
-} // namespace Yam
+} // namespace Nitra
 

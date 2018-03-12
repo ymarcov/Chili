@@ -1,7 +1,6 @@
 #include "Countdown.h"
 
-namespace Yam {
-namespace Http {
+namespace Nitra {
 
 Countdown::Countdown(unsigned value) :
     _initialValue{value},
@@ -33,6 +32,5 @@ bool Countdown::Wait(std::chrono::microseconds timeout) const {
     return _event.Wait(timeout);
 }
 
-} // namespace Http
-} // namespace Yam
+} // namespace Nitra
 

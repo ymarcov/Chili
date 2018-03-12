@@ -4,8 +4,7 @@
 
 #include <mutex>
 
-namespace Yam {
-namespace Http {
+namespace Nitra {
 
 /**
  * Polling as a service; i.e., attach different handlers
@@ -39,6 +38,5 @@ private:
     std::mutex _mutex;
 };
 
-} // namespace Http
-} // namespace Yam
+} // namespace Nitra
 

@@ -5,8 +5,7 @@
 #include <atomic>
 #include <mutex>
 
-namespace Yam {
-namespace Http {
+namespace Nitra {
 
 class Countdown {
 public:
@@ -46,6 +45,5 @@ private:
     WaitEvent _event;
 };
 
-} // namespace Http
-} // namespace Yam
+} // namespace Nitra
 

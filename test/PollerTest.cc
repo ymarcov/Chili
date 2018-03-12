@@ -12,8 +12,7 @@
 using namespace ::testing;
 using namespace std::literals;
 
-namespace Yam {
-namespace Http {
+namespace Nitra {
 
 class PollerTest : public Test {
 public:
@@ -217,6 +216,5 @@ TEST_F(PollerTest, notifies_on_stop) {
     EXPECT_TRUE(notified);
 }
 
-} // namespace Http
-} // namespace Yam
+} // namespace Nitra
 

@@ -6,8 +6,7 @@
 
 using namespace ::testing;
 
-namespace Yam {
-namespace Http {
+namespace Nitra {
 
 const char testRequest[] =
 "GET /path/to/res HTTP/1.1\r\n"
@@ -156,6 +155,5 @@ TEST(ParserTest_Malformed, gibberish) {
     EXPECT_THROW(Parser::Parse(request, sizeof(request)), Parser::Error);
 }
 
-} // namespace Http
-} // namespace Yam
+} // namespace Nitra
 

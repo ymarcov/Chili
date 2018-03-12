@@ -5,8 +5,7 @@
 #include <fcntl.h>
 #include <sys/socket.h>
 
-namespace Yam {
-namespace Http {
+namespace Nitra {
 
 SocketStream& SocketStream::IncrementUseCount(SocketStream& s) {
     if (s._nativeHandle != InvalidHandle)
@@ -90,6 +89,5 @@ void SocketStream::Shutdown() {
         Log::Default()->Debug("Failed to shutdown socket fd {}", _nativeHandle);
 }
 
-} // namespace Http
-} // namespace Yam
+} // namespace Nitra
 

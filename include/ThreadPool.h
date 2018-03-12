@@ -10,8 +10,7 @@
 #include <thread>
 #include <vector>
 
-namespace Yam {
-namespace Http {
+namespace Nitra {
 
 class ThreadPool {
 public:
@@ -44,6 +43,5 @@ inline std::size_t ThreadPool::GetThreadCount() const {
     return _threads.size();
 }
 
-} // namespace Http
-} // namespace Yam
+} // namespace Nitra
 

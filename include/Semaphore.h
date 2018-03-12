@@ -3,8 +3,7 @@
 #include <chrono>
 #include <memory>
 
-namespace Yam {
-namespace Http {
+namespace Nitra {
 
 class Semaphore {
 public:
@@ -23,6 +22,5 @@ private:
     std::shared_ptr<void> _nativeHandle;
 };
 
-} // namespace Http
-} // namespace Yam
+} // namespace Nitra
 

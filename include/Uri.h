@@ -2,8 +2,7 @@
 
 #include <string>
 
-namespace Yam {
-namespace Http {
+namespace Nitra {
 
 class Uri {
 public:
@@ -11,6 +10,5 @@ public:
     static std::string Decode(const std::string&);
 };
 
-} // namespace Http
-} // namespace Yam
+} // namespace Nitra
 

@@ -10,8 +10,7 @@
 #include <utility>
 #include <vector>
 
-namespace Yam {
-namespace Http {
+namespace Nitra {
 
 /**
  * An HTTP request.
@@ -123,6 +122,5 @@ private:
     std::size_t _contentPosition = 0;
 };
 
-} // namespace Http
-} // namespace Yam
+} // namespace Nitra
 

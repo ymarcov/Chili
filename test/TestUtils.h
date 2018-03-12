@@ -3,8 +3,7 @@
 #include <memory>
 #include <type_traits>
 
-namespace Yam {
-namespace Http {
+namespace Nitra {
 
 template <class T>
 auto PtrShim(T t) {
@@ -13,5 +12,4 @@ auto PtrShim(T t) {
     return std::shared_ptr<V>(t, [](U) {});
 }
 
-} // namespace Http
-} // namespace Yam
+} // namespace Nitra

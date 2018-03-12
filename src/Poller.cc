@@ -5,8 +5,7 @@
 #include <sys/epoll.h>
 #include <unistd.h>
 
-namespace Yam {
-namespace Http {
+namespace Nitra {
 
 Poller::Poller(int threads) :
     _threadPool{std::make_shared<ThreadPool>(threads)},
@@ -198,6 +197,5 @@ int Poller::ConvertToNative(int m) {
     return result;
 }
 
-} // namespace Http
-} // namespace Yam
+} // namespace Nitra
 

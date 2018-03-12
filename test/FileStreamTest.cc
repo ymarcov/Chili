@@ -13,8 +13,7 @@
 using namespace ::testing;
 using namespace std::literals;
 
-namespace Yam {
-namespace Http {
+namespace Nitra {
 
 class FileStreamTest : public Test {
 public:
@@ -150,6 +149,5 @@ TEST_F(FileStreamTest, rvalue_assignment) {
     EXPECT_EQ(_textInFile, std::string(buffer.data(), _textInFile.size()));
 }
 
-} // namespace Http
-} // namespace Yam
+} // namespace Nitra
 

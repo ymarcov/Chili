@@ -10,8 +10,7 @@
 
 using namespace ::testing;
 
-namespace Yam {
-namespace Http {
+namespace Nitra {
 
 const char requestData[] =
 "GET /path/to/res HTTP/1.1\r\n"
@@ -221,6 +220,5 @@ TEST_F(RequestTest, missing_end_of_header_in_small_buffer_never_finishes_consumi
     EXPECT_FALSE(req.ConsumeHeader(-1, totalBytesRead));
 }
 
-} // namespace Http
-} // namespace Yam
+} // namespace Nitra
 

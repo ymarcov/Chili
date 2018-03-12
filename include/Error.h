@@ -2,8 +2,7 @@
 
 #include "BackTrace.h"
 
-namespace Yam {
-namespace Http {
+namespace Nitra {
 
 class Error {
 public:
@@ -15,6 +14,5 @@ private:
     BackTrace _backTrace;
 };
 
-} // namespace Http
-} // namespace Yam
+} // namespace Nitra
 

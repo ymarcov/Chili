@@ -2,8 +2,7 @@
 
 using namespace std::literals;
 
-namespace Yam {
-namespace Http {
+namespace Nitra {
 
 void WaitEvent::Reset() {
     _mutex.lock();
@@ -69,6 +68,5 @@ bool WaitEvent::WaitUntilAndReset(std::chrono::time_point<std::chrono::steady_cl
     return false;
 }
 
-} // namespace Http
-} // namespace Yam
+} // namespace Nitra
 

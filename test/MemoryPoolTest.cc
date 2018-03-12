@@ -11,8 +11,7 @@
 
 using namespace ::testing;
 
-namespace Yam {
-namespace Http {
+namespace Nitra {
 
 struct Type {
     Type() = default;
@@ -303,6 +302,5 @@ TEST_F(MemoryPoolTest, live_slots_outlive_pool) {
     EXPECT_EQ(DestructionVerifier::Handle::Destroyed, handle);
 }
 
-} // namespace Http
-} // namespace Yam
+} // namespace Nitra
 

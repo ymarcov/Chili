@@ -8,8 +8,7 @@
 #include <memory>
 #include <string>
 
-namespace Yam {
-namespace Http {
+namespace Nitra {
 
 enum FileMode {
     Read = 0x1,
@@ -61,6 +60,5 @@ public:
     void Seek(std::size_t offset);
 };
 
-} // namespace Http
-} // namespace Yam
+} // namespace Nitra
 

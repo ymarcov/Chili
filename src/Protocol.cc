@@ -1,7 +1,6 @@
 #include "Protocol.h"
 
-namespace Yam {
-namespace Http {
+namespace Nitra {
 
 void CookieOptions::SetDomain(const std::string& domain) {
     _domain = std::make_pair(true, domain);
@@ -59,6 +58,5 @@ bool CookieOptions::IsSecure() const {
     return _secure;
 }
 
-} // namespace Http
-} // namespace Yam
+} // namespace Nitra
 

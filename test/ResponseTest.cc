@@ -11,8 +11,7 @@
 
 using namespace ::testing;
 
-namespace Yam {
-namespace Http {
+namespace Nitra {
 
 namespace {
 
@@ -285,6 +284,5 @@ TEST_F(ResponseTest, chunked) {
     EXPECT_EQ(expected, stream->ToString());
 }
 
-} // namespace Http
-} // namespace Yam
+} // namespace Nitra
 

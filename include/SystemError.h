@@ -5,8 +5,7 @@
 #include <cerrno>
 #include <system_error>
 
-namespace Yam {
-namespace Http {
+namespace Nitra {
 
 class SystemError : public Error, public std::system_error {
 public:
@@ -18,6 +17,5 @@ public:
     }
 };
 
-} // namespace Http
-} // namespace Yam
+} // namespace Nitra
 

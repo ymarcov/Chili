@@ -6,8 +6,7 @@
 #include <cstring>
 #include <strings.h>
 
-namespace Yam {
-namespace Http {
+namespace Nitra {
 
 constexpr std::size_t BufferSize = 0x2000;
 
@@ -239,6 +238,5 @@ const std::vector<char>& Request::GetContent() const {
     return _content;
 }
 
-} // namespace Http
-} // namespace Yam
+} // namespace Nitra
 

@@ -5,8 +5,7 @@
 #include <string>
 #include <vector>
 
-namespace Yam {
-namespace Http {
+namespace Nitra {
 
 class BackTrace {
 public:
@@ -21,6 +20,5 @@ private:
     mutable std::vector<std::string> _frames;
 };
 
-} // namespace Http
-} // namespace Yam
+} // namespace Nitra
 

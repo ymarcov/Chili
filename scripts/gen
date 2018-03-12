@@ -4,15 +4,13 @@ gen_header() {
     cat>${1}/${2}.h<<EOF
 #pragma once
 
-namespace Yam {
-namespace Http {
+namespace Nitra {
 
 class $2 {
 public:
 };
 
-} // namespace Http
-} // namespace Yam
+} // namespace Nitra
 
 EOF
 }
@@ -21,13 +19,11 @@ gen_source() {
     cat>${1}/${2}.cc<<EOF
 #include "${2}.h"
 
-namespace Yam {
-namespace Http {
+namespace Nitra {
 
 // TODO
 
-} // namespace Http
-} // namespace Yam
+} // namespace Nitra
 
 EOF
 }
@@ -47,8 +43,7 @@ gen_test() {
 
 using namespace ::testing;
 
-namespace Yam {
-namespace Http {
+namespace Nitra {
 
 class ${class}Test : public Test {
 public:
@@ -62,8 +57,7 @@ TEST_F(${class}Test, constructs) {
     $class $var;
 }
 
-} // namespace Http
-} // namespace Yam
+} // namespace Nitra
 
 EOF
 }

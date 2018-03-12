@@ -4,8 +4,7 @@
 
 using namespace ::testing;
 
-namespace Yam {
-namespace Http {
+namespace Nitra {
 
 class ThreadPoolTest : public Test {
 };
@@ -32,6 +31,5 @@ TEST_F(ThreadPoolTest, throws_exception_on_task_error) {
     ASSERT_THROW(f.get(), int);
 }
 
-} // namespace Http
-} // namespace Yam
+} // namespace Nitra
 

@@ -7,8 +7,7 @@
 #include <fmtlib/format.h>
 #include <sstream>
 
-namespace Yam {
-namespace Http {
+namespace Nitra {
 
 class Log {
 public:
@@ -93,6 +92,5 @@ private:
     std::atomic<Level> _currentLevel;
 };
 
-} // namespace Http
-} // namespace Yam
+} // namespace Nitra
 

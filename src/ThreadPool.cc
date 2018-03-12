@@ -1,7 +1,6 @@
 #include "ThreadPool.h"
 
-namespace Yam {
-namespace Http {
+namespace Nitra {
 
 class Worker {
 public:
@@ -99,6 +98,5 @@ std::future<void> ThreadPool::Post(Work w) {
     return workFuture;
 }
 
-} // namespace Http
-} // namespace Yam
+} // namespace Nitra
 

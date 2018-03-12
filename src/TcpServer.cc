@@ -4,8 +4,7 @@
 #include <netinet/tcp.h>
 #include <arpa/inet.h>
 
-namespace Yam {
-namespace Http {
+namespace Nitra {
 
 namespace {
 
@@ -64,6 +63,5 @@ std::size_t* TcpServer::AddressBufferSize() {
     return &_addrBufferSize;
 }
 
-} // namespace Http
-} // namespace Yam
+} // namespace Nitra
 

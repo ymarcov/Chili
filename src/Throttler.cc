@@ -5,8 +5,7 @@
 
 using namespace std::chrono;
 
-namespace Yam {
-namespace Http {
+namespace Nitra {
 
 Throttler::Throttler(std::size_t capacity, milliseconds interval)
     : _enabled(true)
@@ -101,6 +100,5 @@ std::size_t Throttler::UpdateCurrentQuota() const {
     return _currentQuota;
 }
 
-} // namespace Http
-} // namespace Yam
+} // namespace Nitra
 

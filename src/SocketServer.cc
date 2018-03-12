@@ -7,8 +7,7 @@
 #include <sys/types.h>
 #include <unistd.h>
 
-namespace Yam {
-namespace Http {
+namespace Nitra {
 
 SocketServer::~SocketServer() {
     Stop();
@@ -83,6 +82,5 @@ void SocketServer::Stop() {
         _thread.join();
 }
 
-} // namespace Http
-} // namespace Yam
+} // namespace Nitra
 

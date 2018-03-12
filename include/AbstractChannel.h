@@ -8,8 +8,7 @@
 
 #include <mutex>
 
-namespace Yam {
-namespace Http {
+namespace Nitra {
 
 class AbstractChannel {
 public:
@@ -111,5 +110,4 @@ private:
     friend class Orchestrator;
 };
 
-} // namespace Http
-} // namespace Yam
+} // namespace Nitra

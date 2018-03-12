@@ -9,8 +9,7 @@
 #include <regex>
 #include <unordered_map>
 
-namespace Yam {
-namespace Http {
+namespace Nitra {
 
 /**
  * A request router, mapping requests containing a
@@ -87,6 +86,5 @@ private:
     std::shared_ptr<Router> _router;
 };
 
-} // namespace Http
-} // namespace Yam
+} // namespace Nitra
 

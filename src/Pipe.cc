@@ -1,10 +1,8 @@
 #include "Pipe.h"
 
-namespace Yam {
-namespace Http {
+namespace Nitra {
 
 // TODO
 
-} // namespace Http
-} // namespace Yam
+} // namespace Nitra
 

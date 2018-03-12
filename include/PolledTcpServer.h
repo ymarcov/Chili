@@ -5,8 +5,7 @@
 
 #include <memory>
 
-namespace Yam {
-namespace Http {
+namespace Nitra {
 
 class PolledTcpServer : public TcpServer {
 public:
@@ -19,6 +18,5 @@ private:
     std::shared_ptr<Poller> _poller;
 };
 
-} // namespace Http
-} // namespace Yam
+} // namespace Nitra
 

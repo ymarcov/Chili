@@ -13,7 +13,7 @@
 #include <thread>
 #include <unistd.h>
 
-using namespace Yam::Http;
+using namespace Nitra;
 using namespace std::literals;
 
 struct ServerConfiguration {

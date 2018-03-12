@@ -10,8 +10,7 @@
 #include <sys/mman.h>
 #include <unistd.h>
 
-namespace Yam {
-namespace Http {
+namespace Nitra {
 
 namespace Detail {
 
@@ -251,6 +250,5 @@ private:
 template <class T>
 using MemorySlot = typename MemoryPool<T>::Ptr;
 
-} // namespace Http
-} // namespace Yam
+} // namespace Nitra
 

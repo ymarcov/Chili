@@ -3,8 +3,7 @@
 #include "Orchestrator.h"
 #include "TcpServer.h"
 
-namespace Yam {
-namespace Http {
+namespace Nitra {
 
 /**
  * An HTTP/TCP server.
@@ -51,6 +50,5 @@ private:
     std::shared_ptr<Orchestrator> _orchestrator;
 };
 
-} // namespace Http
-} // namespace Yam
+} // namespace Nitra
 

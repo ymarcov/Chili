@@ -6,8 +6,7 @@
 
 #include "Channel.h"
 
-namespace Yam {
-namespace Http {
+namespace Nitra {
 
 /**
  * Creates channels for incoming sockets.
@@ -30,6 +29,5 @@ public:
     virtual std::unique_ptr<Channel> CreateChannel(std::shared_ptr<FileStream> fs) = 0;
 };
 
-} // namespace Http
-} // namespace Yam
+} // namespace Nitra
 

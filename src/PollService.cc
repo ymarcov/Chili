@@ -2,8 +2,7 @@
 
 #include "Log.h"
 
-namespace Yam {
-namespace Http {
+namespace Nitra {
 
 PollService::PollService(int threads) :
     _poller(threads) {
@@ -45,6 +44,5 @@ std::future<std::shared_ptr<FileStream>> PollService::Poll(std::shared_ptr<FileS
     return task._promise.get_future();
 }
 
-} // namespace Http
-} // namespace Yam
+} // namespace Nitra
 

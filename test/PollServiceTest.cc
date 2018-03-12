@@ -10,8 +10,7 @@
 using namespace ::testing;
 using namespace std::literals;
 
-namespace Yam {
-namespace Http {
+namespace Nitra {
 
 class PollServiceTest : public Test {
 };
@@ -44,6 +43,5 @@ TEST_F(PollServiceTest, negative_case) {
     ASSERT_EQ(std::future_status::timeout, task.wait_for(50ms));
 }
 
-} // namespace Http
-} // namespace Yam
+} // namespace Nitra
 

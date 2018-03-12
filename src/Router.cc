@@ -1,7 +1,6 @@
 #include "Router.h"
 
-namespace Yam {
-namespace Http {
+namespace Nitra {
 
 class RoutedChannel : public Channel {
 public:
@@ -85,6 +84,5 @@ std::unique_ptr<Channel> RoutedChannelFactory::CreateChannel(std::shared_ptr<Fil
     return std::make_unique<RoutedChannel>(std::move(fs), _router);
 }
 
-} // namespace Http
-} // namespace Yam
+} // namespace Nitra
 

@@ -15,8 +15,7 @@
 #include <mutex>
 #include <thread>
 
-namespace Yam {
-namespace Http {
+namespace Nitra {
 
 class Orchestrator {
 public:
@@ -81,6 +80,5 @@ private:
     std::atomic<std::chrono::milliseconds> _inactivityTimeout{std::chrono::milliseconds(10000)};
 };
 
-} // namespace Http
-} // namespace Yam
+} // namespace Nitra
 

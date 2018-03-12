@@ -6,8 +6,7 @@
 #include <iostream>
 #include <mutex>
 
-namespace Yam {
-namespace Http {
+namespace Nitra {
 
 Log* Log::Default() {
     struct ConsoleLogger : Logger {
@@ -30,6 +29,5 @@ Log* Log::Default() {
     return &log;
 }
 
-} // namespace Http
-} // namespace Yam
+} // namespace Nitra
 

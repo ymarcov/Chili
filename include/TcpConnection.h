@@ -9,8 +9,7 @@
 
 struct sockaddr_in;
 
-namespace Yam {
-namespace Http {
+namespace Nitra {
 
 class IPEndpoint {
 public:
@@ -55,6 +54,5 @@ inline const IPEndpoint& TcpConnection::Endpoint() const noexcept {
     return _endpoint;
 }
 
-} // namespace Http
-} // namespace Yam
+} // namespace Nitra
 

@@ -9,8 +9,7 @@
 using namespace ::testing;
 using namespace std::literals;
 
-namespace Yam {
-namespace Http {
+namespace Nitra {
 
 class SemaphoreTest : public Test {
 public:
@@ -71,6 +70,5 @@ TEST_F(SemaphoreTest, multiple) {
         threads[i].join();
 }
 
-} // namespace Http
-} // namespace Yam
+} // namespace Nitra
 
