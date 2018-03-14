@@ -1,4 +1,4 @@
-#include "AbstractChannel.h"
+#include "ChannelBase.h"
 #include "ExitTrap.h"
 #include "Log.h"
 
@@ -8,7 +8,7 @@ namespace Nitra {
 
 std::atomic<std::uint64_t> nextChannelId{1};
 
-AbstractChannel::AbstractChannel(std::shared_ptr<FileStream> stream) :
+ChannelBase::ChannelBase(std::shared_ptr<FileStream> stream) :
     _id(nextChannelId++),
     _stream(std::move(stream)),
     _request(_stream),
@@ -18,9 +18,9 @@ AbstractChannel::AbstractChannel(std::shared_ptr<FileStream> stream) :
     Log::Default()->Verbose("Channel {} created", _id);
 }
 
-AbstractChannel::~AbstractChannel() {}
+ChannelBase::~ChannelBase() {}
 
-void AbstractChannel::Advance() {
+void ChannelBase::Advance() {
     try {
         switch (_stage) {
             case Stage::ReadTimeout: // returned from timeout
@@ -42,22 +42,22 @@ void AbstractChannel::Advance() {
     }
 }
 
-AbstractChannel::Stage AbstractChannel::GetStage() const {
+ChannelBase::Stage ChannelBase::GetStage() const {
     return _stage;
 }
 
-void AbstractChannel::SetStage(Stage s) {
+void ChannelBase::SetStage(Stage s) {
     if (_stage == Stage::Closed)
         return;
 
     _stage = s;
 }
 
-std::chrono::time_point<std::chrono::steady_clock> AbstractChannel::GetRequestedTimeout() const {
+std::chrono::time_point<std::chrono::steady_clock> ChannelBase::GetRequestedTimeout() const {
     return _timeout;
 }
 
-bool AbstractChannel::IsReady() const {
+bool ChannelBase::IsReady() const {
     // Set timeout (probably due to throttling) has not yet expired.
     if (std::chrono::steady_clock::now() < _timeout.load())
         return false;
@@ -71,14 +71,14 @@ bool AbstractChannel::IsReady() const {
     return !IsWaitingForClient();
 }
 
-bool AbstractChannel::IsWaitingForClient() const {
+bool ChannelBase::IsWaitingForClient() const {
     auto stage = _stage.load();
 
     return (stage == Stage::WaitReadable) ||
             (stage == Stage::WaitWritable);
 }
 
-void AbstractChannel::OnRead() {
+void ChannelBase::OnRead() {
     auto throttlingInfo = GetThrottlingInfo(_throttlers.Read);
 
     if (!throttlingInfo.full) {
@@ -116,7 +116,7 @@ void AbstractChannel::OnRead() {
     }
 }
 
-bool AbstractChannel::FetchData(bool(Request::*func)(std::size_t, std::size_t&), std::size_t maxRead) {
+bool ChannelBase::FetchData(bool(Request::*func)(std::size_t, std::size_t&), std::size_t maxRead) {
     std::size_t bytesFetched = 0;
 
     // Make sure throttling remains consistent even
@@ -155,7 +155,7 @@ bool AbstractChannel::FetchData(bool(Request::*func)(std::size_t, std::size_t&),
     return done;
 }
 
-void AbstractChannel::OnProcess() {
+void ChannelBase::OnProcess() {
     _stage = Stage::Process; // Keep it neat (although at the time of writing this isn't used)
 
     try {
@@ -183,7 +183,7 @@ void AbstractChannel::OnProcess() {
     }
 }
 
-void AbstractChannel::SendInternalError() {
+void ChannelBase::SendInternalError() {
     Log::Default()->Error("Channel {} processor error ignored! Please handle internally.", _id);
     _forceClose = true;
     _response = Response(_stream);
@@ -192,7 +192,7 @@ void AbstractChannel::SendInternalError() {
     _stage = Stage::Write;
 }
 
-void AbstractChannel::HandleControlDirective(Control directive) {
+void ChannelBase::HandleControlDirective(Control directive) {
     switch (directive) {
         case Control::SendResponse:
             // Simple enough, just start writing the response
@@ -249,7 +249,7 @@ void AbstractChannel::HandleControlDirective(Control directive) {
     }
 }
 
-void AbstractChannel::OnWrite() {
+void ChannelBase::OnWrite() {
     auto throttlingInfo = GetThrottlingInfo(_throttlers.Write);
 
     if (!throttlingInfo.full) {
@@ -283,7 +283,7 @@ void AbstractChannel::OnWrite() {
     }
 }
 
-bool AbstractChannel::FlushData(std::size_t maxWrite) {
+bool ChannelBase::FlushData(std::size_t maxWrite) {
     std::size_t bytesFlushed = 0;
 
     auto alwaysConsume = CreateExitTrap([&] {
@@ -318,7 +318,7 @@ bool AbstractChannel::FlushData(std::size_t maxWrite) {
     return done;
 }
 
-void AbstractChannel::Close() {
+void ChannelBase::Close() {
     if (_stage == Stage::Closed)
         return;
 
@@ -331,15 +331,15 @@ void AbstractChannel::Close() {
     _stage = Stage::Closed;
 }
 
-const std::shared_ptr<FileStream>& AbstractChannel::GetStream() const {
+const std::shared_ptr<FileStream>& ChannelBase::GetStream() const {
     return _stream;
 }
 
-int AbstractChannel::GetId() const {
+int ChannelBase::GetId() const {
     return _id;
 }
 
-AbstractChannel::ThrottlingInfo AbstractChannel::GetThrottlingInfo(const Throttlers::Group& group) const {
+ChannelBase::ThrottlingInfo ChannelBase::GetThrottlingInfo(const Throttlers::Group& group) const {
     ThrottlingInfo info;
 
     info.currentQuota = std::min(group.Dedicated.GetCurrentQuota(),
@@ -359,7 +359,7 @@ AbstractChannel::ThrottlingInfo AbstractChannel::GetThrottlingInfo(const Throttl
     return info;
 }
 
-void AbstractChannel::LogNewRequest() {
+void ChannelBase::LogNewRequest() {
     std::string method, version;
 
     switch (_request.GetMethod()) {

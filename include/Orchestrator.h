@@ -1,6 +1,6 @@
 #pragma once
 
-#include "AbstractChannel.h"
+#include "ChannelBase.h"
 #include "ChannelFactory.h"
 #include "FileStream.h"
 #include "Poller.h"
@@ -39,12 +39,12 @@ private:
         bool IsHandlingInProcess() const;
         void Activate();
         bool ReachedInactivityTimeout() const;
-        AbstractChannel& GetChannel();
+        ChannelBase& GetChannel();
         std::mutex& GetMutex();
 
     private:
         Orchestrator* _orchestrator;
-        std::shared_ptr<AbstractChannel> _channel;
+        std::shared_ptr<ChannelBase> _channel;
         std::chrono::time_point<std::chrono::steady_clock> _lastActive;
         std::mutex _mutex;
         mutable std::mutex _lastActiveMutex;
@@ -54,7 +54,7 @@ private:
     };
 
     void OnEvent(std::shared_ptr<FileStream>, int events);
-    void HandleChannelEvent(AbstractChannel&, int events);
+    void HandleChannelEvent(ChannelBase&, int events);
     void IterateOnce();
     std::vector<std::shared_ptr<Task>> CaptureTasks();
     std::vector<std::shared_ptr<Task>> FilterReadyTasks();

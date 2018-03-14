@@ -45,12 +45,12 @@ void Orchestrator::Task::Activate() {
     bool notify = false;
 
     switch (_channel->GetStage()) {
-        case AbstractChannel::Stage::WaitReadable: {
+        case ChannelBase::Stage::WaitReadable: {
             _orchestrator->_poller.Poll(_channel->GetStream(),
                                         Poller::Events::Completion | Poller::Events::Readable);
         } break;
 
-        case AbstractChannel::Stage::WaitWritable: {
+        case ChannelBase::Stage::WaitWritable: {
             _orchestrator->_poller.Poll(_channel->GetStream(),
                                         Poller::Events::Completion | Poller::Events::Writable);
         } break;
@@ -99,7 +99,7 @@ bool Orchestrator::Task::ReachedInactivityTimeout() const {
     return diff >= _orchestrator->_inactivityTimeout.load();
 }
 
-AbstractChannel& Orchestrator::Task::GetChannel() {
+ChannelBase& Orchestrator::Task::GetChannel() {
     return *_channel;
 }
 
@@ -248,29 +248,29 @@ void Orchestrator::OnEvent(std::shared_ptr<FileStream> fs, int events) {
     _newEvent.notify_one();
 }
 
-void Orchestrator::HandleChannelEvent(AbstractChannel& channel, int events) {
+void Orchestrator::HandleChannelEvent(ChannelBase& channel, int events) {
     switch (channel.GetStage()) {
-        case AbstractChannel::Stage::WaitReadable: {
+        case ChannelBase::Stage::WaitReadable: {
             if (events & Poller::Events::Readable) {
                 Log::Default()->Verbose("Channel {} became readable", channel.GetId());
-                channel.SetStage(AbstractChannel::Stage::Read);
+                channel.SetStage(ChannelBase::Stage::Read);
             } else {
                 Log::Default()->Error("Channel {} was waiting for readbility but got different "
                                       "event. Check poll logic!", channel.GetId());
             }
         } break;
 
-        case AbstractChannel::Stage::WaitWritable: {
+        case ChannelBase::Stage::WaitWritable: {
             if (events & Poller::Events::Writable) {
                 Log::Default()->Verbose("Channel {} became writable", channel.GetId());
-                channel.SetStage(AbstractChannel::Stage::Write);
+                channel.SetStage(ChannelBase::Stage::Write);
             } else {
                 Log::Default()->Error("Channel {} was waiting for writability but got different "
                                       "event. Check poll logic!", channel.GetId());
             }
         } break;
 
-        case AbstractChannel::Stage::Closed: {
+        case ChannelBase::Stage::Closed: {
             // I'm not sure this can happen, but I'm not taking any chances.
             // At any rate, log it so that maybe it'll help understand if
             // and when it *does* happen.
@@ -407,7 +407,7 @@ std::chrono::time_point<std::chrono::steady_clock> Orchestrator::GetLatestAllowe
 
 void Orchestrator::CollectGarbage() {
     _tasks.erase(std::remove_if(begin(_tasks), end(_tasks), [](auto& t) {
-        return t->GetChannel().GetStage() == AbstractChannel::Stage::Closed;
+        return t->GetChannel().GetStage() == ChannelBase::Stage::Closed;
     }), end(_tasks));
 }
 

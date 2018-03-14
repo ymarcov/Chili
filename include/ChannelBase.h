@@ -10,7 +10,7 @@
 
 namespace Nitra {
 
-class AbstractChannel {
+class ChannelBase {
 public:
     enum class Stage {
         WaitReadable,
@@ -36,8 +36,8 @@ public:
         SendResponse
     };
 
-    AbstractChannel(std::shared_ptr<FileStream>);
-    virtual ~AbstractChannel();
+    ChannelBase(std::shared_ptr<FileStream>);
+    virtual ~ChannelBase();
 
 protected:
     virtual Control Process() = 0;

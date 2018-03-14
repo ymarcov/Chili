@@ -1,6 +1,6 @@
 #pragma once
 
-#include "AbstractChannel.h"
+#include "ChannelBase.h"
 
 namespace Nitra {
 
@@ -10,9 +10,9 @@ namespace Nitra {
  * A channel is an HTTP state machine on top
  * of an open socket.
  */
-class Channel : public AbstractChannel {
+class Channel : public ChannelBase {
 public:
-    using AbstractChannel::AbstractChannel;
+    using ChannelBase::ChannelBase;
 
     /**
      * Sets whether to automatically get each request's entire
