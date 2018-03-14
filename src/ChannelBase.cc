@@ -3,10 +3,27 @@
 #include "Log.h"
 
 #include <atomic>
+#include <fmtlib/format.h>
 
 namespace Nitra {
 
 std::atomic<std::uint64_t> nextChannelId{1};
+
+ChannelEvent::ChannelEvent(const char* source, std::uint64_t channelId)
+    : ChannelId(channelId)
+    , _source(source) {}
+
+std::string ChannelEvent::GetSource() const {
+    return _source;
+}
+
+std::string ChannelEvent::GetSummary() const {
+    return fmt::format("Event on channel {}", ChannelId);
+}
+
+void ChannelEvent::Accept(ProfileEventReader& reader) const {
+    reader.Read(*this);
+}
 
 ChannelBase::ChannelBase(std::shared_ptr<FileStream> stream) :
     _id(nextChannelId++),

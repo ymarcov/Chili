@@ -2,6 +2,8 @@
 
 namespace Nitra {
 
+std::vector<std::unique_ptr<ProfileEvent>> Profiler::_events;
+
 void ProfileEventReader::Visit(const ProfileEvent& pe) {
     pe.Accept(*this);
 }

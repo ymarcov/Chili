@@ -234,6 +234,7 @@ void Orchestrator::OnEvent(std::shared_ptr<FileStream> fs, int events) {
     if (events & Poller::Events::Completion) {
         // No use talking to a wall. Even if we had other events,
         // no one's going to be listening to our replies.
+        RecordProfileEvent<ChannelCompletionEvent>(channel);
         Log::Default()->Verbose("Channel {} received completion event", channel.GetId());
         channel.Close();
     } else {
@@ -252,6 +253,7 @@ void Orchestrator::HandleChannelEvent(ChannelBase& channel, int events) {
     switch (channel.GetStage()) {
         case ChannelBase::Stage::WaitReadable: {
             if (events & Poller::Events::Readable) {
+                RecordProfileEvent<ChannelReadableEvent>(channel);
                 Log::Default()->Verbose("Channel {} became readable", channel.GetId());
                 channel.SetStage(ChannelBase::Stage::Read);
             } else {
@@ -262,6 +264,7 @@ void Orchestrator::HandleChannelEvent(ChannelBase& channel, int events) {
 
         case ChannelBase::Stage::WaitWritable: {
             if (events & Poller::Events::Writable) {
+                RecordProfileEvent<ChannelWritableEvent>(channel);
                 Log::Default()->Verbose("Channel {} became writable", channel.GetId());
                 channel.SetStage(ChannelBase::Stage::Write);
             } else {

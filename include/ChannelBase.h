@@ -1,6 +1,7 @@
 #pragma once
 
 #include "Poller.h"
+#include "Profiler.h"
 #include "Request.h"
 #include "Response.h"
 #include "Signal.h"
@@ -9,6 +10,35 @@
 #include <mutex>
 
 namespace Nitra {
+
+class ChannelEvent : public ProfileEvent {
+public:
+    ChannelEvent(const char* source, std::uint64_t channelId);
+
+    std::string GetSource() const override;
+    std::string GetSummary() const override;
+    void Accept(ProfileEventReader&) const override;
+
+    std::uint64_t ChannelId;
+
+private:
+    const char* _source;
+};
+
+class ChannelReadableEvent : public ChannelEvent {
+public:
+    using ChannelEvent::ChannelEvent;
+};
+
+class ChannelWritableEvent : public ChannelEvent {
+public:
+    using ChannelEvent::ChannelEvent;
+};
+
+class ChannelCompletionEvent : public ChannelEvent {
+public:
+    using ChannelEvent::ChannelEvent;
+};
 
 class ChannelBase {
 public:

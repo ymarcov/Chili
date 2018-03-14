@@ -29,9 +29,7 @@ protected:
 };
 
 TEST_F(ProfilerTest, record_and_read) {
-    Profiler p;
-
-    p.Record<GenericProfileEvent>("Test Source", Data::Make("hello", 123));
+    Profiler::Record<GenericProfileEvent>("Test Source", Data::Make("hello", 123));
 
     struct Reader : ProfileEventReader {
         void Read(const GenericProfileEvent& pe) {
@@ -47,7 +45,7 @@ TEST_F(ProfilerTest, record_and_read) {
         int Number;
     } reader;
 
-    auto events = p.GetEvents();
+    auto events = Profiler::GetEvents();
 
     ASSERT_EQ(1, events.size());
 

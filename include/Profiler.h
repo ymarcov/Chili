@@ -48,11 +48,11 @@ private:
 class Profiler {
 public:
     template <class T, class... Args>
-    void Record(Args... args) {
+    static void Record(Args... args) {
         _events.push_back(std::make_unique<T>(args...));
     }
 
-    std::vector<std::reference_wrapper<const ProfileEvent>> GetEvents() const {
+    static std::vector<std::reference_wrapper<const ProfileEvent>> GetEvents() {
         auto result = std::vector<std::reference_wrapper<const ProfileEvent>>();
 
         result.reserve(_events.size());
@@ -66,7 +66,7 @@ public:
     }
 
 private:
-    std::vector<std::unique_ptr<ProfileEvent>> _events;
+    static std::vector<std::unique_ptr<ProfileEvent>> _events;
 };
 
 } // namespace Nitra

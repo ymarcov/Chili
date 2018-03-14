@@ -4,6 +4,7 @@
 #include "ChannelFactory.h"
 #include "FileStream.h"
 #include "Poller.h"
+#include "Profiler.h"
 #include "Signal.h"
 #include "ThreadPool.h"
 #include "Throttler.h"
@@ -53,6 +54,9 @@ private:
         friend void Orchestrator::Add(std::shared_ptr<FileStream>);
     };
 
+    template <class T>
+    void RecordProfileEvent(const ChannelBase&) const;
+
     void OnEvent(std::shared_ptr<FileStream>, int events);
     void HandleChannelEvent(ChannelBase&, int events);
     void IterateOnce();
@@ -79,6 +83,11 @@ private:
     std::vector<std::shared_ptr<Task>> _tasks;
     std::atomic<std::chrono::milliseconds> _inactivityTimeout{std::chrono::milliseconds(10000)};
 };
+
+template <class T>
+void Orchestrator::RecordProfileEvent(const ChannelBase& c) const {
+    Profiler::Record<T>("Orchestrator", c.GetId());
+}
 
 } // namespace Nitra
 
