@@ -22,6 +22,7 @@ public:
     /**
      * Channel events
      */
+
     virtual void Read(const class ChannelEvent&) {}
     virtual void Read(const class ChannelReadable&) {}
     virtual void Read(const class ChannelWritable&) {}
@@ -34,6 +35,15 @@ public:
     virtual void Read(const class ChannelWriting&) {}
     virtual void Read(const class ChannelWritten&) {}
     virtual void Read(const class ChannelClosed&) {}
+
+    /**
+     * Orchestrator events
+     */
+
+    virtual void Read(const class OrchestratorEvent&) {}
+    virtual void Read(const class OrchestratorSignalled&) {}
+    virtual void Read(const class OrchestratorWokeUp&) {}
+    virtual void Read(const class OrchestratorWaiting&) {}
 };
 
 class ProfileEvent {

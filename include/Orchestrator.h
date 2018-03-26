@@ -57,7 +57,7 @@ private:
     };
 
     template <class T>
-    void RecordProfileEvent(const ChannelBase&) const;
+    void RecordChannelEvent(const ChannelBase&) const;
 
     void WakeUp();
     void OnEvent(std::shared_ptr<FileStream>, int events);
@@ -89,9 +89,38 @@ private:
 };
 
 template <class T>
-void Orchestrator::RecordProfileEvent(const ChannelBase& c) const {
+void Orchestrator::RecordChannelEvent(const ChannelBase& c) const {
     Profiler::Record<T>("Orchestrator", c.GetId());
 }
+
+/**
+ * Profiling
+ */
+
+class OrchestratorEvent : public ProfileEvent {
+public:
+    std::string GetSource() const override;
+    std::string GetSummary() const override;
+    void Accept(ProfileEventReader&) const override;
+};
+
+class OrchestratorWokeUp : public OrchestratorEvent {
+public:
+    using OrchestratorEvent::OrchestratorEvent;
+    void Accept(ProfileEventReader&) const override;
+};
+
+class OrchestratorWaiting : public OrchestratorEvent {
+public:
+    using OrchestratorEvent::OrchestratorEvent;
+    void Accept(ProfileEventReader&) const override;
+};
+
+class OrchestratorSignalled : public OrchestratorEvent {
+public:
+    using OrchestratorEvent::OrchestratorEvent;
+    void Accept(ProfileEventReader&) const override;
+};
 
 } // namespace Nitra
 

@@ -218,6 +218,7 @@ void Orchestrator::SetInactivityTimeout(std::chrono::milliseconds ms) {
 void Orchestrator::WakeUp() {
     _wakeUpTime = Clock::GetCurrentTimePoint();
     _newEvent.Signal();
+    Profiler::Record<OrchestratorSignalled>();
 }
 
 void Orchestrator::OnEvent(std::shared_ptr<FileStream> fs, int events) {
@@ -243,7 +244,7 @@ void Orchestrator::OnEvent(std::shared_ptr<FileStream> fs, int events) {
     if (events & Poller::Events::Completion) {
         // No use talking to a wall. Even if we had other events,
         // no one's going to be listening to our replies.
-        RecordProfileEvent<ChannelCompleted>(channel);
+        RecordChannelEvent<ChannelCompleted>(channel);
         Log::Default()->Verbose("Channel {} received completion event", channel.GetId());
         channel.Close();
     } else {
@@ -262,7 +263,7 @@ void Orchestrator::HandleChannelEvent(ChannelBase& channel, int events) {
     switch (channel.GetStage()) {
         case ChannelBase::Stage::WaitReadable: {
             if (events & Poller::Events::Readable) {
-                RecordProfileEvent<ChannelReadable>(channel);
+                RecordChannelEvent<ChannelReadable>(channel);
                 Log::Default()->Verbose("Channel {} became readable", channel.GetId());
                 channel.SetStage(ChannelBase::Stage::Read);
             } else {
@@ -273,7 +274,7 @@ void Orchestrator::HandleChannelEvent(ChannelBase& channel, int events) {
 
         case ChannelBase::Stage::WaitWritable: {
             if (events & Poller::Events::Writable) {
-                RecordProfileEvent<ChannelWritable>(channel);
+                RecordChannelEvent<ChannelWritable>(channel);
                 Log::Default()->Verbose("Channel {} became writable", channel.GetId());
                 channel.SetStage(ChannelBase::Stage::Write);
             } else {
@@ -335,7 +336,9 @@ std::vector<std::shared_ptr<Orchestrator::Task>> Orchestrator::CaptureTasks() {
 
     while ((timeout = GetLatestAllowedWakeup()) > Clock::GetCurrentTimePoint()) {
         lock.unlock();
+        Profiler::Record<OrchestratorWaiting>();
         _newEvent.WaitUntilAndReset(timeout);
+        Profiler::Record<OrchestratorWokeUp>();
         lock.lock();
 
         // Should the server stop?
@@ -412,6 +415,30 @@ void Orchestrator::CollectGarbage() {
     _tasks.erase(std::remove_if(begin(_tasks), end(_tasks), [](auto& t) {
         return t->GetChannel().GetStage() == ChannelBase::Stage::Closed;
     }), end(_tasks));
+}
+
+std::string OrchestratorEvent::GetSource() const {
+    return "Orchestrator";
+}
+
+std::string OrchestratorEvent::GetSummary() const {
+    return "Event on Orchestrator";
+}
+
+void OrchestratorEvent::Accept(ProfileEventReader& reader) const {
+    reader.Read(*this);
+}
+
+void OrchestratorWokeUp::Accept(ProfileEventReader& reader) const {
+    reader.Read(*this);
+}
+
+void OrchestratorWaiting::Accept(ProfileEventReader& reader) const {
+    reader.Read(*this);
+}
+
+void OrchestratorSignalled::Accept(ProfileEventReader& reader) const {
+    reader.Read(*this);
 }
 
 } // namespace Nitra
