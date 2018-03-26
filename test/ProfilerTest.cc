@@ -23,6 +23,12 @@ public:
     };
 
     ProfilerTest() {
+        Profiler::Enable();
+    }
+
+    ~ProfilerTest() {
+        Profiler::Disable();
+        Profiler::Clear();
     }
 
 protected:
