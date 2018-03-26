@@ -1,6 +1,7 @@
 #include <gmock/gmock.h>
 
 #include "Throttler.h"
+#include "Clock.h"
 
 #include <chrono>
 #include <thread>
@@ -22,7 +23,7 @@ protected:
 TEST_F(ThrottlerTest, gets_allowed_size_by_elapsed_time) {
     Throttler throttler(0x1000, 100ms);
 
-    auto startTime = steady_clock::now();
+    auto startTime = Clock::GetCurrentTimePoint();
 
     auto startQuota = throttler.GetCurrentQuota();
     EXPECT_EQ(0x1000, startQuota);
@@ -30,7 +31,7 @@ TEST_F(ThrottlerTest, gets_allowed_size_by_elapsed_time) {
     throttler.Consume(0x1000);
 
     std::this_thread::sleep_for(10ms);
-    auto elapsed = duration_cast<milliseconds>(steady_clock::now() - startTime);
+    auto elapsed = duration_cast<milliseconds>(Clock::GetCurrentTimePoint() - startTime);
 
     EXPECT_LE(throttler.GetCurrentQuota(), 0x1000 * (elapsed.count() / 100.0));
 

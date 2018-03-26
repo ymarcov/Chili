@@ -2,16 +2,47 @@
 
 namespace Nitra {
 
+bool Profiler::_enabled = false;
 std::vector<std::unique_ptr<ProfileEvent>> Profiler::_events;
+std::mutex Profiler::_mutex;
+
+void Profiler::Enable() {
+    std::lock_guard<std::mutex> lock(_mutex);
+    _enabled = true;
+}
+
+void Profiler::Disable() {
+    std::lock_guard<std::mutex> lock(_mutex);
+    _enabled = false;
+}
+
+void Profiler::Clear() {
+    std::lock_guard<std::mutex> lock(_mutex);
+    _events.clear();
+}
+
+std::vector<std::reference_wrapper<const ProfileEvent>> Profiler::GetEvents() {
+    std::lock_guard<std::mutex> lock(_mutex);
+    auto result = std::vector<std::reference_wrapper<const ProfileEvent>>();
+
+    result.reserve(_events.size());
+
+    std::transform(begin(_events), end(_events),
+                   std::back_inserter(result), [](auto& e) {
+        return std::ref(const_cast<const ProfileEvent&>(*e));
+    });
+
+    return result;
+}
 
 void ProfileEventReader::Visit(const ProfileEvent& pe) {
     pe.Accept(*this);
 }
 
 ProfileEvent::ProfileEvent()
-    : _time_point(std::chrono::steady_clock::now()) {}
+    : _time_point(Clock::GetCurrentTimePoint()) {}
 
-const std::chrono::steady_clock::time_point& ProfileEvent::GetTimePoint() const {
+const Clock::TimePoint& ProfileEvent::GetTimePoint() const {
     return _time_point;
 }
 

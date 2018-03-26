@@ -1,5 +1,7 @@
 #pragma once
 
+#include "Clock.h"
+
 #include <chrono>
 #include <memory>
 
@@ -15,8 +17,9 @@ public:
     unsigned GetValue() const;
     void Increment();
     void Decrement();
-    bool TryDecrement(std::chrono::nanoseconds timeout);
     bool TryDecrement();
+    bool TryDecrement(std::chrono::nanoseconds timeout);
+    bool TryDecrementUntil(Clock::TimePoint timeout);
 
 private:
     std::shared_ptr<void> _nativeHandle;

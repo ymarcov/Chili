@@ -31,7 +31,7 @@ bool WaitEvent::Wait(std::chrono::microseconds timeout) const {
     return _cv.wait_for(lock, timeout, [this] { return _signalled == true; });
 }
 
-bool WaitEvent::WaitUntil(std::chrono::time_point<std::chrono::steady_clock> t) const {
+bool WaitEvent::WaitUntil(Clock::TimePoint t) const {
     std::unique_lock<std::mutex> lock(_mutex);
     return _cv.wait_until(lock, t, [this] { return _signalled == true; });
 }
@@ -57,7 +57,7 @@ bool WaitEvent::WaitAndReset(std::chrono::microseconds timeout) {
     return false;
 }
 
-bool WaitEvent::WaitUntilAndReset(std::chrono::time_point<std::chrono::steady_clock> t) {
+bool WaitEvent::WaitUntilAndReset(Clock::TimePoint t) {
     std::unique_lock<std::mutex> lock(_mutex);
 
     if (_cv.wait_until(lock, t, [this] { return _signalled == true; })) {

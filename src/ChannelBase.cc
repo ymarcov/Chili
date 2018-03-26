@@ -25,12 +25,64 @@ void ChannelEvent::Accept(ProfileEventReader& reader) const {
     reader.Read(*this);
 }
 
+void ChannelReadable::Accept(ProfileEventReader& reader) const {
+    reader.Read(*this);
+}
+
+void ChannelWritable::Accept(ProfileEventReader& reader) const {
+    reader.Read(*this);
+}
+
+void ChannelCompleted::Accept(ProfileEventReader& reader) const {
+    reader.Read(*this);
+}
+
+ChannelTimeout::ChannelTimeout(const char* source,
+                               std::uint64_t channelId,
+                               Clock::TimePoint throttledTime,
+                               Clock::TimePoint readyTime) :
+    ChannelEvent(source, channelId)
+    , ThrottledTime(throttledTime)
+    , ReadyTime(readyTime) {}
+
+void ChannelReadTimeout::Accept(ProfileEventReader& reader) const {
+    reader.Read(*this);
+}
+
+void ChannelWriteTimeout::Accept(ProfileEventReader& reader) const {
+    reader.Read(*this);
+}
+
+void ChannelWaitReadable::Accept(ProfileEventReader& reader) const {
+    reader.Read(*this);
+}
+
+void ChannelWaitWritable::Accept(ProfileEventReader& reader) const {
+    reader.Read(*this);
+}
+
+void ChannelReading::Accept(ProfileEventReader& reader) const {
+    reader.Read(*this);
+}
+
+void ChannelWriting::Accept(ProfileEventReader& reader) const {
+    reader.Read(*this);
+}
+
+void ChannelWritten::Accept(ProfileEventReader& reader) const {
+    reader.Read(*this);
+}
+
+void ChannelClosed::Accept(ProfileEventReader& reader) const {
+    reader.Read(*this);
+}
+
 ChannelBase::ChannelBase(std::shared_ptr<FileStream> stream) :
     _id(nextChannelId++),
     _stream(std::move(stream)),
     _request(_stream),
     _response(_stream),
-    _timeout(std::chrono::steady_clock::now()),
+    _timeout(Clock::GetCurrentTimePoint()),
     _stage(Stage::WaitReadable) {
     Log::Default()->Verbose("Channel {} created", _id);
 }
@@ -70,13 +122,13 @@ void ChannelBase::SetStage(Stage s) {
     _stage = s;
 }
 
-std::chrono::time_point<std::chrono::steady_clock> ChannelBase::GetRequestedTimeout() const {
+Clock::TimePoint ChannelBase::GetRequestedTimeout() const {
     return _timeout;
 }
 
 bool ChannelBase::IsReady() const {
     // Set timeout (probably due to throttling) has not yet expired.
-    if (std::chrono::steady_clock::now() < _timeout.load())
+    if (Clock::GetCurrentTimePoint() < _timeout.load())
         return false;
 
     // If we're closed, we don't have anything
@@ -100,6 +152,7 @@ void ChannelBase::OnRead() {
 
     if (!throttlingInfo.full) {
         Log::Default()->Verbose("Channel {} throttled. Waiting for read quota to fill.", _id);
+        RecordReadTimeoutEvent(throttlingInfo.fillTime);
         _stage = Stage::ReadTimeout;
         _timeout = throttlingInfo.fillTime;
         return;
@@ -157,6 +210,7 @@ bool ChannelBase::FetchData(bool(Request::*func)(std::size_t, std::size_t&), std
             // as the throttler allowed us to, we can infer that the
             // socket needs to send more data for us to read.
             Log::Default()->Verbose("Channel {} socket buffer empty. Waiting for readability.", _id);
+            RecordProfileEvent<ChannelWaitReadable>();
             _stage = Stage::WaitReadable;
         } else {
             // If we're *not* done and we *have* read as much as
@@ -164,8 +218,10 @@ bool ChannelBase::FetchData(bool(Request::*func)(std::size_t, std::size_t&), std
             // the throttler has emptied out, and so we need to
             // wait for it to become full again.
             Log::Default()->Verbose("Channel {} throttled. Waiting for read quota to fill.", _id);
+            auto fillTime = GetThrottlingInfo(_throttlers.Read).fillTime;
+            RecordReadTimeoutEvent(fillTime);
             _stage = Stage::ReadTimeout;
-            _timeout = GetThrottlingInfo(_throttlers.Read).fillTime;
+            _timeout = fillTime;
         }
     }
 
@@ -206,6 +262,7 @@ void ChannelBase::SendInternalError() {
     _response = Response(_stream);
     _response.SetExplicitKeepAlive(false);
     _response.Send(Status::InternalServerError);
+    RecordProfileEvent<ChannelWriting>();
     _stage = Stage::Write;
 }
 
@@ -213,6 +270,7 @@ void ChannelBase::HandleControlDirective(Control directive) {
     switch (directive) {
         case Control::SendResponse:
             // Simple enough, just start writing the response
+            RecordProfileEvent<ChannelWriting>();
             _stage = Stage::Write;
             break;
 
@@ -237,11 +295,13 @@ void ChannelBase::HandleControlDirective(Control directive) {
                 if (value == "100-continue") {
                     _response = Response(_stream);
                     _response.Send(Status::Continue);
+                    RecordProfileEvent<ChannelWriting>();
                     _stage = Stage::Write;
                 }
             } else {
                 // It doesn't need our confirmation!
                 // Ok, just go straight to reading.
+                RecordProfileEvent<ChannelReading>();
                 _stage = Stage::Read;
             }
 
@@ -256,6 +316,7 @@ void ChannelBase::HandleControlDirective(Control directive) {
                 if (value == "100-continue") {
                     _response = Response(_stream);
                     _response.Send(Status::ExpectationFailed);
+                    RecordProfileEvent<ChannelWriting>();
                     _stage = Stage::Write;
                 }
             } else {
@@ -271,6 +332,7 @@ void ChannelBase::OnWrite() {
 
     if (!throttlingInfo.full) {
         Log::Default()->Verbose("Channel {} throttled. Waiting for write quota to fill.", _id);
+        RecordWriteTimeoutEvent(throttlingInfo.fillTime);
         _stage = Stage::WriteTimeout;
         _timeout = throttlingInfo.fillTime;
         return;
@@ -283,16 +345,20 @@ void ChannelBase::OnWrite() {
 
     // Okay, all data was flushed
 
+    RecordProfileEvent<ChannelWritten>();
+
     if (_forceClose) {
         Close();
     } else if (_fetchingContent) {
         // This means that we just sent a response requesting
         // the client to send more data to the channel.
+        RecordProfileEvent<ChannelReading>();
         _stage = Stage::Read;
     } else if (_response.GetKeepAlive()) {
         Log::Default()->Verbose("Channel {} sent response and keeps alive", _id);
         _request = Request(_stream);
         _fetchingContent = false; // Will be reading a new request header
+        RecordProfileEvent<ChannelReading>();
         _stage = Stage::Read;
     } else {
         Log::Default()->Verbose("Channel {} sent final response", _id);
@@ -319,6 +385,7 @@ bool ChannelBase::FlushData(std::size_t maxWrite) {
             // socket needs to release more of its buffered data.
             if (bytesFlushed < _response.GetBufferSize()) {
                 Log::Default()->Verbose("Channel {} socket buffer full. Waiting for writability.", _id);
+                RecordProfileEvent<ChannelWaitWritable>();
                 _stage = Stage::WaitWritable;
             }
         } else {
@@ -327,8 +394,10 @@ bool ChannelBase::FlushData(std::size_t maxWrite) {
             // the throttler has emptied out, and so we need to
             // wait for it to become full again.
             Log::Default()->Verbose("Channel {} throttled. Waiting for write quota to fill.", _id);
+            auto fillTime = GetThrottlingInfo(_throttlers.Write).fillTime;
+            RecordWriteTimeoutEvent(fillTime);
             _stage = Stage::WriteTimeout;
-            _timeout = GetThrottlingInfo(_throttlers.Write).fillTime;
+            _timeout = fillTime;
         }
     }
 
@@ -341,10 +410,11 @@ void ChannelBase::Close() {
 
     Log::Default()->Verbose("Channel {} closed", _id);
 
-    _timeout = std::chrono::steady_clock::now();
+    _timeout = Clock::GetCurrentTimePoint();
     _request = Request();
     _response = Response();
     _stream.reset();
+    RecordProfileEvent<ChannelClosed>();
     _stage = Stage::Closed;
 }
 
@@ -371,7 +441,7 @@ ChannelBase::ThrottlingInfo ChannelBase::GetThrottlingInfo(const Throttlers::Gro
         info.fillTime = std::max(_throttlers.Read.Dedicated.GetFillTime(info.capacity),
                                  _throttlers.Read.Master->GetFillTime(info.capacity));
     else
-        info.fillTime = Throttler::Clock::now();
+        info.fillTime = Clock::GetCurrentTimePoint();
 
     return info;
 }

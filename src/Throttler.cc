@@ -33,25 +33,25 @@ bool Throttler::IsEnabled() const {
     return _enabled;
 }
 
-std::chrono::time_point<Throttler::Clock> Throttler::GetFillTime() const {
+Clock::TimePoint Throttler::GetFillTime() const {
     std::lock_guard<std::mutex> lock(_mutex);
 
     if (!_enabled)
-        return Clock::now();
+        return Clock::GetCurrentTimePoint();
 
     UpdateCurrentQuota();
 
     auto ratio = _currentQuota / double(_capacity);
     auto remainingMs = milliseconds(std::size_t(_interval.count() * (1 - ratio)));
 
-    return Clock::now() + remainingMs;
+    return Clock::GetCurrentTimePoint() + remainingMs;
 }
 
-std::chrono::time_point<Throttler::Clock> Throttler::GetFillTime(std::size_t desiredQuota) const {
+Clock::TimePoint Throttler::GetFillTime(std::size_t desiredQuota) const {
     std::lock_guard<std::mutex> lock(_mutex);
 
     if (!_enabled)
-        return Clock::now();
+        return Clock::GetCurrentTimePoint();
 
     UpdateCurrentQuota();
 
@@ -60,7 +60,7 @@ std::chrono::time_point<Throttler::Clock> Throttler::GetFillTime(std::size_t des
     auto desiredRatio = desiredQuota / double(_capacity);
     auto timeout = std::size_t(remainingMsTillFull.count() * desiredRatio);
 
-    return Clock::now() + std::chrono::milliseconds(timeout);
+    return Clock::GetCurrentTimePoint() + std::chrono::milliseconds(timeout);
 }
 
 std::size_t Throttler::GetCurrentQuota() const {
@@ -89,11 +89,11 @@ void Throttler::Consume(std::size_t n) {
     else
         _currentQuota -= n;
 
-    _lastConsumption = Clock::now();
+    _lastConsumption = Clock::GetCurrentTimePoint();
 }
 
 std::size_t Throttler::UpdateCurrentQuota() const {
-    auto elapsed = duration_cast<decltype(_interval)>(Clock::now() - _lastConsumption);
+    auto elapsed = duration_cast<decltype(_interval)>(Clock::GetCurrentTimePoint() - _lastConsumption);
     auto fillFactor = elapsed.count() / double(_interval.count());
     auto fill = std::size_t(_capacity * fillFactor);
     _currentQuota = std::min(_capacity, _currentQuota + fill);

@@ -1,5 +1,6 @@
 #pragma once
 
+#include "Clock.h"
 #include "Poller.h"
 #include "Profiler.h"
 #include "Request.h"
@@ -11,34 +12,9 @@
 
 namespace Nitra {
 
-class ChannelEvent : public ProfileEvent {
-public:
-    ChannelEvent(const char* source, std::uint64_t channelId);
-
-    std::string GetSource() const override;
-    std::string GetSummary() const override;
-    void Accept(ProfileEventReader&) const override;
-
-    std::uint64_t ChannelId;
-
-private:
-    const char* _source;
-};
-
-class ChannelReadableEvent : public ChannelEvent {
-public:
-    using ChannelEvent::ChannelEvent;
-};
-
-class ChannelWritableEvent : public ChannelEvent {
-public:
-    using ChannelEvent::ChannelEvent;
-};
-
-class ChannelCompletionEvent : public ChannelEvent {
-public:
-    using ChannelEvent::ChannelEvent;
-};
+/**
+ * ChannelBase
+ */
 
 class ChannelBase {
 public:
@@ -77,7 +53,7 @@ private:
         std::size_t currentQuota;
         std::size_t capacity;
         bool full;
-        std::chrono::time_point<Throttler::Clock> fillTime;
+        Clock::TimePoint fillTime;
     };
 
     ThrottlingInfo GetThrottlingInfo(const Throttlers::Group&) const;
@@ -98,7 +74,7 @@ private:
      * to wait for before performing another stage, even
      * if data is already available.
      */
-    std::chrono::time_point<std::chrono::steady_clock> GetRequestedTimeout() const;
+    Clock::TimePoint GetRequestedTimeout() const;
 
     /**
      * Gets whether the channel is ready to perform its stage.
@@ -119,6 +95,11 @@ private:
     const std::shared_ptr<FileStream>& GetStream() const;
     int GetId() const;
 
+    template <class T>
+    void RecordProfileEvent() const;
+    void RecordReadTimeoutEvent(Clock::TimePoint readyTime) const;
+    void RecordWriteTimeoutEvent(Clock::TimePoint readyTime) const;
+
     bool FetchData(bool(Request::*)(std::size_t, std::size_t&), std::size_t maxRead);
     void LogNewRequest();
     void SendInternalError();
@@ -130,7 +111,7 @@ private:
     Throttlers _throttlers;
     Request _request;
     Response _response;
-    std::atomic<std::chrono::time_point<std::chrono::steady_clock>> _timeout;
+    std::atomic<Clock::TimePoint> _timeout;
     std::atomic<Stage> _stage;
     bool _forceClose = false;
     bool _fetchingContent = false;
@@ -139,5 +120,113 @@ private:
     friend class Channel;
     friend class Orchestrator;
 };
+
+/**
+ * Profiling
+ */
+
+class ChannelEvent : public ProfileEvent {
+public:
+    ChannelEvent(const char* source, std::uint64_t channelId);
+
+    std::string GetSource() const override;
+    std::string GetSummary() const override;
+    void Accept(ProfileEventReader&) const override;
+
+    std::uint64_t ChannelId;
+
+private:
+    const char* _source;
+};
+
+class ChannelReadable : public ChannelEvent {
+public:
+    using ChannelEvent::ChannelEvent;
+    void Accept(ProfileEventReader&) const override;
+};
+
+class ChannelWritable : public ChannelEvent {
+public:
+    using ChannelEvent::ChannelEvent;
+    void Accept(ProfileEventReader&) const override;
+};
+
+class ChannelCompleted : public ChannelEvent {
+public:
+    using ChannelEvent::ChannelEvent;
+    void Accept(ProfileEventReader&) const override;
+};
+
+class ChannelTimeout : public ChannelEvent {
+public:
+    ChannelTimeout(const char* source,
+                   std::uint64_t channelId,
+                   Clock::TimePoint throttledTime,
+                   Clock::TimePoint readyTime);
+
+    Clock::TimePoint ThrottledTime;
+    Clock::TimePoint ReadyTime;
+};
+
+class ChannelReadTimeout : public ChannelTimeout {
+public:
+    using ChannelTimeout::ChannelTimeout;
+    void Accept(ProfileEventReader&) const override;
+};
+
+class ChannelWriteTimeout : public ChannelTimeout {
+public:
+    using ChannelTimeout::ChannelTimeout;
+    void Accept(ProfileEventReader&) const override;
+};
+
+class ChannelWaitReadable : public ChannelEvent {
+public:
+    using ChannelEvent::ChannelEvent;
+    void Accept(ProfileEventReader&) const override;
+};
+
+class ChannelWaitWritable : public ChannelEvent {
+public:
+    using ChannelEvent::ChannelEvent;
+    void Accept(ProfileEventReader&) const override;
+};
+
+class ChannelReading : public ChannelEvent {
+public:
+    using ChannelEvent::ChannelEvent;
+    void Accept(ProfileEventReader&) const override;
+};
+
+class ChannelWriting : public ChannelEvent {
+public:
+    using ChannelEvent::ChannelEvent;
+    void Accept(ProfileEventReader&) const override;
+};
+
+class ChannelWritten : public ChannelEvent {
+public:
+    using ChannelEvent::ChannelEvent;
+    void Accept(ProfileEventReader&) const override;
+};
+
+class ChannelClosed : public ChannelEvent {
+public:
+    using ChannelEvent::ChannelEvent;
+    void Accept(ProfileEventReader&) const override;
+};
+
+template <class T>
+void ChannelBase::RecordProfileEvent() const {
+    Profiler::Record<T>("ChannelBase", _id);
+}
+
+inline void ChannelBase::RecordReadTimeoutEvent(Clock::TimePoint readyTime) const {
+    Profiler::Record<ChannelReadTimeout>("ChannelBase", _id, Clock::GetCurrentTimePoint(), readyTime);
+}
+
+inline void ChannelBase::RecordWriteTimeoutEvent(Clock::TimePoint readyTime) const {
+    Profiler::Record<ChannelWriteTimeout>("ChannelBase", _id, Clock::GetCurrentTimePoint(), readyTime);
+}
 
 } // namespace Nitra

@@ -1,0 +1,21 @@
+#pragma once
+
+#include <chrono>
+
+namespace Nitra {
+
+class Clock {
+    using Impl = std::chrono::steady_clock;
+
+public:
+    using TimePoint = std::chrono::time_point<Impl>;
+
+    static TimePoint GetCurrentTimePoint();
+};
+
+inline Clock::TimePoint Clock::GetCurrentTimePoint() {
+    return Impl::now();
+}
+
+} // namespace Nitra
+

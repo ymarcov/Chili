@@ -1,9 +1,12 @@
 #pragma once
 
+#include "Clock.h"
+
 #include <algorithm>
 #include <chrono>
 #include <functional>
 #include <memory>
+#include <mutex>
 #include <string>
 #include <vector>
 
@@ -15,20 +18,36 @@ public:
 
     virtual void Read(const class ProfileEvent&) {}
     virtual void Read(const class GenericProfileEvent&) {}
+
+    /**
+     * Channel events
+     */
+    virtual void Read(const class ChannelEvent&) {}
+    virtual void Read(const class ChannelReadable&) {}
+    virtual void Read(const class ChannelWritable&) {}
+    virtual void Read(const class ChannelCompleted&) {}
+    virtual void Read(const class ChannelReadTimeout&) {}
+    virtual void Read(const class ChannelWriteTimeout&) {}
+    virtual void Read(const class ChannelWaitReadable&) {}
+    virtual void Read(const class ChannelWaitWritable&) {}
+    virtual void Read(const class ChannelReading&) {}
+    virtual void Read(const class ChannelWriting&) {}
+    virtual void Read(const class ChannelWritten&) {}
+    virtual void Read(const class ChannelClosed&) {}
 };
 
 class ProfileEvent {
 public:
     ProfileEvent();
 
-    const std::chrono::steady_clock::time_point& GetTimePoint() const;
+    const Clock::TimePoint& GetTimePoint() const;
 
     virtual std::string GetSource() const = 0;
     virtual std::string GetSummary() const = 0;
     virtual void Accept(ProfileEventReader&) const = 0;
 
 private:
-    std::chrono::steady_clock::time_point _time_point;
+    Clock::TimePoint _time_point;
 };
 
 class GenericProfileEvent : public ProfileEvent {
@@ -48,26 +67,26 @@ private:
 class Profiler {
 public:
     template <class T, class... Args>
-    static void Record(Args... args) {
-        _events.push_back(std::make_unique<T>(args...));
-    }
+    static void Record(Args... args);
 
-    static std::vector<std::reference_wrapper<const ProfileEvent>> GetEvents() {
-        auto result = std::vector<std::reference_wrapper<const ProfileEvent>>();
-
-        result.reserve(_events.size());
-
-        std::transform(begin(_events), end(_events),
-                       std::back_inserter(result), [](auto& e) {
-            return std::ref(const_cast<const ProfileEvent&>(*e));
-        });
-
-        return result;
-    }
+    static void Enable();
+    static void Disable();
+    static void Clear();
+    static std::vector<std::reference_wrapper<const ProfileEvent>> GetEvents();
 
 private:
+    static bool _enabled;
     static std::vector<std::unique_ptr<ProfileEvent>> _events;
+    static std::mutex _mutex;
 };
+
+template <class T, class... Args>
+void Profiler::Record(Args... args) {
+    std::lock_guard<std::mutex> lock(_mutex);
+
+    if (_enabled)
+        _events.push_back(std::make_unique<T>(args...));
+}
 
 } // namespace Nitra
 

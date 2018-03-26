@@ -1,5 +1,7 @@
 #pragma once
 
+#include "Clock.h"
+
 #include <chrono>
 #include <condition_variable>
 #include <mutex>
@@ -13,11 +15,11 @@ public:
     void Wait() const;
     bool TryWait() const;
     bool Wait(std::chrono::microseconds timeout) const;
-    bool WaitUntil(std::chrono::time_point<std::chrono::steady_clock>) const;
+    bool WaitUntil(Clock::TimePoint) const;
     void WaitAndReset();
     bool TryWaitAndReset();
     bool WaitAndReset(std::chrono::microseconds timeout);
-    bool WaitUntilAndReset(std::chrono::time_point<std::chrono::steady_clock>);
+    bool WaitUntilAndReset(Clock::TimePoint);
 
 private:
     mutable std::mutex _mutex;

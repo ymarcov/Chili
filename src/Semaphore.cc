@@ -68,6 +68,15 @@ bool Semaphore::TryDecrement(std::chrono::nanoseconds timeout) {
     return true;
 }
 
+bool Semaphore::TryDecrementUntil(Clock::TimePoint timeout) {
+    auto now = Clock::GetCurrentTimePoint();
+
+    if (now >= timeout)
+        return TryDecrement();
+
+    return TryDecrement(timeout - now);
+}
+
 bool Semaphore::TryDecrement() {
     auto ret = ::sem_trywait(static_cast<sem_t*>(_nativeHandle.get()));
 

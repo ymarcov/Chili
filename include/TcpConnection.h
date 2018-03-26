@@ -33,6 +33,7 @@ public:
 
     const IPEndpoint& Endpoint() const noexcept;
     void Cork(bool);
+    void Flush();
 
 private:
     IPEndpoint _endpoint;

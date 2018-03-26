@@ -72,5 +72,24 @@ void TcpConnection::Cork(bool enabled) {
         throw SystemError();
 }
 
+void TcpConnection::Flush() {
+    int originalValue;
+    ::socklen_t len;
+
+    if (-1 == ::getsockopt(_nativeHandle, IPPROTO_TCP, TCP_NODELAY, &originalValue, &len))
+        throw SystemError();
+
+    int onValue = 1;
+
+    if (-1 == ::setsockopt(_nativeHandle, IPPROTO_TCP, TCP_NODELAY, &onValue, sizeof(len))) {
+        auto e = SystemError();
+        ::setsockopt(_nativeHandle, IPPROTO_TCP, TCP_NODELAY, &originalValue, sizeof(len));
+        throw e;
+    }
+
+    if (-1 == ::setsockopt(_nativeHandle, IPPROTO_TCP, TCP_NODELAY, &originalValue, sizeof(len)))
+        throw SystemError();
+}
+
 } // namespace Nitra
 

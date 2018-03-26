@@ -2,19 +2,21 @@
 
 #include "ChannelBase.h"
 #include "ChannelFactory.h"
+#include "Clock.h"
 #include "FileStream.h"
 #include "Poller.h"
 #include "Profiler.h"
 #include "Signal.h"
 #include "ThreadPool.h"
 #include "Throttler.h"
+#include "WaitEvent.h"
 
 #include <atomic>
 #include <chrono>
-#include <condition_variable>
 #include <future>
 #include <mutex>
 #include <thread>
+#include <unordered_map>
 
 namespace Nitra {
 
@@ -46,7 +48,7 @@ private:
     private:
         Orchestrator* _orchestrator;
         std::shared_ptr<ChannelBase> _channel;
-        std::chrono::time_point<std::chrono::steady_clock> _lastActive;
+        Clock::TimePoint _lastActive;
         std::mutex _mutex;
         mutable std::mutex _lastActiveMutex;
         std::atomic_bool _inProcess{false};
@@ -57,6 +59,7 @@ private:
     template <class T>
     void RecordProfileEvent(const ChannelBase&) const;
 
+    void WakeUp();
     void OnEvent(std::shared_ptr<FileStream>, int events);
     void HandleChannelEvent(ChannelBase&, int events);
     void IterateOnce();
@@ -66,7 +69,7 @@ private:
     void InternalForceStopOnError();
     bool AtLeastOneTaskIsReady();
     bool IsTaskReady(Task&);
-    std::chrono::time_point<std::chrono::steady_clock> GetLatestAllowedWakeup();
+    Clock::TimePoint GetLatestAllowedWakeup();
     void CollectGarbage();
 
     std::shared_ptr<ChannelFactory> _channelFactory;
@@ -77,7 +80,8 @@ private:
     std::shared_ptr<Throttler> _masterReadThrottler;
     std::shared_ptr<Throttler> _masterWriteThrottler;
     std::thread _thread;
-    std::condition_variable _newEvent;
+    WaitEvent _newEvent;
+    std::atomic<Clock::TimePoint> _wakeUpTime;
     std::atomic_bool _stop{true};
     std::mutex _mutex;
     std::vector<std::shared_ptr<Task>> _tasks;

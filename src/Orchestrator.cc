@@ -2,6 +2,9 @@
 #include "Log.h"
 
 #include <algorithm>
+#include <chrono>
+
+using namespace std::literals;
 
 namespace Nitra {
 
@@ -24,7 +27,7 @@ void Orchestrator::Task::Activate() {
 
         _channel->Close();
         _inProcess = false;
-        _orchestrator->_newEvent.notify_one();
+        _orchestrator->WakeUp();
         return;
     }
 
@@ -35,7 +38,7 @@ void Orchestrator::Task::Activate() {
         // This is checked from other places in parallel via
         // ReachedInactivityTimeout(). So we need to lock it.
         std::lock_guard<std::mutex> lock(_lastActiveMutex);
-        _lastActive = std::chrono::steady_clock::now();
+        _lastActive = Clock::GetCurrentTimePoint();
     }
 
     // In case we're sending it off to the poller,
@@ -77,7 +80,7 @@ void Orchestrator::Task::Activate() {
     if (notify) {
         // Wake up our main thread so that our
         // next stage can be scheduled.
-        _orchestrator->_newEvent.notify_one();
+        _orchestrator->WakeUp();
     }
 }
 
@@ -95,7 +98,7 @@ bool Orchestrator::Task::ReachedInactivityTimeout() const {
         lastActive = _lastActive;
     }
 
-    auto diff = std::chrono::steady_clock::now() - lastActive;
+    auto diff = Clock::GetCurrentTimePoint() - lastActive;
     return diff >= _orchestrator->_inactivityTimeout.load();
 }
 
@@ -112,10 +115,11 @@ Orchestrator::Orchestrator(std::shared_ptr<ChannelFactory> channelFactory, int t
     _poller(2),
     _threadPool(threads),
     _masterReadThrottler(std::make_shared<Throttler>()),
-    _masterWriteThrottler(std::make_shared<Throttler>()) {
+    _masterWriteThrottler(std::make_shared<Throttler>()),
+    _wakeUpTime(Clock::GetCurrentTimePoint()) {
     _poller.OnStop += [this] {
         _stop = true;
-        _newEvent.notify_one();
+        WakeUp();
     };
 }
 
@@ -176,7 +180,7 @@ void Orchestrator::Stop() {
     std::unique_lock<std::mutex> lock(_mutex);
     _stop = true;
     lock.unlock();
-    _newEvent.notify_one();
+    WakeUp();
 
     if (_thread.joinable())
         _thread.join();
@@ -189,7 +193,7 @@ void Orchestrator::Add(std::shared_ptr<FileStream> stream) {
     task->_channel = _channelFactory->CreateChannel(std::move(stream));
     task->_channel->_throttlers.Read.Master = _masterReadThrottler;
     task->_channel->_throttlers.Write.Master = _masterWriteThrottler;
-    task->_lastActive = std::chrono::steady_clock::now();
+    task->_lastActive = Clock::GetCurrentTimePoint();
 
     {
         std::lock_guard<std::mutex> lock(_mutex);
@@ -209,6 +213,11 @@ void Orchestrator::ThrottleWrite(Throttler t) {
 
 void Orchestrator::SetInactivityTimeout(std::chrono::milliseconds ms) {
     _inactivityTimeout = ms;
+}
+
+void Orchestrator::WakeUp() {
+    _wakeUpTime = Clock::GetCurrentTimePoint();
+    _newEvent.Signal();
 }
 
 void Orchestrator::OnEvent(std::shared_ptr<FileStream> fs, int events) {
@@ -234,7 +243,7 @@ void Orchestrator::OnEvent(std::shared_ptr<FileStream> fs, int events) {
     if (events & Poller::Events::Completion) {
         // No use talking to a wall. Even if we had other events,
         // no one's going to be listening to our replies.
-        RecordProfileEvent<ChannelCompletionEvent>(channel);
+        RecordProfileEvent<ChannelCompleted>(channel);
         Log::Default()->Verbose("Channel {} received completion event", channel.GetId());
         channel.Close();
     } else {
@@ -246,14 +255,14 @@ void Orchestrator::OnEvent(std::shared_ptr<FileStream> fs, int events) {
     // either by garbage-collection or by advancing the
     // relevant task's state-machine. So we need to wake
     // our main thread up to do the work.
-    _newEvent.notify_one();
+    WakeUp();
 }
 
 void Orchestrator::HandleChannelEvent(ChannelBase& channel, int events) {
     switch (channel.GetStage()) {
         case ChannelBase::Stage::WaitReadable: {
             if (events & Poller::Events::Readable) {
-                RecordProfileEvent<ChannelReadableEvent>(channel);
+                RecordProfileEvent<ChannelReadable>(channel);
                 Log::Default()->Verbose("Channel {} became readable", channel.GetId());
                 channel.SetStage(ChannelBase::Stage::Read);
             } else {
@@ -264,7 +273,7 @@ void Orchestrator::HandleChannelEvent(ChannelBase& channel, int events) {
 
         case ChannelBase::Stage::WaitWritable: {
             if (events & Poller::Events::Writable) {
-                RecordProfileEvent<ChannelWritableEvent>(channel);
+                RecordProfileEvent<ChannelWritable>(channel);
                 Log::Default()->Verbose("Channel {} became writable", channel.GetId());
                 channel.SetStage(ChannelBase::Stage::Write);
             } else {
@@ -322,23 +331,16 @@ std::vector<std::shared_ptr<Orchestrator::Task>> Orchestrator::CaptureTasks() {
     // This way, we don't take the lock for too long.
     std::unique_lock<std::mutex> lock(_mutex);
 
-    auto timeout = GetLatestAllowedWakeup();
+    Clock::TimePoint timeout;
 
-    if (timeout > std::chrono::steady_clock::now()) {
-        _newEvent.wait_until(lock, timeout, [&] {
-            // Should the server stop?
-            if (_stop)
-                return true;
+    while ((timeout = GetLatestAllowedWakeup()) > Clock::GetCurrentTimePoint()) {
+        lock.unlock();
+        _newEvent.WaitUntilAndReset(timeout);
+        lock.lock();
 
-            // We may return and do some work
-            if (AtLeastOneTaskIsReady())
-                return true;
-
-            // Recalculate our new timeout based
-            // on our new circumstances.
-            timeout = GetLatestAllowedWakeup();
-            return false;
-        });
+        // Should the server stop?
+        if (_stop || AtLeastOneTaskIsReady())
+            break;
     }
 
     CollectGarbage();
@@ -382,21 +384,19 @@ bool Orchestrator::IsTaskReady(Task& t) {
     return t.GetChannel().IsReady();
 }
 
-std::chrono::time_point<std::chrono::steady_clock> Orchestrator::GetLatestAllowedWakeup() {
-    auto now = std::chrono::steady_clock::now();
-
+Clock::TimePoint Orchestrator::GetLatestAllowedWakeup() {
     // Our latest possible timeout (i.e. default)
     // if nothing else is requested, is in fact
     // our inactivity timeout, when we check
     // if any channels have remained inactive
     // for too long, in which case we close them.
-    auto timeout = now + _inactivityTimeout.load();
+    auto timeout = _wakeUpTime.load() + _inactivityTimeout.load();
 
     for (auto& t : _tasks) {
         auto& channel = t->GetChannel();
         auto&& requestedTimeout = channel.GetRequestedTimeout();
 
-        if ((requestedTimeout > now) && (requestedTimeout < timeout)) {
+        if ((requestedTimeout >= _wakeUpTime.load()) && (requestedTimeout < timeout)) {
             // This client has requested an earlier timeout than
             // the one we were going to use. In order that we can
             // respond to its event as quickly as possible, we'll

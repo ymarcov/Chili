@@ -62,6 +62,16 @@ const char okResponse[] =
 const char requestDataWithExpectBody[] = "Request body!";
 
 class OrchestratorTest : public Test {
+public:
+    OrchestratorTest() {
+        Profiler::Enable();
+    }
+
+    ~OrchestratorTest() {
+        Profiler::Disable();
+        Profiler::Clear();
+    }
+
 protected:
     void WriteMoreData(std::shared_ptr<FileStream>& fs, int minSize, int maxSize = -1) {
         if (maxSize == -1)

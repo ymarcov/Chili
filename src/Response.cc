@@ -165,6 +165,9 @@ bool Response::FlushHeader(std::size_t& maxBytes, std::size_t& totalBytesWritten
     if (_writePosition >= header.size())
         return true; // move on
 
+    if (auto tcp = std::dynamic_pointer_cast<TcpConnection>(_stream))
+        tcp->Cork(true);
+
     auto quota = std::min(maxBytes, header.size() - _writePosition);
     auto bytesWritten = _stream->Write(header.c_str() + _writePosition, quota);
 
@@ -172,7 +175,19 @@ bool Response::FlushHeader(std::size_t& maxBytes, std::size_t& totalBytesWritten
     _writePosition += bytesWritten;
     maxBytes -= bytesWritten;
 
-    return _writePosition == header.size();
+    auto headerSent = _writePosition == header.size();
+
+    if (headerSent) {
+        // if response has no body, and only headers, uncork.
+        if (!(response._strBody || response._body)) {
+            if (auto tcp = std::dynamic_pointer_cast<TcpConnection>(_stream)) {
+                tcp->Cork(false);
+                tcp->Flush();
+            }
+        }
+    }
+
+    return headerSent;
 }
 
 template <class T>
@@ -187,7 +202,16 @@ bool Response::FlushBody(T& body, std::size_t& maxBytes, std::size_t& totalBytes
     totalBytesWritten += bytesWritten;
     _writePosition += bytesWritten;
 
-    return (_writePosition - header.size()) == body.size();
+    auto sentAll = (_writePosition - header.size()) == body.size();
+
+    if (sentAll) {
+        if (auto tcp = std::dynamic_pointer_cast<TcpConnection>(_stream)) {
+            tcp->Cork(false);
+            tcp->Flush();
+        }
+    }
+
+    return sentAll;
 }
 
 bool Response::FlushStream(std::size_t& maxBytes, std::size_t& totalBytesWritten) {
@@ -237,8 +261,10 @@ bool Response::FlushStream(std::size_t& maxBytes, std::size_t& totalBytesWritten
         }
 
         if (lastPseudoChunk) {
-            if (auto tcp = std::dynamic_pointer_cast<TcpConnection>(_stream))
+            if (auto tcp = std::dynamic_pointer_cast<TcpConnection>(_stream)) {
                 tcp->Cork(false);
+                tcp->Flush();
+            }
 
             return true;
         } else { // reclaim leftovers
