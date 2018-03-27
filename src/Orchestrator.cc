@@ -17,6 +17,8 @@ bool Orchestrator::Task::IsHandlingInProcess() const {
 }
 
 void Orchestrator::Task::Activate() {
+    _orchestrator->RecordChannelEvent<ChannelActivated>(*_channel);
+
     if (ReachedInactivityTimeout()) {
         Log::Default()->Info("Channel {} reached inactivity timeout", _channel->GetId());
 
@@ -38,7 +40,7 @@ void Orchestrator::Task::Activate() {
         // This is checked from other places in parallel via
         // ReachedInactivityTimeout(). So we need to lock it.
         std::lock_guard<std::mutex> lock(_lastActiveMutex);
-        _lastActive = Clock::GetCurrentTimePoint();
+        _lastActive = Clock::GetCurrentTime();
     }
 
     // In case we're sending it off to the poller,
@@ -98,7 +100,7 @@ bool Orchestrator::Task::ReachedInactivityTimeout() const {
         lastActive = _lastActive;
     }
 
-    auto diff = Clock::GetCurrentTimePoint() - lastActive;
+    auto diff = Clock::GetCurrentTime() - lastActive;
     return diff >= _orchestrator->_inactivityTimeout.load();
 }
 
@@ -116,7 +118,7 @@ Orchestrator::Orchestrator(std::shared_ptr<ChannelFactory> channelFactory, int t
     _threadPool(threads),
     _masterReadThrottler(std::make_shared<Throttler>()),
     _masterWriteThrottler(std::make_shared<Throttler>()),
-    _wakeUpTime(Clock::GetCurrentTimePoint()) {
+    _wakeUpTime(Clock::GetCurrentTime()) {
     _poller.OnStop += [this] {
         _stop = true;
         WakeUp();
@@ -193,7 +195,7 @@ void Orchestrator::Add(std::shared_ptr<FileStream> stream) {
     task->_channel = _channelFactory->CreateChannel(std::move(stream));
     task->_channel->_throttlers.Read.Master = _masterReadThrottler;
     task->_channel->_throttlers.Write.Master = _masterWriteThrottler;
-    task->_lastActive = Clock::GetCurrentTimePoint();
+    task->_lastActive = Clock::GetCurrentTime();
 
     {
         std::lock_guard<std::mutex> lock(_mutex);
@@ -216,7 +218,7 @@ void Orchestrator::SetInactivityTimeout(std::chrono::milliseconds ms) {
 }
 
 void Orchestrator::WakeUp() {
-    _wakeUpTime = Clock::GetCurrentTimePoint();
+    _wakeUpTime = Clock::GetCurrentTime();
     _newEvent.Signal();
     Profiler::Record<OrchestratorSignalled>();
 }
@@ -334,12 +336,14 @@ std::vector<std::shared_ptr<Orchestrator::Task>> Orchestrator::CaptureTasks() {
 
     Clock::TimePoint timeout;
 
-    while ((timeout = GetLatestAllowedWakeup()) > Clock::GetCurrentTimePoint()) {
+    Profiler::Record<OrchestratorCapturingTasks>();
+
+    while ((timeout = GetLatestAllowedWakeup()) > Clock::GetCurrentTime()) {
         lock.unlock();
         Profiler::Record<OrchestratorWaiting>();
         _newEvent.WaitUntilAndReset(timeout);
-        Profiler::Record<OrchestratorWokeUp>();
         lock.lock();
+        Profiler::Record<OrchestratorWokeUp>();
 
         // Should the server stop?
         if (_stop || AtLeastOneTaskIsReady())
@@ -438,6 +442,10 @@ void OrchestratorWaiting::Accept(ProfileEventReader& reader) const {
 }
 
 void OrchestratorSignalled::Accept(ProfileEventReader& reader) const {
+    reader.Read(*this);
+}
+
+void OrchestratorCapturingTasks::Accept(ProfileEventReader& reader) const {
     reader.Read(*this);
 }
 

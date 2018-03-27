@@ -146,6 +146,8 @@ void Poller::DispatchEvents(void* eventsPtr, std::size_t n, const Poller::EventH
 
             DecrementRefCount(*fs);
         });
+
+        Profiler::Record<PollerEventDispatched>();
     }
 }
 
@@ -195,6 +197,22 @@ int Poller::ConvertToNative(int m) {
         result |= EPOLLERR;
 
     return result;
+}
+
+std::string PollerEvent::GetSource() const {
+    return "Poller";
+}
+
+std::string PollerEvent::GetSummary() const {
+    return "Event on Poller";
+}
+
+void PollerEvent::Accept(ProfileEventReader& reader) const {
+    reader.Read(*this);
+}
+
+void PollerEventDispatched::Accept(ProfileEventReader& reader) const {
+    reader.Read(*this);
 }
 
 } // namespace Nitra

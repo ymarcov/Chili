@@ -10,10 +10,10 @@ class Clock {
 public:
     using TimePoint = std::chrono::time_point<Impl>;
 
-    static TimePoint GetCurrentTimePoint();
+    static TimePoint GetCurrentTime();
 };
 
-inline Clock::TimePoint Clock::GetCurrentTimePoint() {
+inline Clock::TimePoint Clock::GetCurrentTime() {
     return Impl::now();
 }
 

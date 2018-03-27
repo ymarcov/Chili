@@ -122,5 +122,11 @@ public:
     void Accept(ProfileEventReader&) const override;
 };
 
+class OrchestratorCapturingTasks : public OrchestratorEvent {
+public:
+    using OrchestratorEvent::OrchestratorEvent;
+    void Accept(ProfileEventReader&) const override;
+};
+
 } // namespace Nitra
 

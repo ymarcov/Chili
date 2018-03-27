@@ -69,7 +69,7 @@ bool Semaphore::TryDecrement(std::chrono::nanoseconds timeout) {
 }
 
 bool Semaphore::TryDecrementUntil(Clock::TimePoint timeout) {
-    auto now = Clock::GetCurrentTimePoint();
+    auto now = Clock::GetCurrentTime();
 
     if (now >= timeout)
         return TryDecrement();

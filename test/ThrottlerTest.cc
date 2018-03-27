@@ -23,7 +23,7 @@ protected:
 TEST_F(ThrottlerTest, gets_allowed_size_by_elapsed_time) {
     Throttler throttler(0x1000, 100ms);
 
-    auto startTime = Clock::GetCurrentTimePoint();
+    auto startTime = Clock::GetCurrentTime();
 
     auto startQuota = throttler.GetCurrentQuota();
     EXPECT_EQ(0x1000, startQuota);
@@ -31,7 +31,7 @@ TEST_F(ThrottlerTest, gets_allowed_size_by_elapsed_time) {
     throttler.Consume(0x1000);
 
     std::this_thread::sleep_for(10ms);
-    auto elapsed = duration_cast<milliseconds>(Clock::GetCurrentTimePoint() - startTime);
+    auto elapsed = duration_cast<milliseconds>(Clock::GetCurrentTime() - startTime);
 
     EXPECT_LE(throttler.GetCurrentQuota(), 0x1000 * (elapsed.count() / 100.0));
 

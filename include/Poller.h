@@ -1,6 +1,7 @@
 #pragma once
 
 #include "FileStream.h"
+#include "Profiler.h"
 #include "Signal.h"
 #include "ThreadPool.h"
 
@@ -58,6 +59,23 @@ private:
     std::promise<void> _promise;
     std::map<const void*, std::pair<unsigned, std::shared_ptr<FileStream>>> _files;
     std::mutex _filesMutex;
+};
+
+/**
+ * Profiling
+ */
+
+class PollerEvent : public ProfileEvent {
+public:
+    std::string GetSource() const override;
+    std::string GetSummary() const override;
+    void Accept(ProfileEventReader&) const override;
+};
+
+class PollerEventDispatched : public PollerEvent {
+public:
+    using PollerEvent::PollerEvent;
+    void Accept(ProfileEventReader&) const override;
 };
 
 } // namespace Nitra

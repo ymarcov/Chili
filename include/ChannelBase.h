@@ -139,6 +139,12 @@ private:
     const char* _source;
 };
 
+class ChannelActivated : public ChannelEvent {
+public:
+    using ChannelEvent::ChannelEvent;
+    void Accept(ProfileEventReader&) const override;
+};
+
 class ChannelReadable : public ChannelEvent {
 public:
     using ChannelEvent::ChannelEvent;
@@ -222,11 +228,11 @@ void ChannelBase::RecordProfileEvent() const {
 }
 
 inline void ChannelBase::RecordReadTimeoutEvent(Clock::TimePoint readyTime) const {
-    Profiler::Record<ChannelReadTimeout>("ChannelBase", _id, Clock::GetCurrentTimePoint(), readyTime);
+    Profiler::Record<ChannelReadTimeout>("ChannelBase", _id, Clock::GetCurrentTime(), readyTime);
 }
 
 inline void ChannelBase::RecordWriteTimeoutEvent(Clock::TimePoint readyTime) const {
-    Profiler::Record<ChannelWriteTimeout>("ChannelBase", _id, Clock::GetCurrentTimePoint(), readyTime);
+    Profiler::Record<ChannelWriteTimeout>("ChannelBase", _id, Clock::GetCurrentTime(), readyTime);
 }
 
 } // namespace Nitra

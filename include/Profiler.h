@@ -12,6 +12,8 @@
 
 namespace Nitra {
 
+using Hz = std::uint64_t;
+
 class ProfileEventReader {
 public:
     void Visit(const class ProfileEvent&);
@@ -24,6 +26,7 @@ public:
      */
 
     virtual void Read(const class ChannelEvent&) {}
+    virtual void Read(const class ChannelActivated&) {}
     virtual void Read(const class ChannelReadable&) {}
     virtual void Read(const class ChannelWritable&) {}
     virtual void Read(const class ChannelCompleted&) {}
@@ -44,6 +47,13 @@ public:
     virtual void Read(const class OrchestratorSignalled&) {}
     virtual void Read(const class OrchestratorWokeUp&) {}
     virtual void Read(const class OrchestratorWaiting&) {}
+    virtual void Read(const class OrchestratorCapturingTasks&) {}
+
+    /**
+     * Poller events
+     */
+    virtual void Read(const class PollerEvent&) {}
+    virtual void Read(const class PollerEventDispatched&) {}
 };
 
 class ProfileEvent {
@@ -74,6 +84,86 @@ private:
     const char* _source;
 };
 
+class Profile {
+public:
+    std::string GetSummary() const;
+
+    Clock::TimePoint GetStartTime() const;
+    Clock::TimePoint GetEndTime() const;
+
+    std::uint64_t GetTimesChannelsWereActivated() const;
+    Hz GetRateChannelsWereActivated() const;
+    Hz GetRateChannelsWereActivated(Clock::TimePoint) const;
+
+    std::uint64_t GetTimesChannelsWaitedForReadability() const;
+    Hz GetRateChannelsWaitedForReadability() const;
+    Hz GetRateChannelsWaitedForReadability(Clock::TimePoint) const;
+
+    std::uint64_t GetTimesChannelsWaitedForWritability() const;
+    Hz GetRateChannelsWaitedForWritability() const;
+    Hz GetRateChannelsWaitedForWritability(Clock::TimePoint) const;
+
+    std::uint64_t GetTimesChannelsTimedOutOnReading() const;
+    Hz GetRateChannelsTimedOutOnReading() const;
+    Hz GetRateChannelsTimedOutOnReading(Clock::TimePoint) const;
+
+    std::uint64_t GetTimesChannelsTimedOutOnWriting() const;
+    Hz GetRateChannelsTimedOutOnWriting() const;
+    Hz GetRateChannelsTimedOutOnWriting(Clock::TimePoint) const;
+
+    std::uint64_t GetTimesChannelsBecameReadable() const;
+    Hz GetRateChannelsBecameReadable() const;
+    Hz GetRateChannelsBecameReadable(Clock::TimePoint) const;
+
+    std::uint64_t GetTimesChannelsBecameWritable() const;
+    Hz GetRateChannelsBecameWritable() const;
+    Hz GetRateChannelsBecameWritable(Clock::TimePoint) const;
+
+    std::uint64_t GetTimesChannelsWereReading() const;
+    Hz GetRateChannelsWereReading() const;
+    Hz GetRateChannelsWereReading(Clock::TimePoint) const;
+
+    std::uint64_t GetTimesChannelsWereWriting() const;
+    Hz GetRateChannelsWereWriting() const;
+    Hz GetRateChannelsWereWriting(Clock::TimePoint) const;
+
+    std::uint64_t GetTimesChannelsWroteFullResponse() const;
+    Hz GetRateChannelsWroteFullResponse() const;
+    Hz GetRateChannelsWroteFullResponse(Clock::TimePoint) const;
+
+    std::uint64_t GetTimesChannelsWereClosed() const;
+    Hz GetRateChannelsWereClosed() const;
+    Hz GetRateChannelsWereClosed(Clock::TimePoint) const;
+
+    std::uint64_t GetTimesOrchestratorWasSignalled() const;
+    Hz GetRateOrchestratorWasSignalled() const;
+    Hz GetRateOrchestratorWasSignalled(Clock::TimePoint) const;
+
+    std::uint64_t GetTimesOrchestratorWokeUp() const;
+    Hz GetRateOrchestratorWokeUp() const;
+    Hz GetRateOrchestratorWokeUp(Clock::TimePoint) const;
+
+    std::uint64_t GetTimesOrchestratorCapturedTasks() const;
+    Hz GetRateOrchestratorCapturedTasks() const;
+    Hz GetRateOrchestratorCapturedTasks(Clock::TimePoint) const;
+
+    std::chrono::milliseconds GetOrchestratorUpTime() const;
+    std::chrono::milliseconds GetOrchestratorIdleTime() const;
+
+    std::uint64_t GetTimesPollerDispatchedAnEvent() const;
+    Hz GetRatePollerDispatchedAnEvent() const;
+    Hz GetRatePollerDispatchedAnEvent(Clock::TimePoint) const;
+
+private:
+    Profile();
+
+    std::vector<std::reference_wrapper<const ProfileEvent>> _events;
+    Clock::TimePoint _startTime;
+    Clock::TimePoint _endTime;
+
+    friend class Profiler;
+};
+
 class Profiler {
 public:
     template <class T, class... Args>
@@ -82,12 +172,18 @@ public:
     static void Enable();
     static void Disable();
     static void Clear();
+
     static std::vector<std::reference_wrapper<const ProfileEvent>> GetEvents();
+    static Profile GetProfile();
 
 private:
     static bool _enabled;
     static std::vector<std::unique_ptr<ProfileEvent>> _events;
+    static Clock::TimePoint _startTime;
+    static Clock::TimePoint _endTime;
     static std::mutex _mutex;
+
+    friend class Profile;
 };
 
 template <class T, class... Args>

@@ -25,6 +25,10 @@ void ChannelEvent::Accept(ProfileEventReader& reader) const {
     reader.Read(*this);
 }
 
+void ChannelActivated::Accept(ProfileEventReader& reader) const {
+    reader.Read(*this);
+}
+
 void ChannelReadable::Accept(ProfileEventReader& reader) const {
     reader.Read(*this);
 }
@@ -82,7 +86,7 @@ ChannelBase::ChannelBase(std::shared_ptr<FileStream> stream) :
     _stream(std::move(stream)),
     _request(_stream),
     _response(_stream),
-    _timeout(Clock::GetCurrentTimePoint()),
+    _timeout(Clock::GetCurrentTime()),
     _stage(Stage::WaitReadable) {
     Log::Default()->Verbose("Channel {} created", _id);
 }
@@ -128,7 +132,7 @@ Clock::TimePoint ChannelBase::GetRequestedTimeout() const {
 
 bool ChannelBase::IsReady() const {
     // Set timeout (probably due to throttling) has not yet expired.
-    if (Clock::GetCurrentTimePoint() < _timeout.load())
+    if (Clock::GetCurrentTime() < _timeout.load())
         return false;
 
     // If we're closed, we don't have anything
@@ -410,7 +414,7 @@ void ChannelBase::Close() {
 
     Log::Default()->Verbose("Channel {} closed", _id);
 
-    _timeout = Clock::GetCurrentTimePoint();
+    _timeout = Clock::GetCurrentTime();
     _request = Request();
     _response = Response();
     _stream.reset();
@@ -441,7 +445,7 @@ ChannelBase::ThrottlingInfo ChannelBase::GetThrottlingInfo(const Throttlers::Gro
         info.fillTime = std::max(_throttlers.Read.Dedicated.GetFillTime(info.capacity),
                                  _throttlers.Read.Master->GetFillTime(info.capacity));
     else
-        info.fillTime = Clock::GetCurrentTimePoint();
+        info.fillTime = Clock::GetCurrentTime();
 
     return info;
 }
