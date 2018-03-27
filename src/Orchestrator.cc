@@ -114,7 +114,7 @@ std::mutex& Orchestrator::Task::GetMutex() {
 
 Orchestrator::Orchestrator(std::shared_ptr<ChannelFactory> channelFactory, int threads) :
     _channelFactory(std::move(channelFactory)),
-    _poller(2),
+    _poller(8),
     _threadPool(threads),
     _masterReadThrottler(std::make_shared<Throttler>()),
     _masterWriteThrottler(std::make_shared<Throttler>()),
