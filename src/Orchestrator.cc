@@ -3,6 +3,7 @@
 
 #include <algorithm>
 #include <chrono>
+#include <iterator>
 
 using namespace std::literals;
 
@@ -200,6 +201,7 @@ void Orchestrator::Add(std::shared_ptr<FileStream> stream) {
     {
         std::lock_guard<std::mutex> lock(_mutex);
         _tasks.push_back(task);
+        _taskFastLookup[task->GetChannel().GetStream().get()] = task;
     }
 
     _poller.Poll(task->GetChannel().GetStream(), Poller::Events::Completion | Poller::Events::Readable);
@@ -229,14 +231,12 @@ void Orchestrator::OnEvent(std::shared_ptr<FileStream> fs, int events) {
     // triggered file stream in it.
     std::unique_lock<std::mutex> lock(_mutex);
 
-    auto it = std::find_if(begin(_tasks), end(_tasks), [&](auto& t) {
-        return t->GetChannel().GetStream().get() == fs.get();
-    });
+    auto it = _taskFastLookup.find(fs.get());
 
-    if (it == end(_tasks))
+    if (it == end(_taskFastLookup))
         return;
 
-    auto task = *it;
+    auto task = it->second.lock();
 
     // Got our task. We can release the lock.
     lock.unlock();
@@ -416,9 +416,14 @@ Clock::TimePoint Orchestrator::GetLatestAllowedWakeup() {
 }
 
 void Orchestrator::CollectGarbage() {
-    _tasks.erase(std::remove_if(begin(_tasks), end(_tasks), [](auto& t) {
-        return t->GetChannel().GetStage() == ChannelBase::Stage::Closed;
-    }), end(_tasks));
+    auto garbageIterator = std::stable_partition(begin(_tasks), end(_tasks), [](auto& t) {
+        return t->GetChannel().GetStage() != ChannelBase::Stage::Closed;
+    });
+
+    for (auto i = garbageIterator, e = end(_tasks); i != e; ++i)
+        _taskFastLookup.erase((*i)->GetChannel().GetStream().get());
+
+    _tasks.erase(garbageIterator, end(_tasks));
 }
 
 std::string OrchestratorEvent::GetSource() const {
