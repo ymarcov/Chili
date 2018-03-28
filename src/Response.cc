@@ -180,10 +180,8 @@ bool Response::FlushHeader(std::size_t& maxBytes, std::size_t& totalBytesWritten
     if (headerSent) {
         // if response has no body, and only headers, uncork.
         if (!(response._strBody || response._body)) {
-            if (auto tcp = std::dynamic_pointer_cast<TcpConnection>(_stream)) {
+            if (auto tcp = std::dynamic_pointer_cast<TcpConnection>(_stream))
                 tcp->Cork(false);
-                tcp->Flush();
-            }
         }
     }
 
@@ -205,10 +203,8 @@ bool Response::FlushBody(T& body, std::size_t& maxBytes, std::size_t& totalBytes
     auto sentAll = (_writePosition - header.size()) == body.size();
 
     if (sentAll) {
-        if (auto tcp = std::dynamic_pointer_cast<TcpConnection>(_stream)) {
+        if (auto tcp = std::dynamic_pointer_cast<TcpConnection>(_stream))
             tcp->Cork(false);
-            tcp->Flush();
-        }
     }
 
     return sentAll;
@@ -261,10 +257,8 @@ bool Response::FlushStream(std::size_t& maxBytes, std::size_t& totalBytesWritten
         }
 
         if (lastPseudoChunk) {
-            if (auto tcp = std::dynamic_pointer_cast<TcpConnection>(_stream)) {
+            if (auto tcp = std::dynamic_pointer_cast<TcpConnection>(_stream))
                 tcp->Cork(false);
-                tcp->Flush();
-            }
 
             return true;
         } else { // reclaim leftovers
