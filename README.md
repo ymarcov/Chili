@@ -1,4 +1,4 @@
-![Logo](https://raw.githubusercontent.com/ymarcov/Nitra/tracer/logo.png)
+![Logo](https://raw.githubusercontent.com/ymarcov/Nitra/master/logo.png)
 
 # Nitra HTTP Library
 
