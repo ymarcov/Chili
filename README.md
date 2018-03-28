@@ -85,7 +85,7 @@ $ bin/sandbox_echo 3000 4 0 & # Run sandbox server with 4 threads
 $ siege -b -c20 -t5S http://localhost:<PORT>
 ```
 
-#### Yam::HTTP
+#### Nitra
 
 ```
 Transactions:		      194194 hits
