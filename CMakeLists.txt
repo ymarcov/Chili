@@ -14,7 +14,7 @@ if (hasParent)
         PARENT_SCOPE)
 endif()
 
-add_compile_options(-std=c++1z -fPIC -g -Werror -Wall -Wpedantic -isystem ext/std)
+add_compile_options(-std=c++1z -fPIC -O3 -Werror -Wall -Wpedantic -isystem ext/std)
 
 project(fmtlib)
 file(GLOB SOURCES "ext/fmtlib/*.cc")
