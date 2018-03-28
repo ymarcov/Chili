@@ -8,6 +8,7 @@
 #include "LogUtils.h"
 #include "Poller.h"
 #include "TestFileUtils.h"
+#include "TestUtils.h"
 #include "WaitEvent.h"
 
 #include <atomic>
@@ -140,6 +141,7 @@ protected:
     }
 
     IPEndpoint _ep{{{127, 0, 0, 1}}, 63184};
+    AutoProfile _autoProfile;
 };
 
 TEST_F(OrchestratorTest, one_client_header_only) {
