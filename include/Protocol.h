@@ -5,7 +5,7 @@
 #include <string>
 #include <utility>
 
-namespace Nitra {
+namespace Chili {
 
 /**
  * Test
@@ -179,5 +179,5 @@ private:
 };
 
 } // namespace Protocol
-} // namespace Nitra
+} // namespace Chili
 

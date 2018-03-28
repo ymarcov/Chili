@@ -7,7 +7,7 @@
 
 using namespace std::literals;
 
-namespace Nitra {
+namespace Chili {
 
 void Orchestrator::Task::MarkHandlingInProcess(bool b) {
     _inProcess = b;
@@ -454,5 +454,5 @@ void OrchestratorCapturingTasks::Accept(ProfileEventReader& reader) const {
     reader.Read(*this);
 }
 
-} // namespace Nitra
+} // namespace Chili
 

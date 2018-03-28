@@ -7,7 +7,7 @@
 #include <fmtlib/format.h>
 #include <sstream>
 
-namespace Nitra {
+namespace Chili {
 
 class Log {
 public:
@@ -92,5 +92,5 @@ private:
     std::atomic<Level> _currentLevel;
 };
 
-} // namespace Nitra
+} // namespace Chili
 

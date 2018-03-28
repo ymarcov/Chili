@@ -7,7 +7,7 @@
 #include <string>
 #include <type_traits>
 
-namespace Nitra {
+namespace Chili {
 
 template <class T>
 auto PtrShim(T t) {
@@ -44,4 +44,4 @@ private:
     bool _profile;
 };
 
-} // namespace Nitra
+} // namespace Chili

@@ -13,7 +13,7 @@
 using namespace ::testing;
 using namespace std::literals;
 
-namespace Nitra {
+namespace Chili {
 
 class FileStreamTest : public Test {
 public:
@@ -149,5 +149,5 @@ TEST_F(FileStreamTest, rvalue_assignment) {
     EXPECT_EQ(_textInFile, std::string(buffer.data(), _textInFile.size()));
 }
 
-} // namespace Nitra
+} // namespace Chili
 

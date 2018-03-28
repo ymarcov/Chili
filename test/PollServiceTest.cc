@@ -10,7 +10,7 @@
 using namespace ::testing;
 using namespace std::literals;
 
-namespace Nitra {
+namespace Chili {
 
 class PollServiceTest : public Test {
 };
@@ -43,5 +43,5 @@ TEST_F(PollServiceTest, negative_case) {
     ASSERT_EQ(std::future_status::timeout, task.wait_for(50ms));
 }
 
-} // namespace Nitra
+} // namespace Chili
 

@@ -9,7 +9,7 @@
 using namespace ::testing;
 using namespace std::literals;
 
-namespace Nitra {
+namespace Chili {
 
 struct ThreadCount {
     ThreadCount(int n = 1) : _n(n) {}
@@ -116,5 +116,5 @@ TEST_F(TcpTest, server_restart) {
     task.get();
 }
 
-} // namespace Nitra
+} // namespace Chili
 

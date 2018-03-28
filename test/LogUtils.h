@@ -2,7 +2,7 @@
 
 #include "Log.h"
 
-namespace Nitra {
+namespace Chili {
 
 struct TemporaryLogLevel {
     TemporaryLogLevel(Log::Level level, Log* log = Log::Default()) :
@@ -19,5 +19,5 @@ struct TemporaryLogLevel {
     Log::Level _previousLevel;
 };
 
-} // namespace Nitra
+} // namespace Chili
 

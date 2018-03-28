@@ -11,7 +11,7 @@
 #include <execinfo.h>
 #include <ostream>
 
-namespace Nitra {
+namespace Chili {
 
 namespace {
 
@@ -110,5 +110,5 @@ std::ostream& operator<<(std::ostream& os, const BackTrace& bt) {
     return os;
 }
 
-} // namespace Nitra
+} // namespace Chili
 

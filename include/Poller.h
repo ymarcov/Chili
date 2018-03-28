@@ -14,7 +14,7 @@
 #include <mutex>
 #include <thread>
 
-namespace Nitra {
+namespace Chili {
 
 class Poller {
 public:
@@ -78,5 +78,5 @@ public:
     void Accept(ProfileEventReader&) const override;
 };
 
-} // namespace Nitra
+} // namespace Chili
 

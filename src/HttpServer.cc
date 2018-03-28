@@ -1,6 +1,6 @@
 #include "HttpServer.h"
 
-namespace Nitra {
+namespace Chili {
 
 HttpServer::HttpServer(const IPEndpoint& ep, std::shared_ptr<ChannelFactory> factory, int threads) :
     TcpServer(ep),
@@ -26,5 +26,5 @@ void HttpServer::SetInactivityTimeout(std::chrono::milliseconds ms) {
     _orchestrator->SetInactivityTimeout(std::move(ms));
 }
 
-} // namespace Nitra
+} // namespace Chili
 

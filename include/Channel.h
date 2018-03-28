@@ -2,7 +2,7 @@
 
 #include "ChannelBase.h"
 
-namespace Nitra {
+namespace Chili {
 
 /**
  * Base class for custom channels.
@@ -126,5 +126,5 @@ protected:
     virtual Control Process(const Request&, Response&) = 0;
 };
 
-} // namespace Nitra
+} // namespace Chili
 

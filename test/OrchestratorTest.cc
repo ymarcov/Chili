@@ -18,7 +18,7 @@
 using namespace ::testing;
 using namespace std::literals;
 
-namespace Nitra {
+namespace Chili {
 
 const char requestData[] =
 "GET /path/to/res HTTP/1.1\r\n"
@@ -321,5 +321,5 @@ TEST_F(OrchestratorTest, stress_sync) {
     ASSERT_TRUE(allWritten.Wait(10s));
 }
 
-} // namespace Nitra
+} // namespace Chili
 

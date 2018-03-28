@@ -10,7 +10,7 @@
 #include <string>
 #include <vector>
 
-namespace Nitra {
+namespace Chili {
 
 using Hz = std::uint64_t;
 
@@ -194,5 +194,5 @@ void Profiler::Record(Args... args) {
         _events.push_back(std::make_unique<T>(args...));
 }
 
-} // namespace Nitra
+} // namespace Chili
 

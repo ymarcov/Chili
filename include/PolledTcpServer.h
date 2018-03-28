@@ -5,7 +5,7 @@
 
 #include <memory>
 
-namespace Nitra {
+namespace Chili {
 
 class PolledTcpServer : public TcpServer {
 public:
@@ -18,5 +18,5 @@ private:
     std::shared_ptr<Poller> _poller;
 };
 
-} // namespace Nitra
+} // namespace Chili
 

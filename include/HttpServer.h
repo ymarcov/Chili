@@ -3,7 +3,7 @@
 #include "Orchestrator.h"
 #include "TcpServer.h"
 
-namespace Nitra {
+namespace Chili {
 
 /**
  * An HTTP/TCP server.
@@ -50,5 +50,5 @@ private:
     std::shared_ptr<Orchestrator> _orchestrator;
 };
 
-} // namespace Nitra
+} // namespace Chili
 

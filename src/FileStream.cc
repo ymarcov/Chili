@@ -8,7 +8,7 @@
 #include <sys/sendfile.h>
 #include <unistd.h>
 
-namespace Nitra {
+namespace Chili {
 
 const FileStream::NativeHandle FileStream::InvalidHandle = -1;
 
@@ -192,5 +192,5 @@ void SeekableFileStream::Seek(std::size_t offset) {
         throw SystemError{};
 }
 
-} // namespace Nitra
+} // namespace Chili
 

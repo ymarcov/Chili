@@ -9,7 +9,7 @@
 #include <regex>
 #include <unordered_map>
 
-namespace Nitra {
+namespace Chili {
 
 /**
  * A request router, mapping requests containing a
@@ -86,5 +86,5 @@ private:
     std::shared_ptr<Router> _router;
 };
 
-} // namespace Nitra
+} // namespace Chili
 

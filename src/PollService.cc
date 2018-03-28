@@ -2,7 +2,7 @@
 
 #include "Log.h"
 
-namespace Nitra {
+namespace Chili {
 
 PollService::PollService(int threads) :
     _poller(threads) {
@@ -44,5 +44,5 @@ std::future<std::shared_ptr<FileStream>> PollService::Poll(std::shared_ptr<FileS
     return task._promise.get_future();
 }
 
-} // namespace Nitra
+} // namespace Chili
 

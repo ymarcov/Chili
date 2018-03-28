@@ -12,7 +12,7 @@
 #include <sys/types.h>
 #include <unistd.h>
 
-namespace Nitra {
+namespace Chili {
 
 namespace {
 
@@ -91,5 +91,5 @@ void TcpConnection::Flush() {
         throw SystemError();
 }
 
-} // namespace Nitra
+} // namespace Chili
 

@@ -1,6 +1,6 @@
 #include "Parser.h"
 
-namespace Nitra {
+namespace Chili {
 
 namespace {
 namespace RequestField {
@@ -170,5 +170,5 @@ void Parser::ParseNextFieldLine() {
     _fields[{key.first, key.second}] = {value.first, value.second};
 }
 
-} // namespace Nitra
+} // namespace Chili
 

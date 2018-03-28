@@ -6,7 +6,7 @@
 #include <condition_variable>
 #include <mutex>
 
-namespace Nitra {
+namespace Chili {
 
 class WaitEvent {
 public:
@@ -27,5 +27,5 @@ private:
     bool _signalled = false;
 };
 
-} // namespace Nitra
+} // namespace Chili
 

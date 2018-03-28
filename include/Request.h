@@ -10,7 +10,7 @@
 #include <utility>
 #include <vector>
 
-namespace Nitra {
+namespace Chili {
 
 /**
  * An HTTP request.
@@ -122,5 +122,5 @@ private:
     std::size_t _contentPosition = 0;
 };
 
-} // namespace Nitra
+} // namespace Chili
 

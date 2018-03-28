@@ -11,7 +11,7 @@
 
 using namespace ::testing;
 
-namespace Nitra {
+namespace Chili {
 
 struct Type {
     Type() = default;
@@ -302,5 +302,5 @@ TEST_F(MemoryPoolTest, live_slots_outlive_pool) {
     EXPECT_EQ(DestructionVerifier::Handle::Destroyed, handle);
 }
 
-} // namespace Nitra
+} // namespace Chili
 

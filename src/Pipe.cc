@@ -1,8 +1,8 @@
 #include "Pipe.h"
 
-namespace Nitra {
+namespace Chili {
 
 // TODO
 
-} // namespace Nitra
+} // namespace Chili
 

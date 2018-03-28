@@ -12,7 +12,7 @@
 using namespace ::testing;
 using namespace std::literals;
 
-namespace Nitra {
+namespace Chili {
 
 class PollerTest : public Test {
 public:
@@ -216,5 +216,5 @@ TEST_F(PollerTest, notifies_on_stop) {
     EXPECT_TRUE(notified);
 }
 
-} // namespace Nitra
+} // namespace Chili
 

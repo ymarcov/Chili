@@ -9,7 +9,7 @@
 
 using namespace std::literals;
 
-namespace Nitra {
+namespace Chili {
 
 bool Profiler::_enabled = false;
 std::vector<std::unique_ptr<ProfileEvent>> Profiler::_events;
@@ -467,5 +467,5 @@ void GenericProfileEvent::Accept(class ProfileEventReader& reader) const {
     reader.Read(*this);
 }
 
-} // namespace Nitra
+} // namespace Chili
 

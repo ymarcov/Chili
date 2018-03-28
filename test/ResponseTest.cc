@@ -11,7 +11,7 @@
 
 using namespace ::testing;
 
-namespace Nitra {
+namespace Chili {
 
 namespace {
 
@@ -284,5 +284,5 @@ TEST_F(ResponseTest, chunked) {
     EXPECT_EQ(expected, stream->ToString());
 }
 
-} // namespace Nitra
+} // namespace Chili
 

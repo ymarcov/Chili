@@ -10,7 +10,7 @@
 
 #include <mutex>
 
-namespace Nitra {
+namespace Chili {
 
 /**
  * ChannelBase
@@ -236,4 +236,4 @@ inline void ChannelBase::RecordWriteTimeoutEvent(Clock::TimePoint readyTime) con
     Profiler::Record<ChannelWriteTimeout>("ChannelBase", _id, Clock::GetCurrentTime(), readyTime);
 }
 
-} // namespace Nitra
+} // namespace Chili

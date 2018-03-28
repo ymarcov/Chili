@@ -5,16 +5,16 @@
 
 #include <chrono>
 
-using Nitra::Channel;
-using Nitra::ChannelFactory;
-using Nitra::FileMode;
-using Nitra::FileStream;
-using Nitra::HttpServer;
-using Nitra::IPEndpoint;
-using Nitra::Log;
-using Nitra::Request;
-using Nitra::Response;
-using Nitra::Status;
+using Chili::Channel;
+using Chili::ChannelFactory;
+using Chili::FileMode;
+using Chili::FileStream;
+using Chili::HttpServer;
+using Chili::IPEndpoint;
+using Chili::Log;
+using Chili::Request;
+using Chili::Response;
+using Chili::Status;
 
 using namespace std::literals;
 

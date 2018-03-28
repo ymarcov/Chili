@@ -7,7 +7,7 @@
 #include <memory>
 #include <thread>
 
-namespace Nitra {
+namespace Chili {
 
 /**
  * A socket server.
@@ -44,5 +44,5 @@ private:
     std::atomic_bool _stop{true};
 };
 
-} // namespace Nitra
+} // namespace Chili
 

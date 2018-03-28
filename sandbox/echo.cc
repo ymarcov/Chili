@@ -13,7 +13,7 @@
 #include <thread>
 #include <unistd.h>
 
-using namespace Nitra;
+using namespace Chili;
 using namespace std::literals;
 
 struct ServerConfiguration {

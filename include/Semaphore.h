@@ -5,7 +5,7 @@
 #include <chrono>
 #include <memory>
 
-namespace Nitra {
+namespace Chili {
 
 class Semaphore {
 public:
@@ -25,5 +25,5 @@ private:
     std::shared_ptr<void> _nativeHandle;
 };
 
-} // namespace Nitra
+} // namespace Chili
 

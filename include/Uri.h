@@ -2,7 +2,7 @@
 
 #include <string>
 
-namespace Nitra {
+namespace Chili {
 
 class Uri {
 public:
@@ -10,5 +10,5 @@ public:
     static std::string Decode(const std::string&);
 };
 
-} // namespace Nitra
+} // namespace Chili
 

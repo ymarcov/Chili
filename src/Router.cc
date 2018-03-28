@@ -1,6 +1,6 @@
 #include "Router.h"
 
-namespace Nitra {
+namespace Chili {
 
 class RoutedChannel : public Channel {
 public:
@@ -84,5 +84,5 @@ std::unique_ptr<Channel> RoutedChannelFactory::CreateChannel(std::shared_ptr<Fil
     return std::make_unique<RoutedChannel>(std::move(fs), _router);
 }
 
-} // namespace Nitra
+} // namespace Chili
 

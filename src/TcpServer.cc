@@ -4,7 +4,7 @@
 #include <netinet/tcp.h>
 #include <arpa/inet.h>
 
-namespace Nitra {
+namespace Chili {
 
 namespace {
 
@@ -63,5 +63,5 @@ std::size_t* TcpServer::AddressBufferSize() {
     return &_addrBufferSize;
 }
 
-} // namespace Nitra
+} // namespace Chili
 

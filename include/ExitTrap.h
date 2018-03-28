@@ -1,6 +1,6 @@
 #pragma once
 
-namespace Nitra {
+namespace Chili {
 
 template <class Callable>
 class ExitTrap {
@@ -21,5 +21,5 @@ ExitTrap<Callable> CreateExitTrap(Callable c) {
     return ExitTrap<Callable>(std::move(c));
 }
 
-} // namespace Nitra
+} // namespace Chili
 

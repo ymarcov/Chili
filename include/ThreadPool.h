@@ -10,7 +10,7 @@
 #include <thread>
 #include <vector>
 
-namespace Nitra {
+namespace Chili {
 
 class ThreadPool {
 public:
@@ -43,5 +43,5 @@ inline std::size_t ThreadPool::GetThreadCount() const {
     return _threads.size();
 }
 
-} // namespace Nitra
+} // namespace Chili
 

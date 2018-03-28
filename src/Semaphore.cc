@@ -4,7 +4,7 @@
 #include <semaphore.h>
 #include <time.h>
 
-namespace Nitra {
+namespace Chili {
 
 Semaphore::Semaphore(unsigned initialValue) {
     _nativeHandle = std::make_shared<sem_t>();
@@ -90,5 +90,5 @@ bool Semaphore::TryDecrement() {
     return true;
 }
 
-} // namespace Nitra
+} // namespace Chili
 

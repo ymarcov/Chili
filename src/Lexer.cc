@@ -1,7 +1,7 @@
 #include "Lexer.h"
 #include <string.h>
 
-namespace Nitra {
+namespace Chili {
 
 Lexer::Lexer(const char* stream, std::size_t length) :
     _stream{stream},
@@ -110,5 +110,5 @@ std::size_t Lexer::DelimeterAt(const char* cursor, std::size_t consumed) {
     return 0;
 }
 
-} // namespace Nitra
+} // namespace Chili
 

@@ -2,7 +2,7 @@
 
 #include "BackTrace.h"
 
-namespace Nitra {
+namespace Chili {
 
 class Error {
 public:
@@ -14,5 +14,5 @@ private:
     BackTrace _backTrace;
 };
 
-} // namespace Nitra
+} // namespace Chili
 

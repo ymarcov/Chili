@@ -1,6 +1,6 @@
 #include "Countdown.h"
 
-namespace Nitra {
+namespace Chili {
 
 Countdown::Countdown(unsigned value) :
     _initialValue{value},
@@ -32,5 +32,5 @@ bool Countdown::Wait(std::chrono::microseconds timeout) const {
     return _event.Wait(timeout);
 }
 
-} // namespace Nitra
+} // namespace Chili
 

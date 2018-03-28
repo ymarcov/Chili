@@ -6,7 +6,7 @@
 #include <cstring>
 #include <strings.h>
 
-namespace Nitra {
+namespace Chili {
 
 constexpr std::size_t BufferSize = 0x2000;
 
@@ -238,5 +238,5 @@ const std::vector<char>& Request::GetContent() const {
     return _content;
 }
 
-} // namespace Nitra
+} // namespace Chili
 

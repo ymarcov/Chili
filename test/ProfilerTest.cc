@@ -6,7 +6,7 @@
 
 using namespace ::testing;
 
-namespace Nitra {
+namespace Chili {
 
 class ProfilerTest : public Test {
 public:
@@ -62,5 +62,5 @@ TEST_F(ProfilerTest, record_and_read) {
     EXPECT_EQ(123, reader.Number);
 }
 
-} // namespace Nitra
+} // namespace Chili
 

@@ -7,7 +7,7 @@
 #include <limits>
 #include <mutex>
 
-namespace Nitra {
+namespace Chili {
 
 /**
  * Throttles I/O operations.
@@ -52,5 +52,5 @@ private:
     mutable std::size_t _currentQuota;
 };
 
-} // namespace Nitra
+} // namespace Chili
 

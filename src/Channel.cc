@@ -1,6 +1,6 @@
 #include "Channel.h"
 
-namespace Nitra {
+namespace Chili {
 
 void Channel::SetAutoFetchContent(bool b) {
     _autoFetchContent = b;
@@ -58,5 +58,5 @@ Channel::Control Channel::Process() {
     return Process(GetRequest(), GetResponse());
 }
 
-} // namespace Nitra
+} // namespace Chili
 

@@ -4,7 +4,7 @@
 
 #include <mutex>
 
-namespace Nitra {
+namespace Chili {
 
 /**
  * Polling as a service; i.e., attach different handlers
@@ -38,5 +38,5 @@ private:
     std::mutex _mutex;
 };
 
-} // namespace Nitra
+} // namespace Chili
 

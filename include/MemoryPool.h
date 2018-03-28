@@ -10,7 +10,7 @@
 #include <sys/mman.h>
 #include <unistd.h>
 
-namespace Nitra {
+namespace Chili {
 
 namespace Detail {
 
@@ -250,5 +250,5 @@ private:
 template <class T>
 using MemorySlot = typename MemoryPool<T>::Ptr;
 
-} // namespace Nitra
+} // namespace Chili
 

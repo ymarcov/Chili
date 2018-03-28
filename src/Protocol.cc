@@ -1,6 +1,6 @@
 #include "Protocol.h"
 
-namespace Nitra {
+namespace Chili {
 
 void CookieOptions::SetDomain(const std::string& domain) {
     _domain = std::make_pair(true, domain);
@@ -58,5 +58,5 @@ bool CookieOptions::IsSecure() const {
     return _secure;
 }
 
-} // namespace Nitra
+} // namespace Chili
 

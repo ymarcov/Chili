@@ -3,7 +3,7 @@
 #include <array>
 #include <initializer_list>
 
-namespace Nitra {
+namespace Chili {
 
 /*
  * A low-overhead lexer which lets you specify and change
@@ -75,5 +75,5 @@ private:
     std::size_t _usableDelimeterData = 0;
 };
 
-} // namespace Nitra
+} // namespace Chili
 

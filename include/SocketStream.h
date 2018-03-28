@@ -5,7 +5,7 @@
 #include <atomic>
 #include <memory>
 
-namespace Nitra {
+namespace Chili {
 
 class SocketStream : public FileStream {
 public:
@@ -29,5 +29,5 @@ protected:
     std::shared_ptr<std::atomic_int> _useCount;
 };
 
-} // namespace Nitra
+} // namespace Chili
 

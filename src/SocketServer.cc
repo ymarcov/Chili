@@ -7,7 +7,7 @@
 #include <sys/types.h>
 #include <unistd.h>
 
-namespace Nitra {
+namespace Chili {
 
 SocketServer::~SocketServer() {
     Stop();
@@ -82,5 +82,5 @@ void SocketServer::Stop() {
         _thread.join();
 }
 
-} // namespace Nitra
+} // namespace Chili
 

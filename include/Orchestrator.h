@@ -18,7 +18,7 @@
 #include <thread>
 #include <unordered_map>
 
-namespace Nitra {
+namespace Chili {
 
 class Orchestrator {
 public:
@@ -129,5 +129,5 @@ public:
     void Accept(ProfileEventReader&) const override;
 };
 
-} // namespace Nitra
+} // namespace Chili
 

@@ -5,7 +5,7 @@
 #include <atomic>
 #include <fmtlib/format.h>
 
-namespace Nitra {
+namespace Chili {
 
 std::atomic<std::uint64_t> nextChannelId{1};
 
@@ -496,4 +496,4 @@ void ChannelBase::LogNewRequest() {
     Log::Default()->Info("Channel {} Received \"{} {} {}\"", _id, method, _request.GetUri(), version);
 }
 
-} // namespace Nitra
+} // namespace Chili

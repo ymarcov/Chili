@@ -6,7 +6,7 @@
 
 #include "Channel.h"
 
-namespace Nitra {
+namespace Chili {
 
 /**
  * Creates channels for incoming sockets.
@@ -29,5 +29,5 @@ public:
     virtual std::unique_ptr<Channel> CreateChannel(std::shared_ptr<FileStream> fs) = 0;
 };
 
-} // namespace Nitra
+} // namespace Chili
 

@@ -5,7 +5,7 @@
 #include <atomic>
 #include <mutex>
 
-namespace Nitra {
+namespace Chili {
 
 class Countdown {
 public:
@@ -45,5 +45,5 @@ private:
     WaitEvent _event;
 };
 
-} // namespace Nitra
+} // namespace Chili
 

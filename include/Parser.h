@@ -10,7 +10,7 @@
 #include <unordered_map>
 #include <vector>
 
-namespace Nitra {
+namespace Chili {
 
 /*
  * Parses an HTTP request efficiently.
@@ -97,5 +97,5 @@ private: // private variables
     mutable bool _cookiesHaveBeenParsed = false;
 };
 
-} // namespace Nitra
+} // namespace Chili
 

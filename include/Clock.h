@@ -2,7 +2,7 @@
 
 #include <chrono>
 
-namespace Nitra {
+namespace Chili {
 
 class Clock {
     using Impl = std::chrono::steady_clock;
@@ -17,5 +17,5 @@ inline Clock::TimePoint Clock::GetCurrentTime() {
     return Impl::now();
 }
 
-} // namespace Nitra
+} // namespace Chili
 

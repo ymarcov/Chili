@@ -2,7 +2,7 @@
 
 #include <cstddef>
 
-namespace Nitra {
+namespace Chili {
 
 class OutputStream {
 public:
@@ -10,5 +10,5 @@ public:
     virtual ~OutputStream() = default;
 };
 
-} // namespace Nitra
+} // namespace Chili
 

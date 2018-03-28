@@ -2,7 +2,7 @@
 
 #include "SystemError.h"
 
-namespace Nitra {
+namespace Chili {
 
 inline int OpenTempFile() {
     int fd = fileno(std::tmpfile());
@@ -13,5 +13,5 @@ inline int OpenTempFile() {
     return fd;
 }
 
-} // namespace Nitra
+} // namespace Chili
 

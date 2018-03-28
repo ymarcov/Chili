@@ -7,7 +7,7 @@
 #include <fcntl.h>
 #include <unistd.h>
 
-namespace Nitra {
+namespace Chili {
 
 struct Pipe {
     static auto Create() {
@@ -24,5 +24,5 @@ struct Pipe {
     std::shared_ptr<FileStream> Write;
 };
 
-} // namespace Nitra
+} // namespace Chili
 

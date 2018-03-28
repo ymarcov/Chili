@@ -1,6 +1,6 @@
 #include "ThreadPool.h"
 
-namespace Nitra {
+namespace Chili {
 
 class Worker {
 public:
@@ -98,5 +98,5 @@ std::future<void> ThreadPool::Post(Work w) {
     return workFuture;
 }
 
-} // namespace Nitra
+} // namespace Chili
 

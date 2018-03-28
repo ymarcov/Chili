@@ -5,7 +5,7 @@
 #include <sys/epoll.h>
 #include <unistd.h>
 
-namespace Nitra {
+namespace Chili {
 
 Poller::Poller(int threads) :
     _threadPool{std::make_shared<ThreadPool>(threads)},
@@ -215,5 +215,5 @@ void PollerEventDispatched::Accept(ProfileEventReader& reader) const {
     reader.Read(*this);
 }
 
-} // namespace Nitra
+} // namespace Chili
 

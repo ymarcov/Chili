@@ -10,7 +10,7 @@
 #include <string>
 #include <time.h>
 
-namespace Nitra {
+namespace Chili {
 
 namespace {
 #define UPTR_PAIR(a, b) \
@@ -386,5 +386,5 @@ CachedResponse& Response::GetState() const {
     return *_response;
 }
 
-} // namespace Nitra
+} // namespace Chili
 

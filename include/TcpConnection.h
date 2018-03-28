@@ -9,7 +9,7 @@
 
 struct sockaddr_in;
 
-namespace Nitra {
+namespace Chili {
 
 class IPEndpoint {
 public:
@@ -55,5 +55,5 @@ inline const IPEndpoint& TcpConnection::Endpoint() const noexcept {
     return _endpoint;
 }
 
-} // namespace Nitra
+} // namespace Chili
 

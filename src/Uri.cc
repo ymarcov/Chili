@@ -3,7 +3,7 @@
 #include <curl/curl.h>
 #include <stdexcept>
 
-namespace Nitra {
+namespace Chili {
 
 namespace {
 
@@ -53,5 +53,5 @@ std::string Uri::Decode(const std::string& s) {
     return str;
 }
 
-} // namespace Nitra
+} // namespace Chili
 

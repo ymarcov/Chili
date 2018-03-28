@@ -3,7 +3,7 @@
 #include <chrono>
 #include <cstddef>
 
-namespace Nitra {
+namespace Chili {
 
 /**
  * A stream of bytes.
@@ -38,5 +38,5 @@ inline std::size_t InputStream::Read(void* buffer, std::size_t maxBytes, std::ch
     return Read(buffer, maxBytes);
 }
 
-} // namespace Nitra
+} // namespace Chili
 

@@ -1,6 +1,6 @@
 #include "PolledTcpServer.h"
 
-namespace Nitra {
+namespace Chili {
 
 PolledTcpServer::PolledTcpServer(const IPEndpoint& ep, std::shared_ptr<Poller> poller) :
     TcpServer{ep},
@@ -14,5 +14,5 @@ void PolledTcpServer::OnAccepted(std::shared_ptr<TcpConnection> conn) {
     _poller->Poll(std::move(conn), events);
 }
 
-} // namespace Nitra
+} // namespace Chili
 

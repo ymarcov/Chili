@@ -1,6 +1,6 @@
 #include "ThreadedTcpServer.h"
 
-namespace Nitra {
+namespace Chili {
 
 ThreadedTcpServer::ThreadedTcpServer(const IPEndpoint& ep, std::shared_ptr<ThreadPool> tp) :
     TcpServer{ep},
@@ -17,5 +17,5 @@ void ThreadedTcpServer::OnAccepted(std::shared_ptr<TcpConnection> conn) {
     });
 }
 
-} // namespace Nitra
+} // namespace Chili
 

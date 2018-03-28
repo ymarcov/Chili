@@ -10,7 +10,7 @@
 using namespace ::testing;
 using namespace std::literals;
 
-namespace Nitra {
+namespace Chili {
 
 class CountdownTest : public Test {
 public:
@@ -35,5 +35,5 @@ TEST_F(CountdownTest, basic_operation) {
     ASSERT_EQ(c.GetInitialValue() - 1, count);
 }
 
-} // namespace Nitra
+} // namespace Chili
 

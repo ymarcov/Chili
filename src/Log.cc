@@ -6,7 +6,7 @@
 #include <iostream>
 #include <mutex>
 
-namespace Nitra {
+namespace Chili {
 
 Log* Log::Default() {
     struct ConsoleLogger : Logger {
@@ -29,5 +29,5 @@ Log* Log::Default() {
     return &log;
 }
 
-} // namespace Nitra
+} // namespace Chili
 

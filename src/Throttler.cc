@@ -5,7 +5,7 @@
 
 using namespace std::chrono;
 
-namespace Nitra {
+namespace Chili {
 
 Throttler::Throttler(std::size_t capacity, milliseconds interval)
     : _enabled(true)
@@ -100,5 +100,5 @@ std::size_t Throttler::UpdateCurrentQuota() const {
     return _currentQuota;
 }
 
-} // namespace Nitra
+} // namespace Chili
 

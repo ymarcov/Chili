@@ -10,7 +10,7 @@
 #include <netinet/in.h>
 #include <thread>
 
-namespace Nitra {
+namespace Chili {
 
 /**
  * A TCP server.
@@ -43,5 +43,5 @@ inline const IPEndpoint& TcpServer::GetEndpoint() const {
     return _endpoint;
 }
 
-} // namespace Nitra
+} // namespace Chili
 

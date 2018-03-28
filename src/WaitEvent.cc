@@ -2,7 +2,7 @@
 
 using namespace std::literals;
 
-namespace Nitra {
+namespace Chili {
 
 void WaitEvent::Reset() {
     _mutex.lock();
@@ -68,5 +68,5 @@ bool WaitEvent::WaitUntilAndReset(Clock::TimePoint t) {
     return false;
 }
 
-} // namespace Nitra
+} // namespace Chili
 

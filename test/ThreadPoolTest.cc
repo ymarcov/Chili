@@ -4,7 +4,7 @@
 
 using namespace ::testing;
 
-namespace Nitra {
+namespace Chili {
 
 class ThreadPoolTest : public Test {
 };
@@ -31,5 +31,5 @@ TEST_F(ThreadPoolTest, throws_exception_on_task_error) {
     ASSERT_THROW(f.get(), int);
 }
 
-} // namespace Nitra
+} // namespace Chili
 

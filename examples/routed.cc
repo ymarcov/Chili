@@ -2,7 +2,7 @@
 #include "Log.h"
 #include "Router.h"
 
-using namespace Nitra;
+using namespace Chili;
 
 class Application : public Router {
 public:

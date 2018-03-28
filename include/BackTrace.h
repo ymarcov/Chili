@@ -5,7 +5,7 @@
 #include <string>
 #include <vector>
 
-namespace Nitra {
+namespace Chili {
 
 class BackTrace {
 public:
@@ -20,5 +20,5 @@ private:
     mutable std::vector<std::string> _frames;
 };
 
-} // namespace Nitra
+} // namespace Chili
 

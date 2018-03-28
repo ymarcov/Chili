@@ -5,7 +5,7 @@
 #include <cerrno>
 #include <system_error>
 
-namespace Nitra {
+namespace Chili {
 
 class SystemError : public Error, public std::system_error {
 public:
@@ -17,5 +17,5 @@ public:
     }
 };
 
-} // namespace Nitra
+} // namespace Chili
 

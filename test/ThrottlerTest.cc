@@ -10,7 +10,7 @@ using namespace ::testing;
 using namespace std::chrono;
 using namespace std::literals;
 
-namespace Nitra {
+namespace Chili {
 
 class ThrottlerTest : public Test {
 public:
@@ -52,5 +52,5 @@ TEST_F(ThrottlerTest, gets_desired_quota_fill_time) {
     EXPECT_GT(int(1e9 / 2 + 1e3), quota);
 }
 
-} // namespace Nitra
+} // namespace Chili
 

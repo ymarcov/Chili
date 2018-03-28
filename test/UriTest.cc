@@ -4,7 +4,7 @@
 
 using namespace ::testing;
 
-namespace Nitra {
+namespace Chili {
 
 class UriTest : public Test {
 public:
@@ -19,5 +19,5 @@ TEST_F(UriTest, encode_decode) {
     ASSERT_EQ(str, Uri::Decode(Uri::Encode(str)));
 }
 
-} // namespace Nitra
+} // namespace Chili
 

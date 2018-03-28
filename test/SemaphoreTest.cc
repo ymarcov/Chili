@@ -9,7 +9,7 @@
 using namespace ::testing;
 using namespace std::literals;
 
-namespace Nitra {
+namespace Chili {
 
 class SemaphoreTest : public Test {
 public:
@@ -70,5 +70,5 @@ TEST_F(SemaphoreTest, multiple) {
         threads[i].join();
 }
 
-} // namespace Nitra
+} // namespace Chili
 

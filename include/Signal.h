@@ -3,7 +3,7 @@
 #include <functional>
 #include <vector>
 
-namespace Nitra {
+namespace Chili {
 
 template <class... Param>
 class Signal {
@@ -25,5 +25,5 @@ private:
     std::vector<Callback> _subscribers;
 };
 
-} // namespace Nitra
+} // namespace Chili
 

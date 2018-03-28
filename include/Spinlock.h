@@ -6,7 +6,7 @@
 
 #include <atomic>
 
-namespace Nitra {
+namespace Chili {
 
 /**
  * Just a regular spinlock.
@@ -57,7 +57,7 @@ inline void Spinlock::Unlock() {
     _flag.clear(std::memory_order_release);
 }
 
-} // namespace Nitra
+} // namespace Chili
 
 /**
  * @endcond INTERNAL

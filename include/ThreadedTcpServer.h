@@ -6,7 +6,7 @@
 #include <functional>
 #include <memory>
 
-namespace Nitra {
+namespace Chili {
 
 class ThreadedTcpServer : public TcpServer {
 public:
@@ -24,5 +24,5 @@ private:
     ConnectionHandler _handler;
 };
 
-} // namespace Nitra
+} // namespace Chili
 

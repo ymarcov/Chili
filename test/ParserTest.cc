@@ -6,7 +6,7 @@
 
 using namespace ::testing;
 
-namespace Nitra {
+namespace Chili {
 
 const char testRequest[] =
 "GET /path/to/res HTTP/1.1\r\n"
@@ -155,5 +155,5 @@ TEST(ParserTest_Malformed, gibberish) {
     EXPECT_THROW(Parser::Parse(request, sizeof(request)), Parser::Error);
 }
 
-} // namespace Nitra
+} // namespace Chili
 
