@@ -115,8 +115,12 @@ void ChannelBase::Advance() {
     }
 }
 
-ChannelBase::Stage ChannelBase::GetStage() const {
+ChannelBase::Stage ChannelBase::GetTentativeStage() const {
     return _stage.load(std::memory_order_relaxed);
+}
+
+ChannelBase::Stage ChannelBase::GetDefiniteStage() const {
+    return _stage.load();
 }
 
 void ChannelBase::SetStage(Stage s) {

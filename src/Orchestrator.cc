@@ -50,7 +50,7 @@ void Orchestrator::Task::Activate() {
     // comes back from the poller with an event.
     bool notify = false;
 
-    switch (_channel->GetStage()) {
+    switch (_channel->GetDefiniteStage()) {
         case ChannelBase::Stage::WaitReadable: {
             _orchestrator->_poller.Poll(_channel->GetStream(),
                                         Poller::Events::Completion | Poller::Events::Readable);
@@ -262,7 +262,7 @@ void Orchestrator::OnEvent(std::shared_ptr<FileStream> fs, int events) {
 }
 
 void Orchestrator::HandleChannelEvent(ChannelBase& channel, int events) {
-    switch (channel.GetStage()) {
+    switch (channel.GetDefiniteStage()) {
         case ChannelBase::Stage::WaitReadable: {
             if (events & Poller::Events::Readable) {
                 RecordChannelEvent<ChannelReadable>(channel);
@@ -417,7 +417,7 @@ Clock::TimePoint Orchestrator::GetLatestAllowedWakeup() {
 
 void Orchestrator::CollectGarbage() {
     auto garbageIterator = std::stable_partition(begin(_tasks), end(_tasks), [](auto& t) {
-        return t->GetChannel().GetStage() != ChannelBase::Stage::Closed;
+        return t->GetChannel().GetTentativeStage() != ChannelBase::Stage::Closed;
     });
 
     for (auto i = garbageIterator, e = end(_tasks); i != e; ++i)

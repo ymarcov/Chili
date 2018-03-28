@@ -66,7 +66,8 @@ private:
     /**
      * Gets and sets the stage the channel is currently in.
      */
-    Stage GetStage() const;
+    Stage GetTentativeStage() const;
+    Stage GetDefiniteStage() const;
     void SetStage(Stage);
 
     /**
