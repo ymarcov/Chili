@@ -48,7 +48,7 @@ class StreamerChannelFactory : public ChannelFactory {
 };
 
 int main() {
-    auto endpoint = IPEndpoint({127, 0, 0, 1}, 3000);
+    auto endpoint = IPEndpoint({{127, 0, 0, 1}}, 3000);
     auto factory = std::make_shared<StreamerChannelFactory>();
     auto processingThreads = 1;
 

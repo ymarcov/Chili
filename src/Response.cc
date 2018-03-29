@@ -4,7 +4,7 @@
 #include <algorithm>
 #include <array>
 #include <cstring>
-#include <fmtlib/format.h>
+#include <fmt/format.h>
 #include <limits>
 #include <stdexcept>
 #include <string>
@@ -112,8 +112,8 @@ void Response::Prepare(Status status) {
 
     w.write("{} {}\r\n", HttpVersion, ToString(status));
 
-    for (auto& nv : _fields)
-        w.write("{}: {}\r\n", nv.first, nv.second);
+    for (auto& [name, value] : _fields)
+        w.write("{}: {}\r\n", name, value);
 
     if (GetState()._transferMode == TransferMode::Normal) {
         std::size_t contentLength;

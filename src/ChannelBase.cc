@@ -3,7 +3,7 @@
 #include "Log.h"
 
 #include <atomic>
-#include <fmtlib/format.h>
+#include <fmt/format.h>
 
 namespace Chili {
 
@@ -131,12 +131,18 @@ void ChannelBase::SetStage(Stage s) {
 }
 
 Clock::TimePoint ChannelBase::GetRequestedTimeout() const {
+    std::lock_guard lock(_mutex);
     return _timeout;
+}
+
+void ChannelBase::SetRequestedTimeout(Clock::TimePoint t) {
+    std::lock_guard lock(_mutex);
+    _timeout = t;
 }
 
 bool ChannelBase::IsReady() const {
     // Set timeout (probably due to throttling) has not yet expired.
-    if (Clock::GetCurrentTime() < _timeout.load())
+    if (Clock::GetCurrentTime() < GetRequestedTimeout())
         return false;
 
     // If we're closed, we don't have anything
@@ -162,7 +168,7 @@ void ChannelBase::OnRead() {
         Log::Default()->Verbose("Channel {} throttled. Waiting for read quota to fill.", _id);
         RecordReadTimeoutEvent(throttlingInfo.fillTime);
         _stage = Stage::ReadTimeout;
-        _timeout = throttlingInfo.fillTime;
+        SetRequestedTimeout(throttlingInfo.fillTime);
         return;
     }
 
@@ -229,7 +235,7 @@ bool ChannelBase::FetchData(bool(Request::*func)(std::size_t, std::size_t&), std
             auto fillTime = GetThrottlingInfo(_throttlers.Read).fillTime;
             RecordReadTimeoutEvent(fillTime);
             _stage = Stage::ReadTimeout;
-            _timeout = fillTime;
+            SetRequestedTimeout(fillTime);
         }
     }
 
@@ -342,7 +348,7 @@ void ChannelBase::OnWrite() {
         Log::Default()->Verbose("Channel {} throttled. Waiting for write quota to fill.", _id);
         RecordWriteTimeoutEvent(throttlingInfo.fillTime);
         _stage = Stage::WriteTimeout;
-        _timeout = throttlingInfo.fillTime;
+        SetRequestedTimeout(throttlingInfo.fillTime);
         return;
     }
 
@@ -405,7 +411,7 @@ bool ChannelBase::FlushData(std::size_t maxWrite) {
             auto fillTime = GetThrottlingInfo(_throttlers.Write).fillTime;
             RecordWriteTimeoutEvent(fillTime);
             _stage = Stage::WriteTimeout;
-            _timeout = fillTime;
+            SetRequestedTimeout(fillTime);
         }
     }
 
@@ -418,7 +424,7 @@ void ChannelBase::Close() {
 
     Log::Default()->Verbose("Channel {} closed", _id);
 
-    _timeout = Clock::GetCurrentTime();
+    SetRequestedTimeout(Clock::GetCurrentTime());
     _request = Request();
     _response = Response();
     _stream.reset();

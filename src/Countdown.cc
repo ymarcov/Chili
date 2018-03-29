@@ -11,7 +11,7 @@ unsigned Countdown::GetInitialValue() const {
 }
 
 bool Countdown::Tick() {
-    std::lock_guard<std::mutex> lock(_mutex);
+    std::lock_guard lock(_mutex);
 
     if (_count == 0)
         return false;

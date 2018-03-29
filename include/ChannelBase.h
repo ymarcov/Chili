@@ -106,13 +106,15 @@ private:
     void SendInternalError();
     void HandleControlDirective(Control);
     bool FlushData(std::size_t maxWrite);
+    void SetRequestedTimeout(Clock::TimePoint);
 
     std::uint64_t _id;
     std::shared_ptr<FileStream> _stream;
     Throttlers _throttlers;
     Request _request;
     Response _response;
-    std::atomic<Clock::TimePoint> _timeout;
+    mutable std::mutex _mutex;
+    Clock::TimePoint _timeout;
     std::atomic<Stage> _stage;
     bool _forceClose = false;
     bool _fetchingContent = false;

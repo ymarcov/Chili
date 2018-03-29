@@ -14,10 +14,10 @@ if (hasParent)
         PARENT_SCOPE)
 endif()
 
-add_compile_options(-std=c++1z -fPIC -O3 -Werror -Wall -Wpedantic -isystem ext/std)
+add_compile_options(-std=c++17 -fPIC -O3 -Werror -Wall -Wpedantic -isystem ext/std)
 
 project(fmtlib)
-file(GLOB SOURCES "ext/fmtlib/*.cc")
+file(GLOB SOURCES "ext/fmtlib/fmt/*.cc")
 add_library(fmt STATIC ${SOURCES})
 
 project(gmock)
@@ -28,7 +28,7 @@ add_library(gmock STATIC ext/gtest/src/gtest-all.cc
                          ext/gmock/src/gmock_main.cc)
 
 project(static_lib)
-include_directories(ext)
+include_directories(ext/fmtlib)
 include_directories(include)
 file(GLOB SOURCES "src/*.cc")
 add_library(chili_static STATIC ${SOURCES})

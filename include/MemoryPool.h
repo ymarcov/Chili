@@ -77,7 +77,7 @@ public: // public functions
     }
 
     void* Allocate() {
-        std::lock_guard<decltype(_mutex)> lock{_mutex};
+        std::lock_guard lock{_mutex};
 
         Slot* slot = _head;
 
@@ -96,7 +96,7 @@ public: // public functions
         if (!slot)
             return;
 
-        std::lock_guard<decltype(_mutex)> lock{_mutex};
+        std::lock_guard lock{_mutex};
 
         slot->_next = _head;
         _head = slot;

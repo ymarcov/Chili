@@ -81,7 +81,6 @@ private:
     std::shared_ptr<Throttler> _masterWriteThrottler;
     std::thread _thread;
     WaitEvent _newEvent;
-    std::atomic<Clock::TimePoint> _wakeUpTime;
     std::atomic_bool _stop{true};
     std::mutex _mutex;
     std::map<void*, std::weak_ptr<Task>> _taskFastLookup;

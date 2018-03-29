@@ -40,7 +40,7 @@ void Orchestrator::Task::Activate() {
     {
         // This is checked from other places in parallel via
         // ReachedInactivityTimeout(). So we need to lock it.
-        std::lock_guard<std::mutex> lock(_lastActiveMutex);
+        std::lock_guard lock(_lastActiveMutex);
         _lastActive = Clock::GetCurrentTime();
     }
 
@@ -97,7 +97,7 @@ bool Orchestrator::Task::ReachedInactivityTimeout() const {
     decltype(_lastActive) lastActive;
 
     {
-        std::lock_guard<std::mutex> lock(_lastActiveMutex);
+        std::lock_guard lock(_lastActiveMutex);
         lastActive = _lastActive;
     }
 
@@ -118,8 +118,7 @@ Orchestrator::Orchestrator(std::shared_ptr<ChannelFactory> channelFactory, int t
     _poller(8),
     _threadPool(threads),
     _masterReadThrottler(std::make_shared<Throttler>()),
-    _masterWriteThrottler(std::make_shared<Throttler>()),
-    _wakeUpTime(Clock::GetCurrentTime()) {
+    _masterWriteThrottler(std::make_shared<Throttler>()) {
     _poller.OnStop += [this] {
         _stop = true;
         WakeUp();
@@ -199,7 +198,7 @@ void Orchestrator::Add(std::shared_ptr<FileStream> stream) {
     task->_lastActive = Clock::GetCurrentTime();
 
     {
-        std::lock_guard<std::mutex> lock(_mutex);
+        std::lock_guard lock(_mutex);
         _tasks.push_back(task);
         _taskFastLookup[task->GetChannel().GetStream().get()] = task;
     }
@@ -220,7 +219,6 @@ void Orchestrator::SetInactivityTimeout(std::chrono::milliseconds ms) {
 }
 
 void Orchestrator::WakeUp() {
-    _wakeUpTime = Clock::GetCurrentTime();
     _newEvent.Signal();
     Profiler::Record<OrchestratorSignalled>();
 }
@@ -250,7 +248,7 @@ void Orchestrator::OnEvent(std::shared_ptr<FileStream> fs, int events) {
         Log::Default()->Verbose("Channel {} received completion event", channel.GetId());
         channel.Close();
     } else {
-        std::lock_guard<std::mutex> taskLock(task->GetMutex());
+        std::lock_guard taskLock(task->GetMutex());
         HandleChannelEvent(channel, events);
     }
 
@@ -319,7 +317,7 @@ void Orchestrator::IterateOnce() {
         task->MarkHandlingInProcess(true);
 
         _threadPool.Post([=] {
-            std::lock_guard<std::mutex> lock(task->GetMutex());
+            std::lock_guard lock(task->GetMutex());
             task->Activate();
         });
     }
@@ -397,13 +395,14 @@ Clock::TimePoint Orchestrator::GetLatestAllowedWakeup() {
     // our inactivity timeout, when we check
     // if any channels have remained inactive
     // for too long, in which case we close them.
-    auto timeout = _wakeUpTime.load() + _inactivityTimeout.load();
+    auto now = Clock::GetCurrentTime();
+    auto timeout = now + _inactivityTimeout.load();
 
     for (auto& t : _tasks) {
         auto& channel = t->GetChannel();
         auto&& requestedTimeout = channel.GetRequestedTimeout();
 
-        if ((requestedTimeout >= _wakeUpTime.load()) && (requestedTimeout < timeout)) {
+        if ((requestedTimeout >= now) && (requestedTimeout < timeout)) {
             // This client has requested an earlier timeout than
             // the one we were going to use. In order that we can
             // respond to its event as quickly as possible, we'll

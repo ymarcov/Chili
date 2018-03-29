@@ -5,7 +5,7 @@
 
 #include <chrono>
 #include <cstdlib>
-#include <fmtlib/format.h>
+#include <fmt/format.h>
 
 using namespace std::literals;
 
@@ -403,24 +403,24 @@ Hz Profile::GetRatePollerDispatchedAnEvent(Clock::TimePoint t) const {
 }
 
 void Profiler::Enable() {
-    std::lock_guard<std::mutex> lock(_mutex);
+    std::lock_guard lock(_mutex);
     _startTime = Clock::GetCurrentTime();
     _enabled = true;
 }
 
 void Profiler::Disable() {
-    std::lock_guard<std::mutex> lock(_mutex);
+    std::lock_guard lock(_mutex);
     _endTime = Clock::GetCurrentTime();
     _enabled = false;
 }
 
 void Profiler::Clear() {
-    std::lock_guard<std::mutex> lock(_mutex);
+    std::lock_guard lock(_mutex);
     _events.clear();
 }
 
 std::vector<std::reference_wrapper<const ProfileEvent>> Profiler::GetEvents() {
-    std::lock_guard<std::mutex> lock(_mutex);
+    std::lock_guard lock(_mutex);
     auto result = std::vector<std::reference_wrapper<const ProfileEvent>>();
 
     result.reserve(_events.size());

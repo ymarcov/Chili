@@ -188,7 +188,7 @@ private:
 
 template <class T, class... Args>
 void Profiler::Record(Args... args) {
-    std::lock_guard<std::mutex> lock(_mutex);
+    std::lock_guard lock(_mutex);
 
     if (_enabled)
         _events.push_back(std::make_unique<T>(args...));

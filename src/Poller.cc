@@ -20,7 +20,7 @@ Poller::~Poller() {
 }
 
 std::size_t Poller::GetWatchedCount() {
-    std::lock_guard<std::mutex> lock{_filesMutex};
+    std::lock_guard lock{_filesMutex};
     return _files.size();
 }
 
@@ -41,7 +41,7 @@ void Poller::InsertOrIncrementRefCount(std::shared_ptr<FileStream>& fs, int even
     ev.events = EPOLLONESHOT | ConvertToNative(events);
     ev.data.ptr = fs.get();
 
-    std::lock_guard<std::mutex> lock{_filesMutex};
+    std::lock_guard lock{_filesMutex};
 
     auto it = _files.find(fs.get());
 
@@ -67,7 +67,7 @@ void Poller::InsertOrIncrementRefCount(std::shared_ptr<FileStream>& fs, int even
 }
 
 void Poller::DecrementRefCount(const FileStream& fs) {
-    std::lock_guard<std::mutex> lock{_filesMutex};
+    std::lock_guard lock{_filesMutex};
 
     auto it = _files.find(&fs);
 
@@ -152,7 +152,7 @@ void Poller::DispatchEvents(void* eventsPtr, std::size_t n, const Poller::EventH
 }
 
 std::shared_ptr<FileStream> Poller::GetFileStreamFromPtr(void* ptr) {
-    std::lock_guard<std::mutex> lock{_filesMutex};
+    std::lock_guard lock{_filesMutex};
     auto it = _files.find(ptr);
     return it == _files.end() ? nullptr : it->second.second;
 }

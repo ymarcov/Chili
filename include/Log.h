@@ -4,7 +4,8 @@
 #include "Logger.h"
 
 #include <atomic>
-#include <fmtlib/format.h>
+#include <fmt/format.h>
+#include <fmt/ostream.h>
 #include <sstream>
 
 namespace Chili {

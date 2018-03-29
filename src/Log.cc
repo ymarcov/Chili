@@ -20,7 +20,7 @@ Log* Log::Default() {
             if (!std::strftime(buffer, sizeof(buffer), "%F %T", &t))
                     std::strncpy(buffer, "UNKNOWN TIME", sizeof(buffer));
 
-            std::lock_guard<std::mutex> lock(mutex);
+            std::lock_guard lock(mutex);
             std::cerr << levelTag[0] << ":[" << buffer << "] " << message << std::endl;
         }
     };
