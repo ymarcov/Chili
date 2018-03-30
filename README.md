@@ -2,7 +2,7 @@
 
 # Chili: HTTP Served Hot
 
-***An efficient, simple to use, HTTP server library in modern C++***
+***An efficient, simple to use, HTTP server library in modern C++*** \
 This is a library for developing HTTP servers with custom request processing. \
 It uses asynchronous I/O operations, relying on *epoll* (so it is Linux-only), and reaches some very good numbers in terms of performance. At the same time, it's very easy to set up, as shown below.
 
