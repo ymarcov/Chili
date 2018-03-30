@@ -1,4 +1,4 @@
-![Logo](https://raw.githubusercontent.com/ymarcov/Chili/async/logo.svg)
+![Logo](https://raw.githubusercontent.com/ymarcov/Chili/async/logo.svg?sanitize=true)
 
 # Chili HTTP Library
 
