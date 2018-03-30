@@ -131,12 +131,10 @@ void ChannelBase::SetStage(Stage s) {
 }
 
 Clock::TimePoint ChannelBase::GetRequestedTimeout() const {
-    std::lock_guard lock(_mutex);
     return _timeout;
 }
 
 void ChannelBase::SetRequestedTimeout(Clock::TimePoint t) {
-    std::lock_guard lock(_mutex);
     _timeout = t;
 }
 

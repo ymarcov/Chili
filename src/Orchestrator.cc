@@ -37,12 +37,7 @@ void Orchestrator::Task::Activate() {
     // Money line
     _channel->Advance();
 
-    {
-        // This is checked from other places in parallel via
-        // ReachedInactivityTimeout(). So we need to lock it.
-        std::lock_guard lock(_lastActiveMutex);
-        _lastActive = Clock::GetCurrentTime();
-    }
+    _lastActive = Clock::GetCurrentTime();
 
     // In case we're sending it off to the poller,
     // we don't need to notify our main thread,
@@ -94,14 +89,7 @@ bool Orchestrator::Task::ReachedInactivityTimeout() const {
         return false;
     }
 
-    decltype(_lastActive) lastActive;
-
-    {
-        std::lock_guard lock(_lastActiveMutex);
-        lastActive = _lastActive;
-    }
-
-    auto diff = Clock::GetCurrentTime() - lastActive;
+    auto diff = Clock::GetCurrentTime() - _lastActive.GetValue();
     return diff >= _orchestrator->_inactivityTimeout.load();
 }
 

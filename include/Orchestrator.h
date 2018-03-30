@@ -7,6 +7,7 @@
 #include "Poller.h"
 #include "Profiler.h"
 #include "Signal.h"
+#include "Synchronized.h"
 #include "ThreadPool.h"
 #include "Throttler.h"
 #include "WaitEvent.h"
@@ -48,9 +49,8 @@ private:
     private:
         Orchestrator* _orchestrator;
         std::shared_ptr<ChannelBase> _channel;
-        Clock::TimePoint _lastActive;
+        Synchronized<Clock::TimePoint> _lastActive;
         std::mutex _mutex;
-        mutable std::mutex _lastActiveMutex;
         std::atomic_bool _inProcess{false};
 
         friend void Orchestrator::Add(std::shared_ptr<FileStream>);
