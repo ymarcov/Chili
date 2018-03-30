@@ -1,13 +1,12 @@
 ![Logo](https://raw.githubusercontent.com/ymarcov/Chili/async/logo.png)
 
-# Chili HTTP Library
+# Chili: HTTP Served Hot
 
-***A simple to use, yet efficient, modern C++ HTTP server library***
-
+***An efficient, simple to use, HTTP server library in modern C++***
 This is a library for developing HTTP servers with custom request processing. \
 It uses asynchronous I/O operations, relying on *epoll* (so it is Linux-only), and reaches some very good numbers in terms of performance. At the same time, it's very easy to set up, as shown below.
 
-It has a light footprint, and it employs modern C++ constructs, and compiles well under G++ 4.9.2 with `-std=c++14`.
+It has a light footprint, employs modern C++ constructs, and compiles well with no warnings under Clang 5 with `-std=c++17`.
 
 ### Feature Summary
 
