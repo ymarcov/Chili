@@ -37,8 +37,8 @@ int main() {
     auto processingThreads = 1;
 
     HttpServer server(endpoint, factory, processingThreads);
-    Log::Default()->SetLevel(Log::Level::Info);
+    Log::SetLevel(Log::Level::Info);
     auto task = server.Start();
-    Log::Default()->Info("HelloWorld Server Started");
+    Log::Info("HelloWorld Server Started");
     task.wait();
 }

@@ -21,7 +21,7 @@ void Orchestrator::Task::Activate() {
     _orchestrator->RecordChannelEvent<ChannelActivated>(*_channel);
 
     if (ReachedInactivityTimeout()) {
-        Log::Default()->Info("Channel {} reached inactivity timeout", _channel->GetId());
+        Log::Info("Channel {} reached inactivity timeout", _channel->GetId());
 
         // If it happened while it was in the poller, then remove
         // it from there as well. Otherwise, this call should be
@@ -152,7 +152,7 @@ void Orchestrator::InternalStop() {
 }
 
 void Orchestrator::InternalForceStopOnError() {
-    Log::Default()->Error("Orchestrator stopped due to error!");
+    Log::Error("Orchestrator stopped due to error!");
 
     try {
         _stop = true;
@@ -233,7 +233,7 @@ void Orchestrator::OnEvent(std::shared_ptr<FileStream> fs, int events) {
         // No use talking to a wall. Even if we had other events,
         // no one's going to be listening to our replies.
         RecordChannelEvent<ChannelCompleted>(channel);
-        Log::Default()->Verbose("Channel {} received completion event", channel.GetId());
+        Log::Verbose("Channel {} received completion event", channel.GetId());
         channel.Close();
     } else {
         std::lock_guard taskLock(task->GetMutex());
@@ -252,10 +252,10 @@ void Orchestrator::HandleChannelEvent(ChannelBase& channel, int events) {
         case ChannelBase::Stage::WaitReadable: {
             if (events & Poller::Events::Readable) {
                 RecordChannelEvent<ChannelReadable>(channel);
-                Log::Default()->Verbose("Channel {} became readable", channel.GetId());
+                Log::Verbose("Channel {} became readable", channel.GetId());
                 channel.SetStage(ChannelBase::Stage::Read);
             } else {
-                Log::Default()->Error("Channel {} was waiting for readbility but got different "
+                Log::Error("Channel {} was waiting for readbility but got different "
                                       "event. Check poll logic!", channel.GetId());
             }
         } break;
@@ -263,10 +263,10 @@ void Orchestrator::HandleChannelEvent(ChannelBase& channel, int events) {
         case ChannelBase::Stage::WaitWritable: {
             if (events & Poller::Events::Writable) {
                 RecordChannelEvent<ChannelWritable>(channel);
-                Log::Default()->Verbose("Channel {} became writable", channel.GetId());
+                Log::Verbose("Channel {} became writable", channel.GetId());
                 channel.SetStage(ChannelBase::Stage::Write);
             } else {
-                Log::Default()->Error("Channel {} was waiting for writability but got different "
+                Log::Error("Channel {} was waiting for writability but got different "
                                       "event. Check poll logic!", channel.GetId());
             }
         } break;
@@ -275,7 +275,7 @@ void Orchestrator::HandleChannelEvent(ChannelBase& channel, int events) {
             // I'm not sure this can happen, but I'm not taking any chances.
             // At any rate, log it so that maybe it'll help understand if
             // and when it *does* happen.
-            Log::Default()->Verbose("Ignoring event on already closed channel {}", channel.GetId());
+            Log::Verbose("Ignoring event on already closed channel {}", channel.GetId());
             return;
          }
 
@@ -283,7 +283,7 @@ void Orchestrator::HandleChannelEvent(ChannelBase& channel, int events) {
             // The client is not supposed to be in the poller
             // if it wasn't waiting for anything... This must
             // be caused by a programming error.
-            Log::Default()->Error("Channel {} was not in a waiting stage but received an event. "
+            Log::Error("Channel {} was not in a waiting stage but received an event. "
                                   "Check poll logic!", channel.GetId());
             channel.Close();
             return;

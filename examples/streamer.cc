@@ -34,7 +34,7 @@ public:
             res.AppendField("Content-Type", "application/octet-stream");
             return SendResponse(Status::Ok);
         } catch (const std::exception& ex) {
-            Log::Default()->Error("Error: {}", ex.what());
+            Log::Error("Error: {}", ex.what());
             res.Reset();
             return SendFinalResponse(Status::InternalServerError);
         }
@@ -53,9 +53,9 @@ int main() {
     auto processingThreads = 1;
 
     HttpServer server(endpoint, factory, processingThreads);
-    Log::Default()->SetLevel(Log::Level::Info);
+    Log::SetLevel(Log::Level::Info);
 
     auto task = server.Start();
-    Log::Default()->Info("Streamer Server Started");
+    Log::Info("Streamer Server Started");
     task.wait();
 }

@@ -191,7 +191,7 @@ int main(int argc, char* argv[]) {
         std::cerr << BackTrace{};
     });
 
-    Log::Default()->SetLevel(Log::Level::Warning);
+    Log::SetLevel(Log::Level::Warning);
 
     auto serverTask = server->Start();
 

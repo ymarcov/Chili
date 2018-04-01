@@ -37,8 +37,8 @@ int main() {
     auto processingThreads = 4;
 
     HttpServer server(endpoint, factory, processingThreads);
-    Log::Default()->SetLevel(Log::Level::Info);
+    Log::SetLevel(Log::Level::Info);
     auto task = server.Start();
-    Log::Default()->Info("Routed Server Started");
+    Log::Info("Routed Server Started");
     task.wait();
 }

@@ -88,7 +88,7 @@ ChannelBase::ChannelBase(std::shared_ptr<FileStream> stream) :
     _response(_stream),
     _timeout(Clock::GetCurrentTime()),
     _stage(Stage::WaitReadable) {
-    Log::Default()->Verbose("Channel {} created", _id);
+    Log::Verbose("Channel {} created", _id);
 }
 
 ChannelBase::~ChannelBase() {}
@@ -110,7 +110,7 @@ void ChannelBase::Advance() {
                 throw std::logic_error("Advance() called in non-ready stage");
         }
     } catch (const std::exception& e) {
-        Log::Default()->Debug("Channel {} error: {}", _id, e.what());
+        Log::Debug("Channel {} error: {}", _id, e.what());
         Close();
     }
 }
@@ -163,7 +163,7 @@ void ChannelBase::OnRead() {
     auto throttlingInfo = GetThrottlingInfo(_throttlers.Read);
 
     if (!throttlingInfo.full) {
-        Log::Default()->Verbose("Channel {} throttled. Waiting for read quota to fill.", _id);
+        Log::Verbose("Channel {} throttled. Waiting for read quota to fill.", _id);
         RecordReadTimeoutEvent(throttlingInfo.fillTime);
         _stage = Stage::ReadTimeout;
         SetRequestedTimeout(throttlingInfo.fillTime);
@@ -221,7 +221,7 @@ bool ChannelBase::FetchData(bool(Request::*func)(std::size_t, std::size_t&), std
             // If we're *not* done *and* we haven't even read as much
             // as the throttler allowed us to, we can infer that the
             // socket needs to send more data for us to read.
-            Log::Default()->Verbose("Channel {} socket buffer empty. Waiting for readability.", _id);
+            Log::Verbose("Channel {} socket buffer empty. Waiting for readability.", _id);
             RecordProfileEvent<ChannelWaitReadable>();
             _stage = Stage::WaitReadable;
         } else {
@@ -229,7 +229,7 @@ bool ChannelBase::FetchData(bool(Request::*func)(std::size_t, std::size_t&), std
             // the throttler allowed us to read, we can infer that
             // the throttler has emptied out, and so we need to
             // wait for it to become full again.
-            Log::Default()->Verbose("Channel {} throttled. Waiting for read quota to fill.", _id);
+            Log::Verbose("Channel {} throttled. Waiting for read quota to fill.", _id);
             auto fillTime = GetThrottlingInfo(_throttlers.Read).fillTime;
             RecordReadTimeoutEvent(fillTime);
             _stage = Stage::ReadTimeout;
@@ -269,7 +269,7 @@ void ChannelBase::OnProcess() {
 }
 
 void ChannelBase::SendInternalError() {
-    Log::Default()->Error("Channel {} processor error ignored! Please handle internally.", _id);
+    Log::Error("Channel {} processor error ignored! Please handle internally.", _id);
     _forceClose = true;
     _response = Response(_stream);
     _response.SetExplicitKeepAlive(false);
@@ -343,7 +343,7 @@ void ChannelBase::OnWrite() {
     auto throttlingInfo = GetThrottlingInfo(_throttlers.Write);
 
     if (!throttlingInfo.full) {
-        Log::Default()->Verbose("Channel {} throttled. Waiting for write quota to fill.", _id);
+        Log::Verbose("Channel {} throttled. Waiting for write quota to fill.", _id);
         RecordWriteTimeoutEvent(throttlingInfo.fillTime);
         _stage = Stage::WriteTimeout;
         SetRequestedTimeout(throttlingInfo.fillTime);
@@ -367,13 +367,13 @@ void ChannelBase::OnWrite() {
         RecordProfileEvent<ChannelReading>();
         _stage = Stage::Read;
     } else if (_response.GetKeepAlive()) {
-        Log::Default()->Verbose("Channel {} sent response and keeps alive", _id);
+        Log::Verbose("Channel {} sent response and keeps alive", _id);
         _request = Request(_stream);
         _fetchingContent = false; // Will be reading a new request header
         RecordProfileEvent<ChannelReading>();
         _stage = Stage::Read;
     } else {
-        Log::Default()->Verbose("Channel {} sent final response", _id);
+        Log::Verbose("Channel {} sent final response", _id);
         Close();
     }
 }
@@ -396,7 +396,7 @@ bool ChannelBase::FlushData(std::size_t maxWrite) {
             // as the throttler allowed us to, we can infer that the
             // socket needs to release more of its buffered data.
             if (bytesFlushed < _response.GetBufferSize()) {
-                Log::Default()->Verbose("Channel {} socket buffer full. Waiting for writability.", _id);
+                Log::Verbose("Channel {} socket buffer full. Waiting for writability.", _id);
                 RecordProfileEvent<ChannelWaitWritable>();
                 _stage = Stage::WaitWritable;
             }
@@ -405,7 +405,7 @@ bool ChannelBase::FlushData(std::size_t maxWrite) {
             // the throttler allowed us to flush, we can infer that
             // the throttler has emptied out, and so we need to
             // wait for it to become full again.
-            Log::Default()->Verbose("Channel {} throttled. Waiting for write quota to fill.", _id);
+            Log::Verbose("Channel {} throttled. Waiting for write quota to fill.", _id);
             auto fillTime = GetThrottlingInfo(_throttlers.Write).fillTime;
             RecordWriteTimeoutEvent(fillTime);
             _stage = Stage::WriteTimeout;
@@ -420,7 +420,7 @@ void ChannelBase::Close() {
     if (_stage == Stage::Closed)
         return;
 
-    Log::Default()->Verbose("Channel {} closed", _id);
+    Log::Verbose("Channel {} closed", _id);
 
     SetRequestedTimeout(Clock::GetCurrentTime());
     _request = Request();
@@ -483,7 +483,7 @@ void ChannelBase::LogNewRequest() {
             break;
 
         default:
-            Log::Default()->Info("Unsupported method for {}! Dropping request on channel {}.", _request.GetUri(), _id);
+            Log::Info("Unsupported method for {}! Dropping request on channel {}.", _request.GetUri(), _id);
             break;
     }
 
@@ -497,7 +497,7 @@ void ChannelBase::LogNewRequest() {
             break;
     }
 
-    Log::Default()->Info("Channel {} Received \"{} {} {}\"", _id, method, _request.GetUri(), version);
+    Log::Info("Channel {} Received \"{} {} {}\"", _id, method, _request.GetUri(), version);
 }
 
 } // namespace Chili

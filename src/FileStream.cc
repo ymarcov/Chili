@@ -184,7 +184,7 @@ std::size_t FileStream::WriteTo(FileStream& fs, std::size_t maxBytes) {
 void FileStream::Close() {
     if (_nativeHandle != InvalidHandle)
         if (-1 == ::close(_nativeHandle))
-            Log::Default()->Warning("Failed to close fd {}", _nativeHandle);
+            Log::Warning("Failed to close fd {}", _nativeHandle);
 }
 
 void SeekableFileStream::Seek(std::size_t offset) {

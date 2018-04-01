@@ -21,55 +21,46 @@ public:
         Fatal
     };
 
-    /**
-     * Gets the default log.
-     */
-    static Log* Default();
-
-    Log(std::shared_ptr<Logger> logger, Level level = Level::Verbose) :
-        _logger(std::move(logger)),
-        _currentLevel(level) {}
-
-    void SetLevel(Level level) {
+    static void SetLevel(Level level) {
         _currentLevel = level;
     }
 
-    Level GetLevel() const {
+    static Level GetLevel() {
         return _currentLevel;
     }
 
     template <class... Args>
-    void Verbose(const char* format, Args&&... args) {
+    static void Verbose(const char* format, Args&&... args) {
         if (Enabled(Level::Verbose))
             _logger->Log("Verbose", fmt::format(format, args...));
     }
 
     template <class... Args>
-    void Debug(const char* format, Args&&... args) {
+    static void Debug(const char* format, Args&&... args) {
         if (Enabled(Level::Debug))
             _logger->Log("Debug", fmt::format(format, args...));
     }
 
     template <class... Args>
-    void Info(const char* format, Args&&... args) {
+    static void Info(const char* format, Args&&... args) {
         if (Enabled(Level::Info))
             _logger->Log("Info", fmt::format(format, args...));
     }
 
     template <class... Args>
-    void Warning(const char* format, Args&&... args) {
+    static void Warning(const char* format, Args&&... args) {
         if (Enabled(Level::Warning))
             _logger->Log("Warning", fmt::format(format, args...));
     }
 
     template <class... Args>
-    void Error(const char* format, Args&&... args) {
+    static void Error(const char* format, Args&&... args) {
         if (Enabled(Level::Error))
             _logger->Log("Error", fmt::format(format, args...));
     }
 
     template <class... Args>
-    void Fatal(const char* format, Args&&... args) {
+    static void Fatal(const char* format, Args&&... args) {
         if (Enabled(Level::Fatal)) {
             std::ostringstream msg;
             msg << fmt::format(format, args...);
@@ -85,12 +76,12 @@ public:
     }
 
 private:
-    bool Enabled(Level level) const {
+    static bool Enabled(Level level) {
         return (int)_currentLevel.load() <= (int)level;
     }
 
-    std::shared_ptr<Logger> _logger;
-    std::atomic<Level> _currentLevel;
+    static std::shared_ptr<Logger> _logger;
+    static std::atomic<Level> _currentLevel;
 };
 
 } // namespace Chili
