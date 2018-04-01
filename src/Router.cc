@@ -6,7 +6,7 @@ class RoutedChannel : public Channel {
 public:
     RoutedChannel(std::shared_ptr<FileStream> fs, std::shared_ptr<Router> router);
 
-    Control Process(const Request&, Response&) override;
+    void Process(const Request&, Response&) override;
 
 private:
     std::shared_ptr<Router> _router;
@@ -18,16 +18,16 @@ Router::Router() {
     };
 }
 
-Channel::Control Router::InvokeRoute(Channel& channel) const {
+void Router::InvokeRoute(Channel& channel) const {
     const RouteHandler* handler;
     Args args;
 
     if (FindMatch(channel.GetRequest(), handler, args)) {
         auto status = (*handler)(channel, args);
-        return channel.SendResponse(status);
+        channel.SendResponse(status);
     } else {
         auto status = _defaultHandler(channel, args);
-        return channel.SendFinalResponse(status);
+        channel.SendFinalResponse(status);
     }
 }
 
@@ -72,8 +72,8 @@ RoutedChannel::RoutedChannel(std::shared_ptr<FileStream> fs, std::shared_ptr<Rou
     Channel(std::move(fs)),
     _router(std::move(router)) {}
 
-Channel::Control RoutedChannel::Process(const Request&, Response&) {
-    return _router->InvokeRoute(*this);
+void RoutedChannel::Process(const Request&, Response&) {
+    _router->InvokeRoute(*this);
 }
 
 RoutedChannelFactory::RoutedChannelFactory(std::shared_ptr<Router> router) :

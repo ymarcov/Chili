@@ -41,7 +41,7 @@ public:
     /**
      * @internal
      */
-    Channel::Control InvokeRoute(Channel&) const;
+    void InvokeRoute(Channel&) const;
 
     /**
      * Installs a new route handler for the specified method and URI pattern.

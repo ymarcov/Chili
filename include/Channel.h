@@ -81,7 +81,7 @@ public:
      * Instructs the server to fetch the rest of the content
      * (message body) of the request being processed.
      */
-    Control FetchContent();
+    void FetchContent();
 
     /**
      * Instructs the server to reject the rest of the content
@@ -91,7 +91,7 @@ public:
      * you know you will not be able to process the message
      * for one reason or another (perhaps only temporarily).
      */
-    Control RejectContent();
+    void RejectContent();
 
     /**
      * Sends a cached response back to the client.
@@ -100,7 +100,7 @@ public:
      * by a call to Response::CacheAs(), after configuring
      * its various properties.
      */
-    Control SendResponse(std::shared_ptr<CachedResponse>);
+    void SendResponse(std::shared_ptr<CachedResponse>);
 
     /**
      * Sends a response back to the client.
@@ -109,7 +109,7 @@ public:
      * the response properties -- which you can access by
      * calling GetResponse().
      */
-    Control SendResponse(Status);
+    void SendResponse(Status);
 
     /**
      * Sends a response back to the client and closes the channel.
@@ -118,7 +118,7 @@ public:
      * the response properties -- which you can access by
      * calling GetResponse().
      */
-    Control SendFinalResponse(Status);
+    void SendFinalResponse(Status);
 
     /**
      * Returns true if reading is currently being throttled
@@ -163,7 +163,7 @@ protected:
      * requests that the rest of the message's body be retrieved.
      * Once it is retrieved, this function will be called a 2nd time.
      */
-    virtual Control Process(const Request&, Response&) = 0;
+    virtual void Process(const Request&, Response&) = 0;
 
 private:
     struct ThrottlingInfo {
@@ -221,7 +221,7 @@ private:
     bool FetchData(bool(Request::*)(std::size_t, std::size_t&), std::size_t maxRead);
     void LogNewRequest();
     void SendInternalError();
-    void HandleControlDirective(Control);
+    void HandleControlDirective();
     bool FlushData(std::size_t maxWrite);
     void SetRequestedTimeout(Clock::TimePoint);
 
@@ -235,6 +235,7 @@ private:
     bool _forceClose = false;
     bool _fetchingContent = false;
     bool _autoFetchContent = true;
+    Control _controlDirective;
 
     friend class Orchestrator;
 };

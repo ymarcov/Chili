@@ -105,8 +105,8 @@ protected:
                 SetAutoFetchContent(false);
             }
 
-            Control Process(const Request&, Response&) override {
-                return _p(*this);
+            void Process(const Request&, Response&) override {
+                _p(*this);
             }
 
             Processor _p;

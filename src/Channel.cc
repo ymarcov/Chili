@@ -109,28 +109,28 @@ Response& Channel::GetResponse() {
     return _response;
 }
 
-Channel::Control Channel::FetchContent() {
-    return Control::FetchContent;
+void Channel::FetchContent() {
+    _controlDirective = Control::FetchContent;
 }
 
-Channel::Control Channel::RejectContent() {
-    return Control::RejectContent;
+void Channel::RejectContent() {
+    _controlDirective = Control::RejectContent;
 }
 
-Channel::Control Channel::SendResponse(std::shared_ptr<CachedResponse> cr) {
+void Channel::SendResponse(std::shared_ptr<CachedResponse> cr) {
     _response.SendCached(std::move(cr));
-    return Control::SendResponse;
+    _controlDirective = Control::SendResponse;
 }
 
-Channel::Control Channel::SendResponse(Status status) {
+void Channel::SendResponse(Status status) {
     _response.Send(status);
-    return Control::SendResponse;
+    _controlDirective = Control::SendResponse;
 }
 
-Channel::Control Channel::SendFinalResponse(Status status) {
+void Channel::SendFinalResponse(Status status) {
     _response.SetExplicitKeepAlive(false);
     _response.Send(status);
-    return Control::SendResponse;
+    _controlDirective = Control::SendResponse;
 }
 
 bool Channel::IsReadThrottled() const {
@@ -315,13 +315,14 @@ void Channel::OnProcess() {
             }
 
             // So let's get the content
-            HandleControlDirective(Control::FetchContent);
+            _controlDirective = Control::FetchContent;
         } else {
             // Call derived processing implementation
-            auto directive = Process(GetRequest(), GetResponse());
-            // Do what it says
-            HandleControlDirective(directive);
+            // and let it set _controlDirective
+            Process(GetRequest(), GetResponse());
         }
+
+        HandleControlDirective();
     } catch (...) {
         SendInternalError();
         return;
@@ -338,8 +339,8 @@ void Channel::SendInternalError() {
     _stage = Stage::Write;
 }
 
-void Channel::HandleControlDirective(Control directive) {
-    switch (directive) {
+void Channel::HandleControlDirective() {
+    switch (_controlDirective) {
         case Control::SendResponse:
             // Simple enough, just start writing the response
             RecordProfileEvent<ChannelWriting>();

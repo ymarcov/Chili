@@ -125,7 +125,7 @@ std::unique_ptr<ChannelFactory> CreateChannelFactory(const ServerConfiguration& 
             Channel(std::move(fs)),
             _verbose(verbose) {}
 
-        Control Process(const Request& req, Response& res) override {
+        void Process(const Request& req, Response& res) override {
             if (_verbose) {
                 std::lock_guard<std::mutex> lock(_outputMutex);
                 std::cout << "\n";
