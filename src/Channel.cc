@@ -109,7 +109,8 @@ Response& Channel::GetResponse() {
     return _response;
 }
 
-void Channel::FetchContent() {
+void Channel::FetchContent(std::function<void()> callback) {
+    _fetchContentCallback = std::move(callback);
     _controlDirective = Control::FetchContent;
 }
 
@@ -317,9 +318,15 @@ void Channel::OnProcess() {
             // So let's get the content
             _controlDirective = Control::FetchContent;
         } else {
-            // Call derived processing implementation
-            // and let it set _controlDirective
-            Process(GetRequest(), GetResponse());
+            if (_fetchContentCallback) {
+                // Call callback set by previous call to Process()
+                _fetchContentCallback();
+                _fetchContentCallback = {};
+            } else {
+                // Call derived processing implementation
+                // and let it set _controlDirective
+                Process(GetRequest(), GetResponse());
+            }
         }
 
         HandleControlDirective();

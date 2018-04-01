@@ -81,7 +81,7 @@ public:
      * Instructs the server to fetch the rest of the content
      * (message body) of the request being processed.
      */
-    void FetchContent();
+    void FetchContent(std::function<void()> callback);
 
     /**
      * Instructs the server to reject the rest of the content
@@ -235,6 +235,7 @@ private:
     bool _forceClose = false;
     bool _fetchingContent = false;
     bool _autoFetchContent = true;
+    std::function<void()> _fetchContentCallback;
     Control _controlDirective;
 
     friend class Orchestrator;

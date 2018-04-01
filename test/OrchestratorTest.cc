@@ -171,10 +171,10 @@ TEST_F(OrchestratorTest, one_client_header_and_body) {
 
     auto server = MakeServer(MakeProcessor([=](Channel& c) {
         if (!c.GetRequest().IsContentAvailable())
-            return c.FetchContent();
-
-        ready->Signal();
-        return c.SendResponse(Status::Ok);
+            c.FetchContent([&c, ready] {
+                ready->Signal();
+                c.SendResponse(Status::Ok);
+            });
     }));
 
     server->Start();
@@ -200,10 +200,10 @@ TEST_F(OrchestratorTest, one_client_header_and_body_throttled) {
             c.ThrottleRead({5, 5ms});
 
         if (!c.GetRequest().IsContentAvailable())
-            return c.FetchContent();
-
-        ready->Signal();
-        return c.SendResponse(Status::Ok);
+            c.FetchContent([&c, ready] {
+                ready->Signal();
+                c.SendResponse(Status::Ok);
+            });
     }));
 
     server->Start();
@@ -225,11 +225,11 @@ TEST_F(OrchestratorTest, one_client_header_and_body_with_expect) {
     auto server = MakeServer(MakeProcessor([=](Channel& c) {
         if (!c.GetRequest().IsContentAvailable()) {
             sentContinue->Signal();
-            return c.FetchContent();
+            c.FetchContent([&c, sentOk] {
+                sentOk->Signal();
+                c.SendResponse(Status::Ok);
+            });
         }
-
-        sentOk->Signal();
-        return c.SendResponse(Status::Ok);
     }));
 
     server->Start();
@@ -284,13 +284,13 @@ TEST_F(OrchestratorTest, stress_sync) {
             c.ThrottleWrite({5, 5ms});
 
         if (!c.GetRequest().IsContentAvailable())
-            return c.FetchContent();
+            c.FetchContent([&c, ready, readyCount] {
+                if (c.GetRequest().GetField("Host") == "request.urih.com")
+                    if (++*readyCount == clientCount)
+                        ready->Signal();
 
-        if (c.GetRequest().GetField("Host") == "request.urih.com")
-            if (++*readyCount == clientCount)
-                ready->Signal();
-
-        return c.SendResponse(Status::Ok);
+                c.SendResponse(Status::Ok);
+            });
     }));
 
     server->Start();
