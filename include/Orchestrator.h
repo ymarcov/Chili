@@ -1,6 +1,6 @@
 #pragma once
 
-#include "ChannelBase.h"
+#include "Channel.h"
 #include "ChannelFactory.h"
 #include "Clock.h"
 #include "FileStream.h"
@@ -43,12 +43,12 @@ private:
         bool IsHandlingInProcess() const;
         void Activate();
         bool ReachedInactivityTimeout() const;
-        ChannelBase& GetChannel();
+        Channel& GetChannel();
         std::mutex& GetMutex();
 
     private:
         Orchestrator* _orchestrator;
-        std::shared_ptr<ChannelBase> _channel;
+        std::shared_ptr<Channel> _channel;
         Synchronized<Clock::TimePoint> _lastActive;
         std::mutex _mutex;
         std::atomic_bool _inProcess{false};
@@ -57,11 +57,11 @@ private:
     };
 
     template <class T>
-    void RecordChannelEvent(const ChannelBase&) const;
+    void RecordChannelEvent(const Channel&) const;
 
     void WakeUp();
     void OnEvent(std::shared_ptr<FileStream>, int events);
-    void HandleChannelEvent(ChannelBase&, int events);
+    void HandleChannelEvent(Channel&, int events);
     void IterateOnce();
     std::vector<std::shared_ptr<Task>> CaptureTasks();
     std::vector<std::shared_ptr<Task>> FilterReadyTasks();
@@ -89,7 +89,7 @@ private:
 };
 
 template <class T>
-void Orchestrator::RecordChannelEvent(const ChannelBase& c) const {
+void Orchestrator::RecordChannelEvent(const Channel& c) const {
     Profiler::Record<T>("Orchestrator", c.GetId());
 }
 
