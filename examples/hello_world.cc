@@ -26,8 +26,8 @@ class HelloWorldChannel : public Channel {
 };
 
 class HelloWorldChannelFactory : public ChannelFactory {
-    std::unique_ptr<Channel> CreateChannel(std::shared_ptr<FileStream> fs) override {
-        return std::make_unique<HelloWorldChannel>(std::move(fs));
+    std::shared_ptr<Channel> CreateChannel(std::shared_ptr<FileStream> fs) override {
+        return std::make_shared<HelloWorldChannel>(std::move(fs));
     }
 };
 

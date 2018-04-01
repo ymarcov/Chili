@@ -79,8 +79,8 @@ void RoutedChannel::Process(const Request&, Response&) {
 RoutedChannelFactory::RoutedChannelFactory(std::shared_ptr<Router> router) :
     _router(std::move(router)) {}
 
-std::unique_ptr<Channel> RoutedChannelFactory::CreateChannel(std::shared_ptr<FileStream> fs) {
-    return std::make_unique<RoutedChannel>(std::move(fs), _router);
+std::shared_ptr<Channel> RoutedChannelFactory::CreateChannel(std::shared_ptr<FileStream> fs) {
+    return std::make_shared<RoutedChannel>(std::move(fs), _router);
 }
 
 } // namespace Chili

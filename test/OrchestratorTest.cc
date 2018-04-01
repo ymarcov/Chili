@@ -79,14 +79,14 @@ protected:
         fs->Write(buffer.data(), buffer.size());
     }
 
-    using FactoryFunction = std::function<std::unique_ptr<Channel>(std::shared_ptr<FileStream>)>;
+    using FactoryFunction = std::function<std::shared_ptr<Channel>(std::shared_ptr<FileStream>)>;
 
     std::shared_ptr<HttpServer> MakeServer(FactoryFunction factoryFunction) {
         struct Factory : ChannelFactory {
             Factory(FactoryFunction f) :
                 _f(std::move(f)) {}
 
-            std::unique_ptr<Channel> CreateChannel(std::shared_ptr<FileStream> stream) override {
+            std::shared_ptr<Channel> CreateChannel(std::shared_ptr<FileStream> stream) override {
                 return _f(std::move(stream));
             }
 

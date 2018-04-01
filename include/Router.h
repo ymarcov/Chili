@@ -80,7 +80,7 @@ public:
      */
     RoutedChannelFactory(std::shared_ptr<Router> router);
 
-    std::unique_ptr<Channel> CreateChannel(std::shared_ptr<FileStream> fs) override;
+    std::shared_ptr<Channel> CreateChannel(std::shared_ptr<FileStream> fs) override;
 
 private:
     std::shared_ptr<Router> _router;

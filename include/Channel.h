@@ -9,6 +9,7 @@
 #include "Synchronized.h"
 #include "Throttler.h"
 
+#include <memory>
 #include <mutex>
 
 namespace Chili {
@@ -17,7 +18,7 @@ namespace Chili {
  * Channel
  */
 
-class Channel {
+class Channel : public std::enable_shared_from_this<Channel> {
 public:
     /**
      * @internal

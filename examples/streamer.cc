@@ -42,8 +42,8 @@ public:
 };
 
 class StreamerChannelFactory : public ChannelFactory {
-    std::unique_ptr<Channel> CreateChannel(std::shared_ptr<FileStream> fs) override {
-        return std::make_unique<StreamerChannel>(std::move(fs));
+    std::shared_ptr<Channel> CreateChannel(std::shared_ptr<FileStream> fs) override {
+        return std::make_shared<StreamerChannel>(std::move(fs));
     }
 };
 

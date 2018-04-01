@@ -153,7 +153,7 @@ std::unique_ptr<ChannelFactory> CreateChannelFactory(const ServerConfiguration& 
         CustomChannelFactory(bool verbose) :
             _verbose(verbose) {}
 
-        std::unique_ptr<Channel> CreateChannel(std::shared_ptr<FileStream> fs) override {
+        std::shared_ptr<Channel> CreateChannel(std::shared_ptr<FileStream> fs) override {
             return std::make_unique<CustomChannel>(std::move(fs), _verbose);
         }
 
