@@ -164,7 +164,7 @@ protected:
      * requests that the rest of the message's body be retrieved.
      * Once it is retrieved, this function will be called a 2nd time.
      */
-    virtual void Process(const Request&, Response&) = 0;
+    virtual void Process() = 0;
 
 private:
     struct ThrottlingInfo {

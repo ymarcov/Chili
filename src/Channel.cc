@@ -325,7 +325,7 @@ void Channel::OnProcess() {
             } else {
                 // Call derived processing implementation
                 // and let it set _controlDirective
-                Process(GetRequest(), GetResponse());
+                Process();
             }
         }
 

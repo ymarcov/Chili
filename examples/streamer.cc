@@ -26,7 +26,10 @@ public:
     }
 
     // Process incoming requests
-    void Process(const Request& req, Response& res) override {
+    void Process() override {
+        auto& req = GetRequest();
+        auto& res = GetResponse();
+
         try {
             std::string uri(req.GetUri());
             std::shared_ptr<FileStream> stream = FileStream::Open(uri, FileMode::Read);

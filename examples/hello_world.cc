@@ -18,10 +18,11 @@ class HelloWorldChannel : public Channel {
     using Channel::Channel;
 
     // Process incoming requests
-    void Process(const Request&, Response& res) override {
+    void Process() override {
+        auto& res = GetResponse();
         res.SetContent("<h1>Hello world!</h1>");
         res.AppendField("Content-Type", "text/html");
-        return SendResponse(Status::Ok);
+        SendResponse(Status::Ok);
     }
 };
 

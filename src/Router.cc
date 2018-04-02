@@ -6,7 +6,7 @@ class RoutedChannel : public Channel {
 public:
     RoutedChannel(std::shared_ptr<FileStream> fs, std::shared_ptr<Router> router);
 
-    void Process(const Request&, Response&) override;
+    void Process() override;
 
 private:
     std::shared_ptr<Router> _router;
@@ -72,7 +72,7 @@ RoutedChannel::RoutedChannel(std::shared_ptr<FileStream> fs, std::shared_ptr<Rou
     Channel(std::move(fs)),
     _router(std::move(router)) {}
 
-void RoutedChannel::Process(const Request&, Response&) {
+void RoutedChannel::Process() {
     _router->InvokeRoute(*this);
 }
 

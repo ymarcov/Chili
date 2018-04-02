@@ -105,7 +105,7 @@ protected:
                 SetAutoFetchContent(false);
             }
 
-            void Process(const Request&, Response&) override {
+            void Process() override {
                 _p(*this);
             }
 
