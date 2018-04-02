@@ -71,7 +71,7 @@ public:
     /**
      * Gets the request associated with the current processing call.
      */
-    Request& GetRequest();
+    const Request& GetRequest() const;
 
     /**
      * Gets the response associated with the current processing call.

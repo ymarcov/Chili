@@ -101,7 +101,7 @@ void Channel::SetAutoFetchContent(bool b) {
     _autoFetchContent = b;
 }
 
-Request& Channel::GetRequest() {
+const Request& Channel::GetRequest() const {
     return _request;
 }
 
