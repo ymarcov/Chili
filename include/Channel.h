@@ -260,6 +260,12 @@ private:
     const char* _source;
 };
 
+class ChannelActivating : public ChannelEvent {
+public:
+    using ChannelEvent::ChannelEvent;
+    void Accept(ProfileEventReader&) const override;
+};
+
 class ChannelActivated : public ChannelEvent {
 public:
     using ChannelEvent::ChannelEvent;

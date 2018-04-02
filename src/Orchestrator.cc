@@ -1,4 +1,5 @@
 #include "Orchestrator.h"
+#include "ExitTrap.h"
 #include "Log.h"
 
 #include <algorithm>
@@ -18,7 +19,11 @@ bool Orchestrator::Task::IsHandlingInProcess() const {
 }
 
 void Orchestrator::Task::Activate() {
-    _orchestrator->RecordChannelEvent<ChannelActivated>(*_channel);
+    _orchestrator->RecordChannelEvent<ChannelActivating>(*_channel);
+
+    auto onExit = CreateExitTrap([&] {
+        _orchestrator->RecordChannelEvent<ChannelActivated>(*_channel);
+    });
 
     if (ReachedInactivityTimeout()) {
         Log::Info("Channel {} reached inactivity timeout", _channel->GetId());

@@ -6,6 +6,7 @@
 #include <chrono>
 #include <cstdlib>
 #include <fmt/format.h>
+#include <map>
 
 using namespace std::literals;
 
@@ -44,6 +45,8 @@ std::string Profile::GetSummary() const {
     w.write("[Channel] # Closed: {} ({}/sec)\n",
             GetTimesChannelsWereClosed(),
             GetRateChannelsWereClosed());
+
+    w.write("[Channel] Up Time: {} ms\n", GetChannelsUpTime().count());
 
     w.write("[Channel::Read] # Waited for Readability: {} ({}/sec)\n",
             GetTimesChannelsWaitedForReadability(),
@@ -187,6 +190,26 @@ Hz Profile::GetRateChannelsWereActivated() const {
 
 Hz Profile::GetRateChannelsWereActivated(Clock::TimePoint t) const {
     return HzCalculator<ChannelActivated>(t).ReadAll(_events);
+}
+
+std::chrono::milliseconds Profile::GetChannelsUpTime() const {
+    struct : ProfileEventReader {
+        void Read(const ChannelActivating& e) {
+            _lastActivationTime[e.ChannelId] = e.GetTimePoint();
+        }
+
+        void Read(const ChannelActivated& e) {
+            UpTime += std::chrono::duration_cast<std::chrono::milliseconds>(e.GetTimePoint() - _lastActivationTime[e.ChannelId]);
+        }
+
+        std::chrono::milliseconds UpTime{0};
+        std::map<std::uint64_t, Clock::TimePoint> _lastActivationTime;
+    } reader;
+
+    for (auto& e : _events)
+        reader.Visit(e);
+
+    return reader.UpTime;
 }
 
 std::uint64_t Profile::GetTimesChannelsWaitedForReadability() const {

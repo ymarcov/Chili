@@ -25,6 +25,10 @@ void ChannelEvent::Accept(ProfileEventReader& reader) const {
     reader.Read(*this);
 }
 
+void ChannelActivating::Accept(ProfileEventReader& reader) const {
+    reader.Read(*this);
+}
+
 void ChannelActivated::Accept(ProfileEventReader& reader) const {
     reader.Read(*this);
 }
