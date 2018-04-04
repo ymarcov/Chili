@@ -1,9 +1,12 @@
 #pragma once
 
+#include "BufferedInputStream.h"
 #include "InputStream.h"
 #include "OutputStream.h"
 #include "Protocol.h"
+#include "Signal.h"
 
+#include <functional>
 #include <memory>
 #include <string>
 #include <utility>
@@ -28,8 +31,19 @@ class CachedResponse {
  */
 class Response {
 public:
+    /**
+     * @internal
+     */
+    enum class FlushStatus {
+        ReachedQuota,
+        IncompleteWrite,
+        WaitingForContent,
+        Done
+    };
+
     Response() = default;
-    Response(std::shared_ptr<OutputStream>);
+    Response(std::shared_ptr<OutputStream>,
+             std::weak_ptr<Signal<>> readyToWrite);
 
     /**
      * Resets the state of the response.
@@ -107,10 +121,10 @@ public:
     /**
      * @internal
      * Writes response data to the output stream.
-     * Returns whether the operation completed,
+     * Returns the way in which the operation ended,
      * and how many bytes were written (as an out variable).
      */
-    bool Flush(std::size_t maxBytes, std::size_t& consumed);
+    FlushStatus Flush(std::size_t maxBytes, std::size_t& consumed);
 
     /**
      * @internal
@@ -143,14 +157,15 @@ private:
     void Prepare(Status);
     CachedResponse& GetState() const;
 
-    bool FlushHeader(std::size_t& maxBytes, std::size_t& consumed);
+    FlushStatus FlushHeader(std::size_t& maxBytes, std::size_t& consumed);
 
     template <class T>
-    bool FlushBody(T& data, std::size_t& maxBytes, std::size_t& consumed);
+    FlushStatus FlushBody(T& data, std::size_t& maxBytes, std::size_t& consumed);
 
-    bool FlushStream(std::size_t& maxBytes, std::size_t& consumed);
+    FlushStatus FlushStream(std::size_t& maxBytes, std::size_t& consumed);
 
     std::shared_ptr<OutputStream> _stream;
+    std::weak_ptr<Signal<>> _readyToWrite;
     bool _prepared = false;
     std::vector<std::pair<std::string, std::string>> _fields;
     mutable std::shared_ptr<CachedResponse> _response;

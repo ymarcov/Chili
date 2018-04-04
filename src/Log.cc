@@ -18,8 +18,9 @@ struct ConsoleLogger : Logger {
         tm t;
         ::localtime_r(&time, &t);
         char buffer[0x100];
+
         if (!std::strftime(buffer, sizeof(buffer), "%F %T", &t))
-                std::strncpy(buffer, "UNKNOWN TIME", sizeof(buffer));
+            std::strncpy(buffer, "UNKNOWN TIME", sizeof(buffer));
 
         std::lock_guard lock(mutex);
         std::cerr << levelTag[0] << ":[" << buffer << "] " << message << std::endl;

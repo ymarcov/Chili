@@ -106,10 +106,14 @@ std::mutex& Orchestrator::Task::GetMutex() {
     return _mutex;
 }
 
+std::shared_ptr<Orchestrator> Orchestrator::Create(std::shared_ptr<ChannelFactory> f, int threads) {
+    return std::shared_ptr<Orchestrator>(new Orchestrator(std::move(f), threads));
+}
+
 Orchestrator::Orchestrator(std::shared_ptr<ChannelFactory> channelFactory, int threads) :
     _channelFactory(std::move(channelFactory)),
     _poller(8),
-    _threadPool(threads),
+    _activationThreadPool(threads),
     _masterReadThrottler(std::make_shared<Throttler>()),
     _masterWriteThrottler(std::make_shared<Throttler>()) {
     _poller.OnStop += [this] {
@@ -147,7 +151,7 @@ std::future<void> Orchestrator::Start() {
 void Orchestrator::InternalStop() {
     try {
         _poller.Stop();
-        _threadPool.Stop();
+        _activationThreadPool.Stop();
         OnStop();
         _pollerTask.get();
         _threadPromise.set_value();
@@ -162,7 +166,7 @@ void Orchestrator::InternalForceStopOnError() {
     try {
         _stop = true;
         _poller.Stop();
-        _threadPool.Stop();
+        _activationThreadPool.Stop();
         OnStop();
         _pollerTask.get();
         _threadPromise.set_exception(std::current_exception());
@@ -186,6 +190,7 @@ void Orchestrator::Add(std::shared_ptr<FileStream> stream) {
 
     task->_orchestrator = this;
     task->_channel = _channelFactory->CreateChannel(std::move(stream));
+    task->_channel->Initialize(shared_from_this());
     task->_channel->_throttlers.Read.Master = _masterReadThrottler;
     task->_channel->_throttlers.Write.Master = _masterWriteThrottler;
     task->_lastActive = Clock::GetCurrentTime();
@@ -277,9 +282,9 @@ void Orchestrator::HandleChannelEvent(Channel& channel, int events) {
         } break;
 
         case Channel::Stage::Closed: {
-            // I'm not sure this can happen, but I'm not taking any chances.
-            // At any rate, log it so that maybe it'll help understand if
-            // and when it *does* happen.
+            // One reason this can happen is if the channel has reached an
+            // inactivity timeout after the event was dispatched but
+            // before it was processed.
             Log::Verbose("Ignoring event on already closed channel {}", channel.GetId());
             return;
          }
@@ -309,7 +314,7 @@ void Orchestrator::IterateOnce() {
         // will filter this task out for us.
         task->MarkHandlingInProcess(true);
 
-        _threadPool.Post([=] {
+        _activationThreadPool.Post([=] {
             std::lock_guard lock(task->GetMutex());
             task->Activate();
         });

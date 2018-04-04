@@ -63,7 +63,8 @@ private:
 class ResponseTest : public Test {
 protected:
     auto MakeResponse(std::shared_ptr<StringOutputStream> s) const {
-        return std::make_unique<Response>(std::move(s));
+        auto readyToWrite = std::make_shared<Signal<>>();
+        return std::make_unique<Response>(std::move(s), readyToWrite);
     }
 
     auto MakeStream() const {
@@ -80,7 +81,7 @@ protected:
 
     void Flush(std::unique_ptr<Response>& r, std::size_t quota = 1) {
         std::size_t consumed;
-        while (!r->Flush(quota, consumed))
+        while (r->Flush(quota, consumed) != Response::FlushStatus::Done)
             ;
     }
 };

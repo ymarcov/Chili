@@ -2,9 +2,9 @@
 
 namespace Chili {
 
-HttpServer::HttpServer(const IPEndpoint& ep, std::shared_ptr<ChannelFactory> factory, int threads) :
+HttpServer::HttpServer(const IPEndpoint& ep, std::shared_ptr<ChannelFactory> factory) :
     TcpServer(ep),
-    _orchestrator(std::make_shared<Orchestrator>(std::move(factory), threads)) {
+    _orchestrator(Orchestrator::Create(std::move(factory), 8)) {
     _orchestrator->OnStop += [this] { Stop(); };
     _orchestrator->Start();
 }

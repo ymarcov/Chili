@@ -1,6 +1,7 @@
 #include "Channel.h"
 #include "ExitTrap.h"
 #include "Log.h"
+#include "Orchestrator.h"
 
 #include <atomic>
 #include <fmt/format.h>
@@ -89,10 +90,24 @@ Channel::Channel(std::shared_ptr<FileStream> stream) :
     _id(nextChannelId++),
     _stream(std::move(stream)),
     _request(_stream),
-    _response(_stream),
     _timeout(Clock::GetCurrentTime()),
     _stage(Stage::WaitReadable) {
     Log::Verbose("Channel {} created", _id);
+}
+
+void Channel::Initialize(const std::shared_ptr<Orchestrator>& o) {
+    _orchestrator = o;
+
+    // shared_from_this() cannot be used during construction
+    // so this makes this initializing function necessary
+    _readyToWrite += [wc=std::weak_ptr<Channel>(shared_from_this())] {
+        if (auto c = wc.lock()) {
+            c->SetStage(Stage::Write);
+
+            if (auto o = c->_orchestrator.lock())
+                o->WakeUp();
+        }
+    };
 }
 
 Channel::~Channel() {}
@@ -100,6 +115,14 @@ Channel::~Channel() {}
 /**
  * Public API
  */
+
+std::shared_ptr<const Channel> Channel::GetSharedPointer() const {
+    return shared_from_this();
+}
+
+std::shared_ptr<Channel> Channel::GetSharedPointer() {
+    return shared_from_this();
+}
 
 void Channel::SetAutoFetchContent(bool b) {
     _autoFetchContent = b;
@@ -189,18 +212,16 @@ Channel::Stage Channel::GetDefiniteStage() const {
 }
 
 void Channel::SetStage(Stage s) {
-    if (_stage == Stage::Closed)
-        return;
+    std::lock_guard lock(_setStageMutex);
 
-    _stage = s;
+    auto previous = _stage.exchange(s);
+
+    if (previous == Stage::Closed)
+        _stage = Stage::Closed;
 }
 
 Clock::TimePoint Channel::GetRequestedTimeout() const {
     return _timeout;
-}
-
-void Channel::SetRequestedTimeout(Clock::TimePoint t) {
-    _timeout = t;
 }
 
 bool Channel::IsReady() const {
@@ -208,13 +229,21 @@ bool Channel::IsReady() const {
     if (Clock::GetCurrentTime() < GetRequestedTimeout())
         return false;
 
+    auto stage = _stage.load();
+
     // If we're closed, we don't have anything
     // else to do. We just need to wait to be
     // garbaged-collected.
-    if (_stage == Stage::Closed)
+    if (stage == Stage::Closed)
         return true;
 
-    return !IsWaitingForClient();
+    if ((stage == Stage::WaitReadable) || (stage == Stage::WaitWritable))
+        return false;
+
+    if (stage == Stage::WaitProcessable)
+        return false;
+
+    return true;
 }
 
 bool Channel::IsWaitingForClient() const {
@@ -231,7 +260,7 @@ void Channel::OnRead() {
         Log::Verbose("Channel {} throttled. Waiting for read quota to fill.", _id);
         RecordReadTimeoutEvent(throttlingInfo.fillTime);
         _stage = Stage::ReadTimeout;
-        SetRequestedTimeout(throttlingInfo.fillTime);
+        _timeout = throttlingInfo.fillTime;
         return;
     }
 
@@ -249,8 +278,7 @@ void Channel::OnRead() {
 
     if (doneReading) {
         // All done reading, prepare a new response
-
-        _response = Response(_stream);
+        ResetResponse();
 
         // If the request does not want us to keep alive,
         // we will explicitly agree to. Otherwise, HTTP/1.1
@@ -298,15 +326,21 @@ bool Channel::FetchData(bool(Request::*func)(std::size_t, std::size_t&), std::si
             auto fillTime = GetThrottlingInfo(_throttlers.Read).fillTime;
             RecordReadTimeoutEvent(fillTime);
             _stage = Stage::ReadTimeout;
-            SetRequestedTimeout(fillTime);
+            _timeout = fillTime;
         }
     }
 
     return done;
 }
 
+void Channel::ResetResponse() {
+    auto signal = std::shared_ptr<Signal<>>(shared_from_this(), &_readyToWrite);
+    auto weak = std::weak_ptr<Signal<>>(signal);
+    _response = Response(_stream, weak);
+}
+
 void Channel::OnProcess() {
-    _stage = Stage::Process; // Keep it neat (although at the time of writing this isn't used)
+    _stage = Stage::Process;
 
     try {
         if (_autoFetchContent && _request.HasContent() && !_request.IsContentAvailable()) {
@@ -343,7 +377,7 @@ void Channel::OnProcess() {
 void Channel::SendInternalError() {
     Log::Error("Channel {} processor error ignored! Please handle internally.", _id);
     _forceClose = true;
-    _response = Response(_stream);
+    ResetResponse();
     _response.SetExplicitKeepAlive(false);
     _response.Send(Status::InternalServerError);
     RecordProfileEvent<ChannelWriting>();
@@ -377,7 +411,7 @@ void Channel::HandleControlDirective() {
                 // Ok, look, it does want us to send
                 // it our confirmation. Let's do it.
                 if (value == "100-continue") {
-                    _response = Response(_stream);
+                    ResetResponse();
                     _response.Send(Status::Continue);
                     RecordProfileEvent<ChannelWriting>();
                     _stage = Stage::Write;
@@ -398,7 +432,7 @@ void Channel::HandleControlDirective() {
                 // Tough luck client, your request
                 // body has been rejected.
                 if (value == "100-continue") {
-                    _response = Response(_stream);
+                    ResetResponse();
                     _response.Send(Status::ExpectationFailed);
                     RecordProfileEvent<ChannelWriting>();
                     _stage = Stage::Write;
@@ -412,13 +446,15 @@ void Channel::HandleControlDirective() {
 }
 
 void Channel::OnWrite() {
+    _stage = Stage::Writing;
+
     auto throttlingInfo = GetThrottlingInfo(_throttlers.Write);
 
     if (!throttlingInfo.full) {
         Log::Verbose("Channel {} throttled. Waiting for write quota to fill.", _id);
         RecordWriteTimeoutEvent(throttlingInfo.fillTime);
         _stage = Stage::WriteTimeout;
-        SetRequestedTimeout(throttlingInfo.fillTime);
+        _timeout = throttlingInfo.fillTime;
         return;
     }
 
@@ -458,34 +494,38 @@ bool Channel::FlushData(std::size_t maxWrite) {
         _throttlers.Write.Master->Consume(bytesFlushed);
     });
 
-    bool done = _response.Flush(maxWrite, bytesFlushed);
+    auto status = _response.Flush(maxWrite, bytesFlushed);
 
-    if (!done) {
-        // More data needs to be flushed
+    switch (status) {
+        case Response::FlushStatus::Done: {
+            return true; // OK
+        };
 
-        if (bytesFlushed < maxWrite) {
-            // If we're *not* done *and* we haven't even flushed as much
-            // as the throttler allowed us to, we can infer that the
-            // socket needs to release more of its buffered data.
-            if (bytesFlushed < _response.GetBufferSize()) {
-                Log::Verbose("Channel {} socket buffer full. Waiting for writability.", _id);
-                RecordProfileEvent<ChannelWaitWritable>();
-                _stage = Stage::WaitWritable;
-            }
-        } else {
-            // If we're *not* done and we *have* flushed as much as
-            // the throttler allowed us to flush, we can infer that
-            // the throttler has emptied out, and so we need to
-            // wait for it to become full again.
+        case Response::FlushStatus::ReachedQuota: {
             Log::Verbose("Channel {} throttled. Waiting for write quota to fill.", _id);
             auto fillTime = GetThrottlingInfo(_throttlers.Write).fillTime;
             RecordWriteTimeoutEvent(fillTime);
             _stage = Stage::WriteTimeout;
-            SetRequestedTimeout(fillTime);
-        }
-    }
+            _timeout = fillTime;
+            return false;
+        };
 
-    return done;
+        case Response::FlushStatus::IncompleteWrite: {
+            Log::Verbose("Channel {} socket buffer full. Waiting for writability.", _id);
+            RecordProfileEvent<ChannelWaitWritable>();
+            _stage = Stage::WaitWritable;
+            return false;
+        };
+
+        case Response::FlushStatus::WaitingForContent: {
+            Log::Verbose("Channel {} is waiting for more content to send.", _id);
+            // response configuration may have spawned an async
+            // task that has already changed the channel's stage
+            auto expected = Stage::Writing;
+            _stage.compare_exchange_strong(expected, Stage::WaitProcessable);
+            return false;
+        };
+    }
 }
 
 void Channel::Close() {
@@ -494,7 +534,7 @@ void Channel::Close() {
 
     Log::Verbose("Channel {} closed", _id);
 
-    SetRequestedTimeout(Clock::GetCurrentTime());
+    _timeout = Clock::GetCurrentTime();
     _request = Request();
     _response = Response();
     _stream.reset();
@@ -569,7 +609,7 @@ void Channel::LogNewRequest() {
             break;
     }
 
-    Log::Info("Channel {} Received \"{} {} {}\"", _id, method, _request.GetUri(), version);
+    Log::Info("Channel {} received \"{} {} {}\"", _id, method, _request.GetUri(), version);
 }
 
 } // namespace Chili

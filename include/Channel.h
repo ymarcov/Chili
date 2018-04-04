@@ -9,6 +9,7 @@
 #include "Synchronized.h"
 #include "Throttler.h"
 
+#include <functional>
 #include <memory>
 #include <mutex>
 
@@ -27,10 +28,12 @@ public:
         WaitReadable,
         ReadTimeout,
         Read,
+        WaitProcessable,
         Process,
         WaitWritable,
         WriteTimeout,
         Write,
+        Writing,
         Closed
     };
 
@@ -55,6 +58,12 @@ public:
 
     Channel(std::shared_ptr<FileStream>);
     virtual ~Channel();
+
+    /**
+     * Gets a shared pointer to this channel.
+     */
+    std::shared_ptr<const Channel> GetSharedPointer() const;
+    std::shared_ptr<Channel> GetSharedPointer();
 
     /**
      * Sets whether to automatically get each request's entire
@@ -174,6 +183,8 @@ private:
         Clock::TimePoint fillTime;
     };
 
+    void Initialize(const std::shared_ptr<class Orchestrator>&);
+
     ThrottlingInfo GetThrottlingInfo(const Throttlers::Group&) const;
 
     /**
@@ -220,12 +231,13 @@ private:
     void RecordWriteTimeoutEvent(Clock::TimePoint readyTime) const;
 
     bool FetchData(bool(Request::*)(std::size_t, std::size_t&), std::size_t maxRead);
+    void ResetResponse();
     void LogNewRequest();
     void SendInternalError();
     void HandleControlDirective();
     bool FlushData(std::size_t maxWrite);
-    void SetRequestedTimeout(Clock::TimePoint);
 
+    std::weak_ptr<class Orchestrator> _orchestrator;
     std::uint64_t _id;
     std::shared_ptr<FileStream> _stream;
     Throttlers _throttlers;
@@ -233,9 +245,11 @@ private:
     Response _response;
     Synchronized<Clock::TimePoint> _timeout;
     std::atomic<Stage> _stage;
+    std::mutex _setStageMutex;
     bool _forceClose = false;
     bool _fetchingContent = false;
     bool _autoFetchContent = true;
+    Signal<> _readyToWrite;
     std::function<void()> _fetchContentCallback;
     Control _controlDirective;
 

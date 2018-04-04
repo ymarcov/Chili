@@ -1,6 +1,7 @@
 #pragma once
 
 #include "Clock.h"
+#include "Signal.h"
 
 #include <chrono>
 #include <condition_variable>
@@ -20,6 +21,8 @@ public:
     bool TryWaitAndReset();
     bool WaitAndReset(std::chrono::microseconds timeout);
     bool WaitUntilAndReset(Clock::TimePoint);
+
+    SynchronizedSignal<> OnSignalled;
 
 private:
     mutable std::mutex _mutex;

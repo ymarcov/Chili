@@ -93,7 +93,7 @@ protected:
             FactoryFunction _f;
         };
 
-        return std::make_shared<HttpServer>(_ep, std::make_unique<Factory>(std::move(factoryFunction)), 4);
+        return std::make_shared<HttpServer>(_ep, std::make_unique<Factory>(std::move(factoryFunction)));
     }
 
     template <class Processor>
@@ -271,6 +271,74 @@ TEST_F(OrchestratorTest, one_client_header_and_body_with_expect_reject) {
     std::string response;
     ASSERT_NO_THROW(response = ReadAvailable(*client));
     ASSERT_EQ("HTTP/1.1 417 Expectation Failed\r\nContent-Length: 0\r\n\r\n", response);
+}
+
+TEST_F(OrchestratorTest, reponse_stream_wake_up_for_more_data) {
+    struct SlowInputStream : public BufferedInputStream {
+        std::size_t Read(void* buffer, std::size_t n) override {
+            switch (++_nthRead) {
+                case 1: return Write('A', buffer);
+                case 2: return Write('B', buffer);
+                case 3: return Write('C', buffer);
+            }
+
+            throw std::logic_error("Bad number of reads");
+        }
+
+        bool EndOfStream() const override {
+            return _nthRead == 3;
+        }
+
+        void BufferInputAsync() override {
+            std::thread([=] {
+                std::this_thread::sleep_for(50ms);
+                _hasInput = true;
+                OnInputBuffered();
+            }).detach();
+        }
+
+        std::size_t GetBufferedInputSize() const override {
+            return _hasInput ? 1 : 0;
+        }
+
+    private:
+        std::size_t Write(char c, void* buffer) {
+            static_cast<char*>(buffer)[0] = c;
+            _hasInput = false;
+            return 1;
+        }
+
+        int _nthRead = 0;
+        bool _hasInput = true;
+    };
+
+    auto server = MakeServer(MakeProcessor([=](Channel& c) {
+        c.GetResponse().SetContent(std::make_shared<SlowInputStream>());
+        c.SendResponse(Status::Ok);
+    }));
+
+    server->Start();
+
+    auto client = CreateClient();
+
+    client->Write(requestData, sizeof(requestData));
+
+    std::string response;
+    std::string expected = "HTTP/1.1 200 OK\r\n"
+                           "Connection: close\r\n"
+                           "Transfer-Encoding: chunked\r\n"
+                           "\r\n"
+                           "1\r\n"
+                           "A\r\n"
+                           "1\r\n"
+                           "B\r\n"
+                           "1\r\n"
+                           "C\r\n"
+                           "0\r\n"
+                           "\r\n";
+
+    ASSERT_NO_THROW(response = ReadToEnd(*client));
+    ASSERT_EQ(expected, response);
 }
 
 TEST_F(OrchestratorTest, stress_sync) {

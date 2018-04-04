@@ -35,9 +35,8 @@ class HelloWorldChannelFactory : public ChannelFactory {
 int main() {
     auto endpoint = IPEndpoint({{127, 0, 0, 1}}, 3000);
     auto factory = std::make_shared<HelloWorldChannelFactory>();
-    auto processingThreads = 1;
 
-    HttpServer server(endpoint, factory, processingThreads);
+    HttpServer server(endpoint, factory);
     Log::SetLevel(Log::Level::Info);
     auto task = server.Start();
     Log::Info("HelloWorld Server Started");

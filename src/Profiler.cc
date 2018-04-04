@@ -92,7 +92,7 @@ std::string Profile::GetSummary() const {
             GetTimesOrchestratorWokeUp(),
             GetRateOrchestratorWokeUp());
 
-    w.write("[Orchestrator] # Captured Tasks: {} ({}/sec)\n",
+    w.write("[Orchestrator] # Times Captured Tasks: {} ({}/sec)\n",
             GetTimesOrchestratorCapturedTasks(),
             GetRateOrchestratorCapturedTasks());
 

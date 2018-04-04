@@ -15,15 +15,17 @@
 #include <atomic>
 #include <chrono>
 #include <future>
+#include <memory>
 #include <mutex>
 #include <thread>
 #include <unordered_map>
 
 namespace Chili {
 
-class Orchestrator {
+class Orchestrator : public std::enable_shared_from_this<Orchestrator> {
 public:
-    Orchestrator(std::shared_ptr<ChannelFactory>, int threads);
+    static std::shared_ptr<Orchestrator> Create(std::shared_ptr<ChannelFactory>, int threads);
+
     ~Orchestrator();
 
     std::future<void> Start();
@@ -56,6 +58,8 @@ private:
         friend void Orchestrator::Add(std::shared_ptr<FileStream>);
     };
 
+    Orchestrator(std::shared_ptr<ChannelFactory>, int threads);
+
     template <class T>
     void RecordChannelEvent(const Channel&) const;
 
@@ -75,7 +79,7 @@ private:
     std::shared_ptr<ChannelFactory> _channelFactory;
     std::promise<void> _threadPromise;
     Poller _poller;
-    ThreadPool _threadPool;
+    ThreadPool _activationThreadPool;
     std::future<void> _pollerTask;
     std::shared_ptr<Throttler> _masterReadThrottler;
     std::shared_ptr<Throttler> _masterWriteThrottler;
@@ -86,6 +90,8 @@ private:
     std::map<void*, std::weak_ptr<Task>> _taskFastLookup;
     std::vector<std::shared_ptr<Task>> _tasks;
     std::atomic<std::chrono::milliseconds> _inactivityTimeout{std::chrono::milliseconds(10000)};
+
+    friend class Channel;
 };
 
 template <class T>

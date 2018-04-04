@@ -18,17 +18,15 @@ using namespace std::literals;
 
 struct ServerConfiguration {
     IPEndpoint _endpoint;
-    std::shared_ptr<Poller> _poller;
-    int _threadCount;
     bool _verbose;
 };
 
 std::unique_ptr<HttpServer> CreateServer(ServerConfiguration config, std::unique_ptr<ChannelFactory> channelFactory) {
-    return std::make_unique<HttpServer>(config._endpoint, std::move(channelFactory), config._threadCount);
+    return std::make_unique<HttpServer>(config._endpoint, std::move(channelFactory));
 }
 
 ServerConfiguration CreateConfiguration(std::vector<std::string> argv) {
-    if (argv.size() > 4)
+    if (argv.size() > 3)
         throw std::runtime_error("Invalid command line arguments");
 
     auto port = 3000;
@@ -37,16 +35,12 @@ ServerConfiguration CreateConfiguration(std::vector<std::string> argv) {
 
     auto endpoint = IPEndpoint{{{0, 0, 0, 0}}, port};
 
-    int threadCount = 1;
-    if (argv.size() >= 3)
-        threadCount = std::stoi(argv[2]);
-
     auto verbose = true;
 
-    if (argv.size() >= 4)
-        verbose = std::stoi(argv[3]);
+    if (argv.size() >= 3)
+        verbose = std::stoi(argv[2]);
 
-    return {endpoint, std::make_shared<Poller>(2), threadCount, verbose};
+    return {endpoint, verbose};
 }
 
 void PrintInfo(const Request& request) {
