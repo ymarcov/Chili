@@ -327,10 +327,12 @@ Response::FlushStatus Response::FlushStream(std::size_t& maxBytes, std::size_t& 
         if (auto bufferedInput = std::dynamic_pointer_cast<BufferedInputStream>(input)) {
             if (bufferedInput->GetBufferedInputSize() == 0) {
                 bufferedInput->BufferInputAsync();
+                return FlushStatus::WaitingForContent;
             }
         }
 
-        return FlushStatus::WaitingForContent;
+        return FlushStatus::Repeat;
+
     } else { // send EOM
         auto chunkHeader = std::string("0\r\n\r\n");
         auto bytesWritten = _stream->Write(chunkHeader.data(), chunkHeader.size());

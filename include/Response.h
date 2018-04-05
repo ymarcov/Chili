@@ -38,6 +38,7 @@ public:
         ReachedQuota,
         IncompleteWrite,
         WaitingForContent,
+        Repeat,
         Done
     };
 

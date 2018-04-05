@@ -519,6 +519,12 @@ bool Channel::FlushData(std::size_t maxWrite) {
             _stage.compare_exchange_strong(expected, Stage::Process);
             return false;
         };
+
+        case Response::FlushStatus::Repeat: {
+            Log::Verbose("Channel {} needs another flush iteration.", _id);
+            _stage = Stage::Write;
+            return false;
+        };
     }
 }
 
