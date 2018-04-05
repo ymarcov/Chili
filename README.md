@@ -10,12 +10,12 @@ It has a light footprint, employs modern C++ constructs, and compiles well with 
 
 ### Feature Summary
 
-- Asynchronous I/O
+- Asynchronous I/O and request processing
 - Independent Read/Write throttling, both for the server as a whole and for individual connections
 - Supports streaming
-- Supports conditional message body fetching & rejection
+- Supports conditional request message body fetching & rejection
 - Supports cached responses for added efficiency
-- Efficient, does not overload the CPU or memory when not required
+- Does not overload the CPU or memory when not required
 - Uses modern C++ and is easy to use, and even to customize the code
 - Public API documented with Doxygen
 - Thoroughly tested with Google Test unit & integration tests, and also with Valgrind Memcheck
@@ -31,7 +31,8 @@ int main() {
         auto& res = c.GetResponse();
         res.SetContent("<h1>Hello world!</h1>");
         res.AppendField("Content-Type", "text/html");
-        c.SendResponse(Status::Ok);
+        res.SetStatus(Status::Ok);
+        c.SendResponse();
     });
 
     Chili::HttpServer server(endpoint, factory);

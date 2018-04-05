@@ -158,7 +158,7 @@ void Channel::FetchContent(std::function<void()> callback) {
         // it our confirmation. Let's do it.
         if (value == "100-continue") {
             ResetResponse();
-            _response.Send(Status::Continue);
+            _response.SetStatus(Status::Continue);
             RecordProfileEvent<ChannelWriting>();
             _stage = Stage::Write;
         }
@@ -181,8 +181,8 @@ void Channel::RejectContent() {
         // body has been rejected.
         if (value == "100-continue") {
             ResetResponse();
-            _response.SetExplicitKeepAlive(false);
-            _response.Send(Status::ExpectationFailed);
+            _response.CloseConnection();
+            _response.SetStatus(Status::ExpectationFailed);
             RecordProfileEvent<ChannelWriting>();
             _stage = Stage::Write;
         }
@@ -194,27 +194,10 @@ void Channel::RejectContent() {
         o->WakeUp();
 }
 
-void Channel::SendResponse(std::shared_ptr<CachedResponse> cr) {
-    _response.SendCached(std::move(cr));
-    RecordProfileEvent<ChannelWriting>();
-    _stage = Stage::Write;
+void Channel::SendResponse() {
+    if (!_response.IsPrepared())
+        throw std::logic_error("Response has not been fully prepared");
 
-    if (auto o = _orchestrator.lock())
-        o->WakeUp();
-}
-
-void Channel::SendResponse(Status status) {
-    _response.Send(status);
-    RecordProfileEvent<ChannelWriting>();
-    _stage = Stage::Write;
-
-    if (auto o = _orchestrator.lock())
-        o->WakeUp();
-}
-
-void Channel::SendFinalResponse(Status status) {
-    _response.SetExplicitKeepAlive(false);
-    _response.Send(status);
     RecordProfileEvent<ChannelWriting>();
     _stage = Stage::Write;
 
@@ -342,7 +325,7 @@ void Channel::OnRead() {
         ResetResponse();
 
         if (!_request.KeepAlive())
-            _response.SetExplicitKeepAlive(false);
+            _response.CloseConnection();
 
         // Ready to process
         OnProcess();
@@ -433,8 +416,8 @@ void Channel::SendInternalError() {
     Log::Error("Channel {} processor error ignored! Please handle internally.", _id);
     _forceClose = true;
     ResetResponse();
-    _response.SetExplicitKeepAlive(false);
-    _response.Send(Status::InternalServerError);
+    _response.CloseConnection();
+    _response.SetStatus(Status::InternalServerError);
     RecordProfileEvent<ChannelWriting>();
     _stage = Stage::Write;
 }

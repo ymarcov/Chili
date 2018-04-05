@@ -32,11 +32,15 @@ int main() {
             res.SetContent(stream);
             res.AppendField("Content-Type", "application/octet-stream");
             Log::Info("HELLO");
-            c.SendFinalResponse(Status::Ok);
+            res.SetStatus(Status::Ok);
+            res.CloseConnection();
+            c.SendResponse();
         } catch (const std::exception& ex) {
             Log::Error("Error: {}", ex.what());
             res.Reset();
-            c.SendFinalResponse(Status::InternalServerError);
+            res.SetStatus(Status::InternalServerError);
+            res.CloseConnection();
+            c.SendResponse();
         }
     });
 

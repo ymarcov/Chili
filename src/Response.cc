@@ -92,21 +92,27 @@ void Response::Reset() {
     *this = Response(std::move(stream), std::move(readyToWrite));
 }
 
-void Response::Send(Status status) {
+void Response::SetStatus(Status status) {
     if (!_prepared)
         Prepare(status);
     _response->_status = status;
 }
 
-void Response::SendCached(std::shared_ptr<CachedResponse> cr) {
+bool Response::IsPrepared() const {
+    return _prepared;
+}
+
+void Response::UseCached(std::shared_ptr<CachedResponse> cr) {
     _response = std::move(cr);
 }
 
-std::shared_ptr<CachedResponse> Response::CacheAs(Status status) {
+std::shared_ptr<CachedResponse> Response::Cache() {
     if (GetState()._stream)
         throw std::logic_error("Cannot cache response with streaming content");
 
-    Prepare(status);
+    if (!_prepared)
+        throw std::logic_error("Response attempted to be cached before being fully prepared");
+
     return _response;
 }
 
@@ -136,6 +142,8 @@ void Response::Prepare(Status status) {
     GetState()._header = w.str();
 
     GetState()._status = status;
+
+    _prepared = true;
 }
 
 Response::FlushStatus Response::Flush(std::size_t maxBytes, std::size_t& totalBytesWritten) {
@@ -351,14 +359,14 @@ bool Response::GetKeepAlive() const {
     return GetState()._keepAlive;
 }
 
-void Response::SetExplicitKeepAlive(bool b) {
-    if (b) {
-        AppendField("Connection", "keep-alive");
-        GetState()._keepAlive = true;
-    } else {
-        AppendField("Connection", "close");
-        GetState()._keepAlive = false;
-    }
+void Response::CloseConnection() {
+    AppendField("Connection", "close");
+    GetState()._keepAlive = false;
+}
+
+void Response::KeepConnectionAlive() {
+    AppendField("Connection", "keep-alive");
+    GetState()._keepAlive = true;
 }
 
 void Response::AppendField(std::string name, std::string value) {

@@ -21,14 +21,17 @@ Router::Router() {
 void Router::InvokeRoute(Channel& channel) const {
     const RouteHandler* handler;
     Args args;
+    Protocol::Status status;
 
     if (FindMatch(channel.GetRequest(), handler, args)) {
-        auto status = (*handler)(channel, args);
-        channel.SendResponse(status);
+        status = (*handler)(channel, args);
     } else {
-        auto status = _defaultHandler(channel, args);
-        channel.SendFinalResponse(status);
+        status = _defaultHandler(channel, args);
+        channel.GetResponse().CloseConnection();
     }
+
+    channel.GetResponse().SetStatus(status);
+    channel.SendResponse();
 }
 
 bool Router::FindMatch(const Request& request, const RouteHandler*& outHandler, Args& outArgs) const {

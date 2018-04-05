@@ -130,17 +130,20 @@ std::unique_ptr<ChannelFactory> CreateChannelFactory(const ServerConfiguration& 
                 std::cout << "\n";
             }
 
-            if (crSet)
-                return SendResponse(cr);
+            if (crSet) {
+                res.UseCached(cr);
+                return SendResponse();
+            }
 
             const char msg[] = "<b><u>Hello world!</u></b>";
             auto data = std::make_shared<std::vector<char>>(std::begin(msg), std::end(msg) - 1);
             res.SetContent(data);
+            res.SetStatus(Status::Ok);
 
-            cr = res.CacheAs(Status::Ok);
+            cr = res.Cache();
             crSet = true;
 
-            return SendResponse(cr);
+            return SendResponse();
         }
 
         bool _verbose;

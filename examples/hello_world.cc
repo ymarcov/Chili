@@ -20,7 +20,8 @@ int main() {
         auto& res = c.GetResponse();
         res.SetContent("<h1>Hello world!</h1>");
         res.AppendField("Content-Type", "text/html");
-        c.SendResponse(Status::Ok);
+        res.SetStatus(Status::Ok);
+        c.SendResponse();
     });
 
     HttpServer server(endpoint, factory);

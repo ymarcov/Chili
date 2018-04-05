@@ -94,31 +94,13 @@ public:
     void RejectContent();
 
     /**
-     * Sends a cached response back to the client.
-     *
-     * The response would have been previously cached
-     * by a call to Response::CacheAs(), after configuring
-     * its various properties.
-     */
-    void SendResponse(std::shared_ptr<CachedResponse>);
-
-    /**
-     * Sends a response back to the client.
+     * Sends the response back to the client.
      *
      * The actual response can be customized by configuring
      * the response properties -- which you can access by
      * calling GetResponse().
      */
-    void SendResponse(Status);
-
-    /**
-     * Sends a response back to the client and closes the channel.
-     *
-     * The actual response can be customized by configuring
-     * the response properties -- which you can access by
-     * calling GetResponse().
-     */
-    void SendFinalResponse(Status);
+    void SendResponse();
 
     /**
      * Returns true if reading is currently being throttled

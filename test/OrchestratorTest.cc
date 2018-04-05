@@ -151,7 +151,8 @@ TEST_F(OrchestratorTest, one_client_header_only) {
         if (c.GetRequest().GetField("Host") == "request.urih.com")
             ready->Signal();
 
-        return c.SendResponse(Status::Ok);
+        c.GetResponse().SetStatus(Status::Ok);
+        c.SendResponse();
     }));
 
     server->Start();
@@ -173,7 +174,8 @@ TEST_F(OrchestratorTest, one_client_header_and_body) {
         if (!c.GetRequest().IsContentAvailable())
             c.FetchContent([&c, ready] {
                 ready->Signal();
-                c.SendResponse(Status::Ok);
+                c.GetResponse().SetStatus(Status::Ok);
+                c.SendResponse();
             });
     }));
 
@@ -202,7 +204,8 @@ TEST_F(OrchestratorTest, one_client_header_and_body_throttled) {
         if (!c.GetRequest().IsContentAvailable())
             c.FetchContent([&c, ready] {
                 ready->Signal();
-                c.SendResponse(Status::Ok);
+                c.GetResponse().SetStatus(Status::Ok);
+                c.SendResponse();
             });
     }));
 
@@ -227,7 +230,8 @@ TEST_F(OrchestratorTest, one_client_header_and_body_with_expect) {
             sentContinue->Signal();
             c.FetchContent([&c, sentOk] {
                 sentOk->Signal();
-                c.SendResponse(Status::Ok);
+                c.GetResponse().SetStatus(Status::Ok);
+                c.SendResponse();
             });
         }
     }));
@@ -279,7 +283,8 @@ TEST_F(OrchestratorTest, async_simple_response) {
     auto server = MakeServer(MakeProcessor([=](Channel& c) {
         std::thread([&] {
             std::this_thread::sleep_for(50ms);
-            c.SendResponse(Status::Ok);
+            c.GetResponse().SetStatus(Status::Ok);
+            c.SendResponse();
         }).detach();
     }));
 
@@ -336,7 +341,8 @@ TEST_F(OrchestratorTest, async_fetch_content) {
                             std::this_thread::sleep_for(10ms);
 
                             sentOk->Signal();
-                            c.SendResponse(Status::Ok);
+                            c.GetResponse().SetStatus(Status::Ok);
+                            c.SendResponse();
                         }).detach();
                     });
                 }).detach();
@@ -405,7 +411,8 @@ TEST_F(OrchestratorTest, reponse_stream_wake_up_for_more_data) {
 
     auto server = MakeServer(MakeProcessor([=](Channel& c) {
         c.GetResponse().SetContent(std::make_shared<SlowInputStream>());
-        c.SendResponse(Status::Ok);
+        c.GetResponse().SetStatus(Status::Ok);
+        c.SendResponse();
     }));
 
     server->Start();
@@ -448,7 +455,8 @@ TEST_F(OrchestratorTest, stress) {
                     if (++*readyCount == clientCount)
                         ready->Signal();
 
-                c.SendResponse(Status::Ok);
+                c.GetResponse().SetStatus(Status::Ok);
+                c.SendResponse();
             });
     }));
 
@@ -499,7 +507,8 @@ TEST_F(OrchestratorTest, async_stress) {
                         if (++*readyCount == clientCount)
                             ready->Signal();
 
-                    c.SendResponse(Status::Ok);
+                    c.GetResponse().SetStatus(Status::Ok);
+                    c.SendResponse();
                 }).detach();
             });
     }));

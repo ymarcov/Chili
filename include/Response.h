@@ -63,14 +63,19 @@ public:
      * content cannot be cached, and attempting
      * to cache it will throw an error.
      */
-    std::shared_ptr<CachedResponse> CacheAs(Status);
+    std::shared_ptr<CachedResponse> Cache();
 
     /**
-     * Forces whether to try to keep the connection
+     * Instructs the client to keep the connection
      * associated with this request alive after
      * handling the request.
      */
-    void SetExplicitKeepAlive(bool);
+    void KeepConnectionAlive();
+
+    /**
+     * Instructs the client to close the connection.
+     */
+    void CloseConnection();
 
     /**
      * Sets a response field.
@@ -120,22 +125,22 @@ public:
     void SetContent(std::shared_ptr<InputStream> stream);
 
     /**
+     * Sets the status of the response.
+     */
+    void SetStatus(Status);
+
+    /**
+     * Uses a previously cached response as this response.
+     */
+    void UseCached(std::shared_ptr<CachedResponse>);
+
+    /**
      * @internal
      * Writes response data to the output stream.
      * Returns the way in which the operation ended,
      * and how many bytes were written (as an out variable).
      */
     FlushStatus Flush(std::size_t maxBytes, std::size_t& consumed);
-
-    /**
-     * @internal
-     */
-    void Send(Status);
-
-    /**
-     * @internal
-     */
-    void SendCached(std::shared_ptr<CachedResponse>);
 
     /**
      * @internal
@@ -153,6 +158,11 @@ public:
      * Gets the chunk buffer size.
      */
     std::size_t GetBufferSize() const;
+
+    /**
+     * @internal
+     */
+    bool IsPrepared() const;
 
 private:
     void Prepare(Status);
