@@ -270,7 +270,98 @@ TEST_F(OrchestratorTest, one_client_header_and_body_with_expect_reject) {
 
     std::string response;
     ASSERT_NO_THROW(response = ReadAvailable(*client));
-    ASSERT_EQ("HTTP/1.1 417 Expectation Failed\r\nContent-Length: 0\r\n\r\n", response);
+    ASSERT_EQ("HTTP/1.1 417 Expectation Failed\r\n"
+              "Connection: close\r\n"
+              "Content-Length: 0\r\n\r\n", response);
+}
+
+TEST_F(OrchestratorTest, async_simple_response) {
+    auto server = MakeServer(MakeProcessor([=](Channel& c) {
+        std::thread([&] {
+            std::this_thread::sleep_for(50ms);
+            c.SendResponse(Status::Ok);
+        }).detach();
+    }));
+
+    server->Start();
+
+    auto client = CreateClient();
+
+    client->Write(requestData, sizeof(requestData));
+
+    std::string response;
+    ASSERT_NO_THROW(response = ReadToEnd(*client));
+    ASSERT_EQ(okResponse, response);
+}
+
+TEST_F(OrchestratorTest, async_reject_content) {
+    auto server = MakeServer(MakeProcessor([=](Channel& c) {
+        std::thread([&] {
+            std::this_thread::sleep_for(50ms);
+            c.RejectContent();
+        }).detach();
+    }));
+
+    server->Start();
+
+    auto client = CreateClient();
+
+    client->Write(requestDataWithExpect, sizeof(requestDataWithExpect));
+
+    std::string response;
+    ASSERT_NO_THROW(response = ReadToEnd(*client));
+    ASSERT_EQ("HTTP/1.1 417 Expectation Failed\r\n"
+              "Connection: close\r\n"
+              "Content-Length: 0\r\n\r\n", response);
+}
+
+TEST_F(OrchestratorTest, async_fetch_content) {
+    auto sentContinue = std::make_shared<WaitEvent>();
+    auto sentOk = std::make_shared<WaitEvent>();
+
+    auto server = MakeServer(MakeProcessor([=](Channel& c) {
+        std::thread([&] {
+            std::this_thread::sleep_for(10ms);
+
+            if (!c.GetRequest().IsContentAvailable()) {
+                sentContinue->Signal();
+
+                std::this_thread::sleep_for(10ms);
+
+                std::thread([&] {
+                    std::this_thread::sleep_for(10ms);
+
+                    c.FetchContent([&c, sentOk] {
+                        std::thread([&] {
+                            std::this_thread::sleep_for(10ms);
+
+                            sentOk->Signal();
+                            c.SendResponse(Status::Ok);
+                        }).detach();
+                    });
+                }).detach();
+            }
+        }).detach();
+    }));
+
+    server->Start();
+
+    auto client = CreateClient();
+
+    std::string response;
+
+    client->Write(requestDataWithExpect, sizeof(requestDataWithExpect));
+    ASSERT_TRUE(sentContinue->Wait(200ms));
+    std::this_thread::sleep_for(50ms);
+    response = ReadAvailable(*client);
+    ASSERT_EQ("HTTP/1.1 100 Continue\r\nContent-Length: 0\r\n\r\n", response);
+
+    client->Write(requestDataWithExpectBody, sizeof(requestDataWithExpectBody));
+
+    ASSERT_TRUE(sentOk->Wait(200ms));
+    std::this_thread::sleep_for(50ms);
+    response = ReadAvailable(*client);
+    ASSERT_EQ(okResponse, response);
 }
 
 TEST_F(OrchestratorTest, reponse_stream_wake_up_for_more_data) {
@@ -341,7 +432,7 @@ TEST_F(OrchestratorTest, reponse_stream_wake_up_for_more_data) {
     ASSERT_EQ(expected, response);
 }
 
-TEST_F(OrchestratorTest, stress_sync) {
+TEST_F(OrchestratorTest, stress) {
     auto ready = std::make_shared<WaitEvent>();
     auto readyCount = std::make_shared<std::atomic_int>(0);
     const auto clientCount = 5000;
@@ -358,6 +449,58 @@ TEST_F(OrchestratorTest, stress_sync) {
                         ready->Signal();
 
                 c.SendResponse(Status::Ok);
+            });
+    }));
+
+    server->Start();
+    auto clients = std::vector<std::shared_ptr<TcpConnection>>();
+
+    for (auto i = 0; i < clientCount; ++i)
+        clients.push_back(CreateClient());
+
+    std::random_device rd;
+    std::shuffle(begin(clients), end(clients), rd);
+
+    Poller poller(1);
+    std::atomic_int writtenCount{0};
+    WaitEvent allWritten;
+
+    poller.Start([&](std::shared_ptr<FileStream> fs, int events) {
+        if (ReadAvailable(*fs) == okResponse)
+            if (++writtenCount == clientCount)
+                allWritten.Signal();
+    });
+
+    for (auto& client : clients) {
+        client->Write(requestData, sizeof(requestData));
+        poller.Poll(client, Poller::Events::EndOfStream);
+    }
+
+    ASSERT_TRUE(ready->Wait(10s));
+    ASSERT_TRUE(allWritten.Wait(10s));
+}
+
+TEST_F(OrchestratorTest, async_stress) {
+    auto ready = std::make_shared<WaitEvent>();
+    auto readyCount = std::make_shared<std::atomic_int>(0);
+    const auto clientCount = 5000;
+    auto lightLog = TemporaryLogLevel(Log::Level::Warning);
+
+    auto server = MakeServer(MakeProcessor([=](Channel& c) {
+        if (!c.IsWriteThrottled())
+            c.ThrottleWrite({5, 5ms});
+
+        if (!c.GetRequest().IsContentAvailable())
+            c.FetchContent([&c, ready, readyCount] {
+                std::thread([&, ready, readyCount] {
+                    std::this_thread::sleep_for(50ms);
+
+                    if (c.GetRequest().GetField("Host") == "request.urih.com")
+                        if (++*readyCount == clientCount)
+                            ready->Signal();
+
+                    c.SendResponse(Status::Ok);
+                }).detach();
             });
     }));
 

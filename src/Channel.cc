@@ -138,27 +138,88 @@ Response& Channel::GetResponse() {
 
 void Channel::FetchContent(std::function<void()> callback) {
     _fetchContentCallback = std::move(callback);
-    _controlDirective = Control::FetchContent;
+
+    // This is a flag in our request-reading
+    // state-machine that would make it
+    // go and fetch more content instead
+    // of thinking it's reading a new
+    // request header.
+    _fetchingContent = true;
+
+    // HTTP has this thing where before clients
+    // would keep sending a large request body,
+    // they would normally want to server to
+    // formally agree to it by issuing a "you
+    // may continue" intermediate response.
+    std::string value;
+
+    if (_request.GetField("Expect", &value)) {
+        // Ok, look, it does want us to send
+        // it our confirmation. Let's do it.
+        if (value == "100-continue") {
+            ResetResponse();
+            _response.Send(Status::Continue);
+            RecordProfileEvent<ChannelWriting>();
+            _stage = Stage::Write;
+        }
+    } else {
+        // It doesn't need our confirmation!
+        // Ok, just go straight to reading.
+        RecordProfileEvent<ChannelReading>();
+        _stage = Stage::Read;
+    }
+
+    if (auto o = _orchestrator.lock())
+        o->WakeUp();
 }
 
 void Channel::RejectContent() {
-    _controlDirective = Control::RejectContent;
+    std::string value;
+
+    if (_request.GetField("Expect", &value)) {
+        // Tough luck client, your request
+        // body has been rejected.
+        if (value == "100-continue") {
+            ResetResponse();
+            _response.SetExplicitKeepAlive(false);
+            _response.Send(Status::ExpectationFailed);
+            RecordProfileEvent<ChannelWriting>();
+            _stage = Stage::Write;
+        }
+    } else {
+        Close();
+    }
+
+    if (auto o = _orchestrator.lock())
+        o->WakeUp();
 }
 
 void Channel::SendResponse(std::shared_ptr<CachedResponse> cr) {
     _response.SendCached(std::move(cr));
-    _controlDirective = Control::SendResponse;
+    RecordProfileEvent<ChannelWriting>();
+    _stage = Stage::Write;
+
+    if (auto o = _orchestrator.lock())
+        o->WakeUp();
 }
 
 void Channel::SendResponse(Status status) {
     _response.Send(status);
-    _controlDirective = Control::SendResponse;
+    RecordProfileEvent<ChannelWriting>();
+    _stage = Stage::Write;
+
+    if (auto o = _orchestrator.lock())
+        o->WakeUp();
 }
 
 void Channel::SendFinalResponse(Status status) {
     _response.SetExplicitKeepAlive(false);
     _response.Send(status);
-    _controlDirective = Control::SendResponse;
+    RecordProfileEvent<ChannelWriting>();
+    _stage = Stage::Write;
+
+    if (auto o = _orchestrator.lock())
+        o->WakeUp();
 }
 
 bool Channel::IsReadThrottled() const {
@@ -240,7 +301,7 @@ bool Channel::IsReady() const {
     if ((stage == Stage::WaitReadable) || (stage == Stage::WaitWritable))
         return false;
 
-    if (stage == Stage::WaitProcessable)
+    if (stage == Stage::Process)
         return false;
 
     return true;
@@ -280,9 +341,6 @@ void Channel::OnRead() {
         // All done reading, prepare a new response
         ResetResponse();
 
-        // If the request does not want us to keep alive,
-        // we will explicitly agree to. Otherwise, HTTP/1.1
-        // requires us to indeed keep alive by default.
         if (!_request.KeepAlive())
             _response.SetExplicitKeepAlive(false);
 
@@ -354,7 +412,7 @@ void Channel::OnProcess() {
             }
 
             // So let's get the content
-            _controlDirective = Control::FetchContent;
+            FetchContent(nullptr);
         } else {
             if (_fetchContentCallback) {
                 // Call callback set by previous call to Process()
@@ -362,12 +420,9 @@ void Channel::OnProcess() {
                 _fetchContentCallback = {};
             } else {
                 // Call derived processing implementation
-                // and let it set _controlDirective
                 Process();
             }
         }
-
-        HandleControlDirective();
     } catch (...) {
         SendInternalError();
         return;
@@ -382,67 +437,6 @@ void Channel::SendInternalError() {
     _response.Send(Status::InternalServerError);
     RecordProfileEvent<ChannelWriting>();
     _stage = Stage::Write;
-}
-
-void Channel::HandleControlDirective() {
-    switch (_controlDirective) {
-        case Control::SendResponse:
-            // Simple enough, just start writing the response
-            RecordProfileEvent<ChannelWriting>();
-            _stage = Stage::Write;
-            break;
-
-        case Control::FetchContent: {
-            // This is a flag in our request-reading
-            // state-machine that would make it
-            // go and fetch more content instead
-            // of thinking it's reading a new
-            // request header.
-            _fetchingContent = true;
-
-            // HTTP has this thing where before clients
-            // would keep sending a large request body,
-            // they would normally want to server to
-            // formally agree to it by issuing a "you
-            // may continue" intermediate response.
-            std::string value;
-
-            if (_request.GetField("Expect", &value)) {
-                // Ok, look, it does want us to send
-                // it our confirmation. Let's do it.
-                if (value == "100-continue") {
-                    ResetResponse();
-                    _response.Send(Status::Continue);
-                    RecordProfileEvent<ChannelWriting>();
-                    _stage = Stage::Write;
-                }
-            } else {
-                // It doesn't need our confirmation!
-                // Ok, just go straight to reading.
-                RecordProfileEvent<ChannelReading>();
-                _stage = Stage::Read;
-            }
-
-        } break;
-
-        case Control::RejectContent: {
-            std::string value;
-
-            if (_request.GetField("Expect", &value)) {
-                // Tough luck client, your request
-                // body has been rejected.
-                if (value == "100-continue") {
-                    ResetResponse();
-                    _response.Send(Status::ExpectationFailed);
-                    RecordProfileEvent<ChannelWriting>();
-                    _stage = Stage::Write;
-                }
-            } else {
-                Close();
-            }
-
-        } break;
-    }
 }
 
 void Channel::OnWrite() {
@@ -522,7 +516,7 @@ bool Channel::FlushData(std::size_t maxWrite) {
             // response configuration may have spawned an async
             // task that has already changed the channel's stage
             auto expected = Stage::Writing;
-            _stage.compare_exchange_strong(expected, Stage::WaitProcessable);
+            _stage.compare_exchange_strong(expected, Stage::Process);
             return false;
         };
     }

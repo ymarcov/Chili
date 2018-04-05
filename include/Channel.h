@@ -28,7 +28,6 @@ public:
         WaitReadable,
         ReadTimeout,
         Read,
-        WaitProcessable,
         Process,
         WaitWritable,
         WriteTimeout,
@@ -234,7 +233,6 @@ private:
     void ResetResponse();
     void LogNewRequest();
     void SendInternalError();
-    void HandleControlDirective();
     bool FlushData(std::size_t maxWrite);
 
     std::weak_ptr<class Orchestrator> _orchestrator;
@@ -251,7 +249,6 @@ private:
     bool _autoFetchContent = true;
     Signal<> _readyToWrite;
     std::function<void()> _fetchContentCallback;
-    Control _controlDirective;
 
     friend class Orchestrator;
 };
