@@ -46,15 +46,6 @@ public:
         } Read, Write;
     };
 
-    /**
-     * @internal
-     */
-    enum class Control {
-        FetchContent,
-        RejectContent,
-        SendResponse
-    };
-
     Channel(std::shared_ptr<FileStream>);
     virtual ~Channel();
 
