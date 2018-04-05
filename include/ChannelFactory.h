@@ -14,6 +14,10 @@ namespace Chili {
  */
 class ChannelFactory {
 public:
+    using ChannelProcessCallback = std::function<void(Channel&)>;
+
+    static std::shared_ptr<ChannelFactory> Create(ChannelProcessCallback);
+
     virtual ~ChannelFactory() = default;
 
     /**

@@ -18,44 +18,30 @@ using Chili::Status;
 
 using namespace std::literals;
 
-class StreamerChannel : public Channel {
-public:
-    StreamerChannel(std::shared_ptr<FileStream> fs) :
-        Channel(std::move(fs)) {
-        ThrottleWrite({1024 * 1024, 1s});
-    }
+int main() {
+    auto endpoint = IPEndpoint({{127, 0, 0, 1}}, 3000);
 
-    // Process incoming requests
-    void Process() override {
-        auto& req = GetRequest();
-        auto& res = GetResponse();
+    auto factory = ChannelFactory::Create([](Channel& c) {
+        c.ThrottleWrite({1024 * 1024, 1s});
+
+        auto& res = c.GetResponse();
 
         try {
-            std::string uri(req.GetUri());
+            std::string uri(c.GetRequest().GetUri());
             std::shared_ptr<FileStream> stream = FileStream::Open(uri, FileMode::Read);
             res.SetContent(stream);
             res.AppendField("Content-Type", "application/octet-stream");
-            return SendResponse(Status::Ok);
+            Log::Info("HELLO");
+            c.SendFinalResponse(Status::Ok);
         } catch (const std::exception& ex) {
             Log::Error("Error: {}", ex.what());
             res.Reset();
-            return SendFinalResponse(Status::InternalServerError);
+            c.SendFinalResponse(Status::InternalServerError);
         }
-    }
-};
-
-class StreamerChannelFactory : public ChannelFactory {
-    std::shared_ptr<Channel> CreateChannel(std::shared_ptr<FileStream> fs) override {
-        return std::make_shared<StreamerChannel>(std::move(fs));
-    }
-};
-
-int main() {
-    auto endpoint = IPEndpoint({{127, 0, 0, 1}}, 3000);
-    auto factory = std::make_shared<StreamerChannelFactory>();
+    });
 
     HttpServer server(endpoint, factory);
-    Log::SetLevel(Log::Level::Info);
+    Log::SetLevel(Log::Level::Verbose);
 
     auto task = server.Start();
     Log::Info("Streamer Server Started");
