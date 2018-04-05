@@ -121,7 +121,7 @@ void Response::Prepare(Status status) {
 
     w.write("{} {}\r\n", HttpVersion, ToString(status));
 
-    for (auto& [name, value] : _fields)
+    for (auto& [name, value] : _headers)
         w.write("{}: {}\r\n", name, value);
 
     if (GetState()._transferMode == TransferMode::Normal) {
@@ -360,21 +360,21 @@ bool Response::GetKeepAlive() const {
 }
 
 void Response::CloseConnection() {
-    AppendField("Connection", "close");
+    AppendHeader("Connection", "close");
     GetState()._keepAlive = false;
 }
 
 void Response::KeepConnectionAlive() {
-    AppendField("Connection", "keep-alive");
+    AppendHeader("Connection", "keep-alive");
     GetState()._keepAlive = true;
 }
 
-void Response::AppendField(std::string name, std::string value) {
-    _fields.emplace_back(std::move(name), std::move(value));
+void Response::AppendHeader(std::string name, std::string value) {
+    _headers.emplace_back(std::move(name), std::move(value));
 }
 
 void Response::SetCookie(std::string name, std::string value) {
-    AppendField("Set-Cookie", fmt::format("{}={}", std::move(name), std::move(value)));
+    AppendHeader("Set-Cookie", fmt::format("{}={}", std::move(name), std::move(value)));
 }
 
 void Response::SetCookie(std::string name, std::string value, const CookieOptions& opts) {
@@ -401,7 +401,7 @@ void Response::SetCookie(std::string name, std::string value, const CookieOption
     if (opts.IsSecure())
         w << "; Secure";
 
-    AppendField("Set-Cookie", fmt::format("{}={}{}", std::move(name), std::move(value), w.str()));
+    AppendHeader("Set-Cookie", fmt::format("{}={}{}", std::move(name), std::move(value), w.str()));
 }
 
 void Response::SetContent(std::string body) {
@@ -432,7 +432,7 @@ void Response::SetContent(std::shared_ptr<InputStream> stream) {
     r._transferMode = TransferMode::Chunked;
     r._stream = std::move(stream);
     r._body = std::make_shared<std::vector<char>>(GetBufferSize()); // use as buffer
-    AppendField("Transfer-Encoding", "chunked");
+    AppendHeader("Transfer-Encoding", "chunked");
     r._strBody.reset();
 }
 

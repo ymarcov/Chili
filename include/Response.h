@@ -78,12 +78,12 @@ public:
     void CloseConnection();
 
     /**
-     * Sets a response field.
+     * Sets a response header.
      *
-     * @param name  The HTTP response field name
-     * @param value The field's value
+     * @param name  The HTTP response header name
+     * @param value The header's value
      */
-    void AppendField(std::string name, std::string value);
+    void AppendHeader(std::string name, std::string value);
 
     /**
      * Sets a cookie.
@@ -178,7 +178,7 @@ private:
     std::shared_ptr<OutputStream> _stream;
     std::weak_ptr<Signal<>> _readyToWrite;
     bool _prepared = false;
-    std::vector<std::pair<std::string, std::string>> _fields;
+    std::vector<std::pair<std::string, std::string>> _headers;
     mutable std::shared_ptr<CachedResponse> _response;
     std::size_t _writePosition = 0;
     std::size_t _chunkSize = 0;

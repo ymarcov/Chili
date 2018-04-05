@@ -77,12 +77,12 @@ void PrintInfo(const Request& request) {
     /*
      * Print various header fields
      */
-    for (auto& fieldName : request.GetFieldNames()) {
-        if (fieldName == "Cookie")
+    for (auto& name : request.GetHeaderNames()) {
+        if (name == "Cookie")
             continue;
 
-        auto field = request.GetField(fieldName);
-        std::cout << fieldName << ": " << field << "\n";
+        auto header = request.GetHeader(name);
+        std::cout << name << ": " << header << "\n";
     }
 
     /*

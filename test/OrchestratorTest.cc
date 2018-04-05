@@ -148,7 +148,7 @@ TEST_F(OrchestratorTest, one_client_header_only) {
     auto ready = std::make_shared<WaitEvent>();
 
     auto server = MakeServer(MakeProcessor([=](Channel& c) {
-        if (c.GetRequest().GetField("Host") == "request.urih.com")
+        if (c.GetRequest().GetHeader("Host") == "request.urih.com")
             ready->Signal();
 
         c.GetResponse().SetStatus(Status::Ok);
@@ -451,7 +451,7 @@ TEST_F(OrchestratorTest, stress) {
 
         if (!c.GetRequest().IsContentAvailable())
             c.FetchContent([&c, ready, readyCount] {
-                if (c.GetRequest().GetField("Host") == "request.urih.com")
+                if (c.GetRequest().GetHeader("Host") == "request.urih.com")
                     if (++*readyCount == clientCount)
                         ready->Signal();
 
@@ -503,7 +503,7 @@ TEST_F(OrchestratorTest, async_stress) {
                 std::thread([&, ready, readyCount] {
                     std::this_thread::sleep_for(50ms);
 
-                    if (c.GetRequest().GetField("Host") == "request.urih.com")
+                    if (c.GetRequest().GetHeader("Host") == "request.urih.com")
                         if (++*readyCount == clientCount)
                             ready->Signal();
 

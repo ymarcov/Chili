@@ -153,7 +153,7 @@ void Channel::FetchContent(std::function<void()> callback) {
     // may continue" intermediate response.
     std::string value;
 
-    if (_request.GetField("Expect", &value)) {
+    if (_request.GetHeader("Expect", &value)) {
         // Ok, look, it does want us to send
         // it our confirmation. Let's do it.
         if (value == "100-continue") {
@@ -176,7 +176,7 @@ void Channel::FetchContent(std::function<void()> callback) {
 void Channel::RejectContent() {
     std::string value;
 
-    if (_request.GetField("Expect", &value)) {
+    if (_request.GetHeader("Expect", &value)) {
         // Tough luck client, your request
         // body has been rejected.
         if (value == "100-continue") {
@@ -389,8 +389,8 @@ void Channel::OnProcess() {
             // the content for it before asking it to process anything.
 
             { // FIXME: For now we don't support chunked requests
-                if (_request.HasField("Transfer-Encoding"))
-                    if (_request.GetField("Transfer-Encoding").find("chunked") != std::string::npos)
+                if (_request.HasHeader("Transfer-Encoding"))
+                    if (_request.GetHeader("Transfer-Encoding").find("chunked") != std::string::npos)
                         return SendInternalError();
             }
 

@@ -30,13 +30,13 @@ int main() {
     auto factory = Chili::ChannelFactory::Create([](Chili::Channel& c) {
         auto& res = c.GetResponse();
         res.SetContent("<h1>Hello world!</h1>");
-        res.AppendField("Content-Type", "text/html");
+        res.AppendHeader("Content-Type", "text/html");
         res.SetStatus(Status::Ok);
         c.SendResponse();
     });
 
     Chili::HttpServer server(endpoint, factory);
-    Chili::Log::SetLevel(Log::Level::Info);
+
     auto task = server.Start();
     Chili::Log::Info("HelloWorld Server Started");
     task.wait();

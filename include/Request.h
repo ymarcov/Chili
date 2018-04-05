@@ -36,28 +36,28 @@ public:
     Version GetVersion() const;
 
     /**
-     * Gets the names of all header fields present in the request.
+     * Gets the names of all headers present in the request.
      */
-    std::vector<std::string_view> GetFieldNames() const;
+    std::vector<std::string_view> GetHeaderNames() const;
 
     /**
-     * Returns true if the request contains a field with the specified name.
+     * Returns true if the request contains a header with the specified name.
      */
-    bool HasField(const std::string_view& name) const;
+    bool HasHeader(const std::string_view& name) const;
 
     /**
-     * Tries to get a field by name, returns true if it was found.
+     * Tries to get a header by name, returns true if it was found.
      *
-     * If field was found and value is not null, then value is set.
+     * If header was found and value is not null, then value is set.
      * Otherwise, value is ignored.
      */
-    bool GetField(const std::string_view& name, std::string* value) const;
+    bool GetHeader(const std::string_view& name, std::string* value) const;
 
     /**
-     * Gets a field by name.
-     * Throws if the field does not exist.
+     * Gets a header by name.
+     * Throws if the header does not exist.
      */
-    std::string_view GetField(const std::string_view& name) const;
+    std::string_view GetHeader(const std::string_view& name) const;
 
     /**
      * Gets the names of all cookies present in the request.
@@ -84,7 +84,7 @@ public:
 
     /**
      * Gets the length of the associated content.
-     * Returns 0 if the Content-Length field is not present.
+     * Returns 0 if the Content-Length header is not present.
      */
     std::size_t GetContentLength() const;
 

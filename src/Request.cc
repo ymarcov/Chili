@@ -107,18 +107,18 @@ Version Request::GetVersion() const {
     throw std::runtime_error("Unsupported HTTP method");
 }
 
-std::vector<std::string_view> Request::GetFieldNames() const {
+std::vector<std::string_view> Request::GetHeaderNames() const {
     std::vector<std::string_view> result;
     for (auto& f : _parser.GetFieldNames())
         result.emplace_back(f.Data, f.Size);
     return result;
 }
 
-bool Request::HasField(const std::string_view& name) const {
-    return GetField(name, nullptr);
+bool Request::HasHeader(const std::string_view& name) const {
+    return GetHeader(name, nullptr);
 }
 
-bool Request::GetField(const std::string_view& name, std::string* value) const {
+bool Request::GetHeader(const std::string_view& name, std::string* value) const {
     Parser::Field f;
 
     if (_parser.GetField(name, &f)) {
@@ -130,7 +130,7 @@ bool Request::GetField(const std::string_view& name, std::string* value) const {
     return false;
 }
 
-std::string_view Request::GetField(const std::string_view& name) const {
+std::string_view Request::GetHeader(const std::string_view& name) const {
     auto f = _parser.GetField(name);
     return {f.Data, f.Size};
 }
@@ -163,7 +163,7 @@ bool Request::IsContentAvailable() const {
 std::size_t Request::GetContentLength() const {
     try {
         char* endptr;
-        return strtoul(GetField("Content-Length").data(), &endptr, 10);
+        return strtoul(GetHeader("Content-Length").data(), &endptr, 10);
     } catch (const Parser::Error&) {
         return 0;
     }
