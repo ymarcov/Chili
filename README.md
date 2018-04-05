@@ -18,7 +18,8 @@ It has a light footprint, employs modern C++ constructs, and compiles well with 
 - Does not overload the CPU or memory when not required
 - Uses modern C++ and is easy to use, and even to customize the code
 - Public API documented with Doxygen
-- Thoroughly tested with Google Test unit & integration tests, and also with Valgrind Memcheck
+- Thoroughly tested with Google Test unit & integration tests
+- Stress-tested for memory leaks with Valgrind Memcheck
 - Security tested with SlowHTTPTest (DoS simulator)
 
 ## Example Code (Hello World)
