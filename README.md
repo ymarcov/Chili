@@ -11,10 +11,10 @@ It has a light footprint, employs modern C++ constructs, and compiles well with 
 ### Feature Summary
 
 - Asynchronous I/O and request processing
-- Independent Read/Write throttling, both for the server as a whole and for individual connections
-- Supports streaming
+- Read/Write throttling, both for the server as a whole and for individual connections
+- Supports file streaming & serving custom streams with async data generation
 - Supports conditional request message body fetching & rejection
-- Supports cached responses for added efficiency
+- Offers response caching for added efficiency
 - Does not overload the CPU or memory when not required
 - Uses modern C++ and is easy to use, and even to customize the code
 - Public API documented with Doxygen
