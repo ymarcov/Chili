@@ -30,7 +30,7 @@ struct ConsoleLogger : Logger {
 } // unnamed namespace
 
 std::shared_ptr<Logger> Log::_logger = std::make_shared<ConsoleLogger>();
-std::atomic<Log::Level> Log::_currentLevel = Log::Level::Verbose;
+std::atomic<Log::Level> Log::_currentLevel = Log::Level::Info;
 
 } // namespace Chili
 
