@@ -14,15 +14,17 @@ TEST_F(ThreadPoolTest, increments_counter_concurrently) {
     ThreadPool tp{threadCount};
     std::vector<std::future<void>> futures;
     std::atomic_int counter{0};
+    const auto target = 200000;
 
-    for (int i = 0; i < threadCount; i++)
+    for (int i = 0; i < target; i++)
         futures.push_back(tp.Post([&] {
-            while (counter++ < 10000000)
-                ;
+            ++counter;
         }));
 
     for (auto& f : futures)
         f.get();
+
+    ASSERT_EQ(target, counter);
 }
 
 TEST_F(ThreadPoolTest, throws_exception_on_task_error) {
