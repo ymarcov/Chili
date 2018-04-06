@@ -1,7 +1,8 @@
 #pragma once
 
+#include "Semaphore.h"
+
 #include <atomic>
-#include <condition_variable>
 #include <functional>
 #include <future>
 #include <memory>
@@ -32,10 +33,11 @@ private:
         Work _work;
     };
 
+    int _capacity;
     std::vector<std::unique_ptr<std::thread>> _threads;
     std::queue<std::unique_ptr<WorkContext>> _pending;
     std::mutex _mutex;
-    std::condition_variable _workerAlarm;
+    Semaphore _semaphore;
     std::atomic_bool _stop{false};
 };
 

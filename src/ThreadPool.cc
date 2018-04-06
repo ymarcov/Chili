@@ -8,27 +8,18 @@ public:
         _threadPool{tp} {}
 
     void operator()() noexcept {
-        do try {
-            Fetch() && Execute();
-        } catch (...) {} while (!_threadPool->_stop);
+        while (Fetch())
+            Execute();
     }
 
 private:
     bool Fetch() {
-        std::unique_lock<std::mutex> lock(_threadPool->_mutex);
+        _threadPool->_semaphore.Decrement();
 
-        // release the threadpool lock and wait until the condition variable
-        // is notified. reacquire only if there's work to do, or we need to stop.
-
-        _threadPool->_workerAlarm.wait(lock, [&] {
-            return _threadPool->_stop || !_threadPool->_pending.empty();
-        });
+        std::lock_guard lock(_threadPool->_mutex);
 
         if (_threadPool->_stop)
             return false;
-
-        // we've really got some work to do.
-        // pop it and set current work context.
 
         _workContext = std::move(_threadPool->_pending.front());
         _threadPool->_pending.pop();
@@ -53,7 +44,8 @@ private:
     std::unique_ptr<ThreadPool::WorkContext> _workContext;
 };
 
-ThreadPool::ThreadPool(int capacity) {
+ThreadPool::ThreadPool(int capacity)
+    : _capacity(capacity) {
     // create workers
     _threads.resize(capacity);
     for (auto& t : _threads)
@@ -67,13 +59,19 @@ ThreadPool::~ThreadPool() {
 void ThreadPool::Stop() {
     // change the stop flag to true
     _mutex.lock();
+
     _stop = true;
+
+    while (!_pending.empty())
+        _pending.pop();
+
     _mutex.unlock();
 
     // wake everybody up now in order
     // to make sure they get the message
     // and finish their loops accordingly.
-    _workerAlarm.notify_all();
+    for (auto i = 0; i < _capacity; ++i)
+        _semaphore.Increment();
 
     // wait for everyone to finish
     for (auto& t : _threads)
@@ -88,12 +86,15 @@ std::future<void> ThreadPool::Post(Work w) {
     {
         // lock queue and push work item
         std::lock_guard<std::mutex> lock(_mutex);
+
+        if (_stop)
+            return {};
+
         _pending.push(std::move(workContext));
     }
 
     // explicitly wake up one sleeping worker.
-    // (spurious wakeup could happen, but we can't rely on it)
-    _workerAlarm.notify_one();
+    _semaphore.Increment();
 
     return workFuture;
 }
