@@ -106,7 +106,7 @@ void Poller::Stop() {
 }
 
 void Poller::PollLoop(const Poller::EventHandler& handler) {
-    constexpr int maxEvents = 100;
+    constexpr int maxEvents = 1000;
     struct epoll_event events[maxEvents];
     int n;
 
