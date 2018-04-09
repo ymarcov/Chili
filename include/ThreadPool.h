@@ -55,7 +55,6 @@ private:
     std::chrono::microseconds _upscalePatience{500};
     std::chrono::microseconds _downscalePatience{5'000'000};
     std::atomic_bool _stop{false};
-    std::thread _upscaler;
 };
 
 } // namespace Chili
