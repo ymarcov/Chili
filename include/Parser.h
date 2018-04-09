@@ -28,6 +28,8 @@ public: // public types
         Error(const char* what);
         Error(Type, const char* what = nullptr);
 
+        Type GetType() const;
+
     private:
         Type _type;
     };

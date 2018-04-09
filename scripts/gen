@@ -4,13 +4,13 @@ gen_header() {
     cat>${1}/${2}.h<<EOF
 #pragma once
 
-namespace Nitra {
+namespace Chili {
 
 class $2 {
 public:
 };
 
-} // namespace Nitra
+} // namespace Chili
 
 EOF
 }
@@ -19,11 +19,11 @@ gen_source() {
     cat>${1}/${2}.cc<<EOF
 #include "${2}.h"
 
-namespace Nitra {
+namespace Chili {
 
 // TODO
 
-} // namespace Nitra
+} // namespace Chili
 
 EOF
 }
@@ -43,7 +43,7 @@ gen_test() {
 
 using namespace ::testing;
 
-namespace Nitra {
+namespace Chili {
 
 class ${class}Test : public Test {
 public:
@@ -57,7 +57,7 @@ TEST_F(${class}Test, constructs) {
     $class $var;
 }
 
-} // namespace Nitra
+} // namespace Chili
 
 EOF
 }

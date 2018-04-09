@@ -1,55 +1,54 @@
-![Logo](https://raw.githubusercontent.com/ymarcov/Chili/master/logo.png)
+![Logo](https://raw.githubusercontent.com/ymarcov/Chili/async/logo.png)
 
-# Chili HTTP Library
+# Chili: HTTP Served Hot
 
-***A simple to use, yet efficient, modern C++ HTTP server library***
-
+***An efficient, simple to use, HTTP server library in modern C++*** \
 This is a library for developing HTTP servers with custom request processing. \
 It uses asynchronous I/O operations, relying on *epoll* (so it is Linux-only), and reaches some very good numbers in terms of performance. At the same time, it's very easy to set up, as shown below.
 
-It has a light footprint, and it employs modern C++ constructs, and compiles well under G++ 4.9.2 with `-std=c++14`.
+It has a light footprint, employs modern C++ constructs, and compiles well with no warnings under Clang 5 with `-std=c++17`.
 
 ### Feature Summary
 
-- Asynchronous I/O
-- Independent Read/Write throttling, both for the server as a whole and for individual connections
-- Supports streaming
-- Supports conditional message body fetching & rejection
-- Supports cached responses for added efficiency
-- Efficient, does not overload the CPU or memory when not required
+#### Performance & Flexibility
+- Asynchronous I/O and request processing
+- Offers response caching for added efficiency
+- Autoscaling threadpools: uses less memory when load is light
+- Does not overload the CPU or memory when not required
+
+#### Flexibility
+- File streaming and serving custom streams with async data generation
+- Read/Write throttling, both for the server as a whole and for individual connections
+- Conditional request message body fetching & rejection
+
+#### User Friendliness
 - Uses modern C++ and is easy to use, and even to customize the code
 - Public API documented with Doxygen
-- Thoroughly tested with Google Test unit & integration tests, and also with Valgrind Memcheck
+
+#### Robustness
+- Thoroughly tested with Google Test unit & integration tests
+- Stress-tested for memory leaks with Valgrind Memcheck
 - Security tested with SlowHTTPTest (DoS simulator)
 
 ## Example Code (Hello World)
 
 ```c++
-class HelloWorldChannel : public Channel {
-    // Use constructors from Channel
-    using Channel::Channel;
-
-    // Process incoming requests
-    Control Process(const Request&, Response& res) override {
-        res.SetContent("<h1>Hello world!</h1>");
-        res.SetField("Content-Type", "text/html");
-        return SendResponse(Status::Ok);
-    }
-};
-
-class HelloWorldChannelFactory : public ChannelFactory {
-    std::unique_ptr<Channel> CreateChannel(std::shared_ptr<FileStream> fs) override {
-        return std::make_unique<HelloWorldChannel>(std::move(fs));
-    }
-};
-
 int main() {
-    auto endpoint = IPEndpoint({127, 0, 0, 1}, 3000);
-    auto factory = std::make_shared<HelloWorldChannelFactory>();
-    auto processingThreads = 1;
-    HttpServer server(endpoint, factory, processingThreads);
-    Log::Default()->SetLevel(Log::Level::Info);
-    server.Start().wait();
+    auto endpoint = Chili::IPEndpoint({{127, 0, 0, 1}}, 3000);
+
+    auto factory = Chili::ChannelFactory::Create([](Chili::Channel& c) {
+        auto& res = c.GetResponse();
+        res.SetContent("<h1>Hello world!</h1>");
+        res.AppendHeader("Content-Type", "text/html");
+        res.SetStatus(Status::Ok);
+        c.SendResponse();
+    });
+
+    Chili::HttpServer server(endpoint, factory);
+
+    auto task = server.Start();
+    Chili::Log::Info("HelloWorld Server Started");
+    task.wait();
 }
 ```
 

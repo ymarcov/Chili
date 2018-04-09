@@ -1,12 +1,13 @@
 #pragma once
 
-#include "ChannelBase.h"
+#include "Channel.h"
 #include "ChannelFactory.h"
 #include "Clock.h"
 #include "FileStream.h"
 #include "Poller.h"
 #include "Profiler.h"
 #include "Signal.h"
+#include "Synchronized.h"
 #include "ThreadPool.h"
 #include "Throttler.h"
 #include "WaitEvent.h"
@@ -14,15 +15,17 @@
 #include <atomic>
 #include <chrono>
 #include <future>
+#include <memory>
 #include <mutex>
 #include <thread>
 #include <unordered_map>
 
 namespace Chili {
 
-class Orchestrator {
+class Orchestrator : public std::enable_shared_from_this<Orchestrator> {
 public:
-    Orchestrator(std::shared_ptr<ChannelFactory>, int threads);
+    static std::shared_ptr<Orchestrator> Create(std::shared_ptr<ChannelFactory>, int threads);
+
     ~Orchestrator();
 
     std::future<void> Start();
@@ -42,26 +45,27 @@ private:
         bool IsHandlingInProcess() const;
         void Activate();
         bool ReachedInactivityTimeout() const;
-        ChannelBase& GetChannel();
+        Channel& GetChannel();
         std::mutex& GetMutex();
 
     private:
         Orchestrator* _orchestrator;
-        std::shared_ptr<ChannelBase> _channel;
-        Clock::TimePoint _lastActive;
+        std::shared_ptr<Channel> _channel;
+        Synchronized<Clock::TimePoint> _lastActive;
         std::mutex _mutex;
-        mutable std::mutex _lastActiveMutex;
         std::atomic_bool _inProcess{false};
 
         friend void Orchestrator::Add(std::shared_ptr<FileStream>);
     };
 
+    Orchestrator(std::shared_ptr<ChannelFactory>, int threads);
+
     template <class T>
-    void RecordChannelEvent(const ChannelBase&) const;
+    void RecordChannelEvent(const Channel&) const;
 
     void WakeUp();
     void OnEvent(std::shared_ptr<FileStream>, int events);
-    void HandleChannelEvent(ChannelBase&, int events);
+    void HandleChannelEvent(Channel&, int events);
     void IterateOnce();
     std::vector<std::shared_ptr<Task>> CaptureTasks();
     std::vector<std::shared_ptr<Task>> FilterReadyTasks();
@@ -75,22 +79,23 @@ private:
     std::shared_ptr<ChannelFactory> _channelFactory;
     std::promise<void> _threadPromise;
     Poller _poller;
-    ThreadPool _threadPool;
+    ThreadPool _activationThreadPool;
     std::future<void> _pollerTask;
     std::shared_ptr<Throttler> _masterReadThrottler;
     std::shared_ptr<Throttler> _masterWriteThrottler;
     std::thread _thread;
     WaitEvent _newEvent;
-    std::atomic<Clock::TimePoint> _wakeUpTime;
     std::atomic_bool _stop{true};
     std::mutex _mutex;
     std::map<void*, std::weak_ptr<Task>> _taskFastLookup;
     std::vector<std::shared_ptr<Task>> _tasks;
     std::atomic<std::chrono::milliseconds> _inactivityTimeout{std::chrono::milliseconds(10000)};
+
+    friend class Channel;
 };
 
 template <class T>
-void Orchestrator::RecordChannelEvent(const ChannelBase& c) const {
+void Orchestrator::RecordChannelEvent(const Channel& c) const {
     Profiler::Record<T>("Orchestrator", c.GetId());
 }
 

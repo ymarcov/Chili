@@ -20,7 +20,7 @@ Poller::~Poller() {
 }
 
 std::size_t Poller::GetWatchedCount() {
-    std::lock_guard<std::mutex> lock{_filesMutex};
+    std::lock_guard lock{_filesMutex};
     return _files.size();
 }
 
@@ -41,7 +41,7 @@ void Poller::InsertOrIncrementRefCount(std::shared_ptr<FileStream>& fs, int even
     ev.events = EPOLLONESHOT | ConvertToNative(events);
     ev.data.ptr = fs.get();
 
-    std::lock_guard<std::mutex> lock{_filesMutex};
+    std::lock_guard lock{_filesMutex};
 
     auto it = _files.find(fs.get());
 
@@ -57,7 +57,7 @@ void Poller::InsertOrIncrementRefCount(std::shared_ptr<FileStream>& fs, int even
 
         if (-1 == ::epoll_ctl(_fd, EPOLL_CTL_MOD, fs->GetNativeHandle(), &ev)) {
             if (-1 == ::epoll_ctl(_fd, EPOLL_CTL_DEL, fs->GetNativeHandle(), nullptr))
-                Log::Default()->Error("Failed to delete {} from epoll after modification failed", _fd);
+                Log::Error("Failed to delete {} from epoll after modification failed", _fd);
 
             _files.erase(fs.get());
             throw SystemError{};
@@ -67,7 +67,7 @@ void Poller::InsertOrIncrementRefCount(std::shared_ptr<FileStream>& fs, int even
 }
 
 void Poller::DecrementRefCount(const FileStream& fs) {
-    std::lock_guard<std::mutex> lock{_filesMutex};
+    std::lock_guard lock{_filesMutex};
 
     auto it = _files.find(&fs);
 
@@ -82,7 +82,7 @@ void Poller::DecrementRefCount(const FileStream& fs) {
         }
 
         if (::epoll_ctl(_fd, EPOLL_CTL_DEL, streamFd, nullptr))
-            Log::Default()->Error("Failed to delete {} from epoll after ref count reset", _fd);
+            Log::Error("Failed to delete {} from epoll after ref count reset", _fd);
 
     }
 }
@@ -134,7 +134,7 @@ void Poller::DispatchEvents(void* eventsPtr, std::size_t n, const Poller::EventH
         auto fs = GetFileStreamFromPtr(events[i].data.ptr);
 
         if (!fs) {
-            Log::Default()->Verbose("File stream was closed in between iterations");
+            Log::Verbose("File stream was closed in between iterations");
             continue;
         }
 
@@ -152,7 +152,7 @@ void Poller::DispatchEvents(void* eventsPtr, std::size_t n, const Poller::EventH
 }
 
 std::shared_ptr<FileStream> Poller::GetFileStreamFromPtr(void* ptr) {
-    std::lock_guard<std::mutex> lock{_filesMutex};
+    std::lock_guard lock{_filesMutex};
     auto it = _files.find(ptr);
     return it == _files.end() ? nullptr : it->second.second;
 }

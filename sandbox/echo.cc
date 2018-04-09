@@ -18,17 +18,15 @@ using namespace std::literals;
 
 struct ServerConfiguration {
     IPEndpoint _endpoint;
-    std::shared_ptr<Poller> _poller;
-    int _threadCount;
     bool _verbose;
 };
 
 std::unique_ptr<HttpServer> CreateServer(ServerConfiguration config, std::unique_ptr<ChannelFactory> channelFactory) {
-    return std::make_unique<HttpServer>(config._endpoint, std::move(channelFactory), config._threadCount);
+    return std::make_unique<HttpServer>(config._endpoint, std::move(channelFactory));
 }
 
 ServerConfiguration CreateConfiguration(std::vector<std::string> argv) {
-    if (argv.size() > 4)
+    if (argv.size() > 3)
         throw std::runtime_error("Invalid command line arguments");
 
     auto port = 3000;
@@ -37,16 +35,12 @@ ServerConfiguration CreateConfiguration(std::vector<std::string> argv) {
 
     auto endpoint = IPEndpoint{{{0, 0, 0, 0}}, port};
 
-    int threadCount = 1;
-    if (argv.size() >= 3)
-        threadCount = std::stoi(argv[2]);
-
     auto verbose = true;
 
-    if (argv.size() >= 4)
-        verbose = std::stoi(argv[3]);
+    if (argv.size() >= 3)
+        verbose = std::stoi(argv[2]);
 
-    return {endpoint, std::make_shared<Poller>(2), threadCount, verbose};
+    return {endpoint, verbose};
 }
 
 void PrintInfo(const Request& request) {
@@ -83,12 +77,12 @@ void PrintInfo(const Request& request) {
     /*
      * Print various header fields
      */
-    for (auto& fieldName : request.GetFieldNames()) {
-        if (fieldName == "Cookie")
+    for (auto& name : request.GetHeaderNames()) {
+        if (name == "Cookie")
             continue;
 
-        auto field = request.GetField(fieldName);
-        std::cout << fieldName << ": " << field << "\n";
+        auto header = request.GetHeader(name);
+        std::cout << name << ": " << header << "\n";
     }
 
     /*
@@ -125,7 +119,10 @@ std::unique_ptr<ChannelFactory> CreateChannelFactory(const ServerConfiguration& 
             Channel(std::move(fs)),
             _verbose(verbose) {}
 
-        Control Process(const Request& req, Response& res) override {
+        void Process() override {
+            auto& req = GetRequest();
+            auto& res = GetResponse();
+
             if (_verbose) {
                 std::lock_guard<std::mutex> lock(_outputMutex);
                 std::cout << "\n";
@@ -133,17 +130,20 @@ std::unique_ptr<ChannelFactory> CreateChannelFactory(const ServerConfiguration& 
                 std::cout << "\n";
             }
 
-            if (crSet)
-                return SendResponse(cr);
+            if (crSet) {
+                res.UseCached(cr);
+                return SendResponse();
+            }
 
             const char msg[] = "<b><u>Hello world!</u></b>";
             auto data = std::make_shared<std::vector<char>>(std::begin(msg), std::end(msg) - 1);
             res.SetContent(data);
+            res.SetStatus(Status::Ok);
 
-            cr = res.CacheAs(Status::Ok);
+            cr = res.Cache();
             crSet = true;
 
-            return SendResponse(cr);
+            return SendResponse();
         }
 
         bool _verbose;
@@ -153,7 +153,7 @@ std::unique_ptr<ChannelFactory> CreateChannelFactory(const ServerConfiguration& 
         CustomChannelFactory(bool verbose) :
             _verbose(verbose) {}
 
-        std::unique_ptr<Channel> CreateChannel(std::shared_ptr<FileStream> fs) override {
+        std::shared_ptr<Channel> CreateChannel(std::shared_ptr<FileStream> fs) override {
             return std::make_unique<CustomChannel>(std::move(fs), _verbose);
         }
 
@@ -191,7 +191,7 @@ int main(int argc, char* argv[]) {
         std::cerr << BackTrace{};
     });
 
-    Log::Default()->SetLevel(Log::Level::Warning);
+    Log::SetLevel(Log::Level::Warning);
 
     auto serverTask = server->Start();
 

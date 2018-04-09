@@ -6,6 +6,7 @@
 #include <fcntl.h>
 #include <poll.h>
 #include <sys/sendfile.h>
+#include <sys/stat.h>
 #include <unistd.h>
 
 namespace Chili {
@@ -43,6 +44,14 @@ std::unique_ptr<FileStream> FileStream::Open(const std::string& path, FileMode m
 
     if (fd == -1)
         throw SystemError{};
+
+    struct ::stat statbuf;
+
+    if (::fstat(fd, &statbuf) == -1)
+        throw SystemError();
+
+    if ((statbuf.st_mode & S_IFMT) == S_IFDIR)
+        throw std::runtime_error("Specified path is a directory");
 
     return std::make_unique<FileStream>(fd);
 }
@@ -184,7 +193,7 @@ std::size_t FileStream::WriteTo(FileStream& fs, std::size_t maxBytes) {
 void FileStream::Close() {
     if (_nativeHandle != InvalidHandle)
         if (-1 == ::close(_nativeHandle))
-            Log::Default()->Warning("Failed to close fd {}", _nativeHandle);
+            Log::Warning("Failed to close fd {}", _nativeHandle);
 }
 
 void SeekableFileStream::Seek(std::size_t offset) {

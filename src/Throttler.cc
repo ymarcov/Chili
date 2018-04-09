@@ -18,8 +18,8 @@ Throttler::Throttler(const Throttler& other) {
 }
 
 Throttler& Throttler::operator=(const Throttler& rhs) {
-    std::lock_guard<std::mutex> lock1(_mutex);
-    std::lock_guard<std::mutex> lock2(rhs._mutex);
+    std::lock_guard lock1(_mutex);
+    std::lock_guard lock2(rhs._mutex);
     _enabled = rhs._enabled;
     _capacity = rhs._capacity;
     _interval = rhs._interval;
@@ -29,12 +29,12 @@ Throttler& Throttler::operator=(const Throttler& rhs) {
 }
 
 bool Throttler::IsEnabled() const {
-    std::lock_guard<std::mutex> lock(_mutex);
+    std::lock_guard lock(_mutex);
     return _enabled;
 }
 
 Clock::TimePoint Throttler::GetFillTime() const {
-    std::lock_guard<std::mutex> lock(_mutex);
+    std::lock_guard lock(_mutex);
 
     if (!_enabled)
         return Clock::GetCurrentTime();
@@ -48,7 +48,7 @@ Clock::TimePoint Throttler::GetFillTime() const {
 }
 
 Clock::TimePoint Throttler::GetFillTime(std::size_t desiredQuota) const {
-    std::lock_guard<std::mutex> lock(_mutex);
+    std::lock_guard lock(_mutex);
 
     if (!_enabled)
         return Clock::GetCurrentTime();
@@ -64,7 +64,7 @@ Clock::TimePoint Throttler::GetFillTime(std::size_t desiredQuota) const {
 }
 
 std::size_t Throttler::GetCurrentQuota() const {
-    std::lock_guard<std::mutex> lock(_mutex);
+    std::lock_guard lock(_mutex);
 
     if (!_enabled)
         return _capacity;
@@ -77,7 +77,7 @@ std::size_t Throttler::GetCapacity() const {
 }
 
 void Throttler::Consume(std::size_t n) {
-    std::lock_guard<std::mutex> lock(_mutex);
+    std::lock_guard lock(_mutex);
 
     if (!_enabled)
         return;

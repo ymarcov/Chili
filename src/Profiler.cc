@@ -1,11 +1,12 @@
 #include "Profiler.h"
-#include "ChannelBase.h"
+#include "Channel.h"
 #include "Orchestrator.h"
 #include "Poller.h"
 
 #include <chrono>
 #include <cstdlib>
-#include <fmtlib/format.h>
+#include <fmt/format.h>
+#include <map>
 
 using namespace std::literals;
 
@@ -44,6 +45,8 @@ std::string Profile::GetSummary() const {
     w.write("[Channel] # Closed: {} ({}/sec)\n",
             GetTimesChannelsWereClosed(),
             GetRateChannelsWereClosed());
+
+    w.write("[Channel] Up Time: {} ms\n", GetChannelsUpTime().count());
 
     w.write("[Channel::Read] # Waited for Readability: {} ({}/sec)\n",
             GetTimesChannelsWaitedForReadability(),
@@ -89,7 +92,7 @@ std::string Profile::GetSummary() const {
             GetTimesOrchestratorWokeUp(),
             GetRateOrchestratorWokeUp());
 
-    w.write("[Orchestrator] # Captured Tasks: {} ({}/sec)\n",
+    w.write("[Orchestrator] # Times Captured Tasks: {} ({}/sec)\n",
             GetTimesOrchestratorCapturedTasks(),
             GetRateOrchestratorCapturedTasks());
 
@@ -187,6 +190,26 @@ Hz Profile::GetRateChannelsWereActivated() const {
 
 Hz Profile::GetRateChannelsWereActivated(Clock::TimePoint t) const {
     return HzCalculator<ChannelActivated>(t).ReadAll(_events);
+}
+
+std::chrono::milliseconds Profile::GetChannelsUpTime() const {
+    struct : ProfileEventReader {
+        void Read(const ChannelActivating& e) {
+            _lastActivationTime[e.ChannelId] = e.GetTimePoint();
+        }
+
+        void Read(const ChannelActivated& e) {
+            UpTime += std::chrono::duration_cast<std::chrono::milliseconds>(e.GetTimePoint() - _lastActivationTime[e.ChannelId]);
+        }
+
+        std::chrono::milliseconds UpTime{0};
+        std::map<std::uint64_t, Clock::TimePoint> _lastActivationTime;
+    } reader;
+
+    for (auto& e : _events)
+        reader.Visit(e);
+
+    return reader.UpTime;
 }
 
 std::uint64_t Profile::GetTimesChannelsWaitedForReadability() const {
@@ -403,24 +426,24 @@ Hz Profile::GetRatePollerDispatchedAnEvent(Clock::TimePoint t) const {
 }
 
 void Profiler::Enable() {
-    std::lock_guard<std::mutex> lock(_mutex);
+    std::lock_guard lock(_mutex);
     _startTime = Clock::GetCurrentTime();
     _enabled = true;
 }
 
 void Profiler::Disable() {
-    std::lock_guard<std::mutex> lock(_mutex);
+    std::lock_guard lock(_mutex);
     _endTime = Clock::GetCurrentTime();
     _enabled = false;
 }
 
 void Profiler::Clear() {
-    std::lock_guard<std::mutex> lock(_mutex);
+    std::lock_guard lock(_mutex);
     _events.clear();
 }
 
 std::vector<std::reference_wrapper<const ProfileEvent>> Profiler::GetEvents() {
-    std::lock_guard<std::mutex> lock(_mutex);
+    std::lock_guard lock(_mutex);
     auto result = std::vector<std::reference_wrapper<const ProfileEvent>>();
 
     result.reserve(_events.size());

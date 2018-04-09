@@ -14,6 +14,7 @@ void WaitEvent::Signal() {
     _mutex.lock();
     _signalled = true;
     _mutex.unlock();
+    OnSignalled();
     _cv.notify_all();
 }
 

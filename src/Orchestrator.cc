@@ -1,4 +1,5 @@
 #include "Orchestrator.h"
+#include "ExitTrap.h"
 #include "Log.h"
 
 #include <algorithm>
@@ -18,10 +19,14 @@ bool Orchestrator::Task::IsHandlingInProcess() const {
 }
 
 void Orchestrator::Task::Activate() {
-    _orchestrator->RecordChannelEvent<ChannelActivated>(*_channel);
+    _orchestrator->RecordChannelEvent<ChannelActivating>(*_channel);
+
+    auto onExit = CreateExitTrap([&] {
+        _orchestrator->RecordChannelEvent<ChannelActivated>(*_channel);
+    });
 
     if (ReachedInactivityTimeout()) {
-        Log::Default()->Info("Channel {} reached inactivity timeout", _channel->GetId());
+        Log::Info("Channel {} reached inactivity timeout", _channel->GetId());
 
         // If it happened while it was in the poller, then remove
         // it from there as well. Otherwise, this call should be
@@ -37,12 +42,7 @@ void Orchestrator::Task::Activate() {
     // Money line
     _channel->Advance();
 
-    {
-        // This is checked from other places in parallel via
-        // ReachedInactivityTimeout(). So we need to lock it.
-        std::lock_guard<std::mutex> lock(_lastActiveMutex);
-        _lastActive = Clock::GetCurrentTime();
-    }
+    _lastActive = Clock::GetCurrentTime();
 
     // In case we're sending it off to the poller,
     // we don't need to notify our main thread,
@@ -51,12 +51,12 @@ void Orchestrator::Task::Activate() {
     bool notify = false;
 
     switch (_channel->GetDefiniteStage()) {
-        case ChannelBase::Stage::WaitReadable: {
+        case Channel::Stage::WaitReadable: {
             _orchestrator->_poller.Poll(_channel->GetStream(),
                                         Poller::Events::Completion | Poller::Events::Readable);
         } break;
 
-        case ChannelBase::Stage::WaitWritable: {
+        case Channel::Stage::WaitWritable: {
             _orchestrator->_poller.Poll(_channel->GetStream(),
                                         Poller::Events::Completion | Poller::Events::Writable);
         } break;
@@ -94,18 +94,11 @@ bool Orchestrator::Task::ReachedInactivityTimeout() const {
         return false;
     }
 
-    decltype(_lastActive) lastActive;
-
-    {
-        std::lock_guard<std::mutex> lock(_lastActiveMutex);
-        lastActive = _lastActive;
-    }
-
-    auto diff = Clock::GetCurrentTime() - lastActive;
+    auto diff = Clock::GetCurrentTime() - _lastActive.GetValue();
     return diff >= _orchestrator->_inactivityTimeout.load();
 }
 
-ChannelBase& Orchestrator::Task::GetChannel() {
+Channel& Orchestrator::Task::GetChannel() {
     return *_channel;
 }
 
@@ -113,13 +106,16 @@ std::mutex& Orchestrator::Task::GetMutex() {
     return _mutex;
 }
 
+std::shared_ptr<Orchestrator> Orchestrator::Create(std::shared_ptr<ChannelFactory> f, int threads) {
+    return std::shared_ptr<Orchestrator>(new Orchestrator(std::move(f), threads));
+}
+
 Orchestrator::Orchestrator(std::shared_ptr<ChannelFactory> channelFactory, int threads) :
     _channelFactory(std::move(channelFactory)),
     _poller(8),
-    _threadPool(threads),
+    _activationThreadPool(threads),
     _masterReadThrottler(std::make_shared<Throttler>()),
-    _masterWriteThrottler(std::make_shared<Throttler>()),
-    _wakeUpTime(Clock::GetCurrentTime()) {
+    _masterWriteThrottler(std::make_shared<Throttler>()) {
     _poller.OnStop += [this] {
         _stop = true;
         WakeUp();
@@ -155,7 +151,7 @@ std::future<void> Orchestrator::Start() {
 void Orchestrator::InternalStop() {
     try {
         _poller.Stop();
-        _threadPool.Stop();
+        _activationThreadPool.Stop();
         OnStop();
         _pollerTask.get();
         _threadPromise.set_value();
@@ -165,12 +161,12 @@ void Orchestrator::InternalStop() {
 }
 
 void Orchestrator::InternalForceStopOnError() {
-    Log::Default()->Error("Orchestrator stopped due to error!");
+    Log::Error("Orchestrator stopped due to error!");
 
     try {
         _stop = true;
         _poller.Stop();
-        _threadPool.Stop();
+        _activationThreadPool.Stop();
         OnStop();
         _pollerTask.get();
         _threadPromise.set_exception(std::current_exception());
@@ -194,12 +190,13 @@ void Orchestrator::Add(std::shared_ptr<FileStream> stream) {
 
     task->_orchestrator = this;
     task->_channel = _channelFactory->CreateChannel(std::move(stream));
+    task->_channel->Initialize(shared_from_this());
     task->_channel->_throttlers.Read.Master = _masterReadThrottler;
     task->_channel->_throttlers.Write.Master = _masterWriteThrottler;
     task->_lastActive = Clock::GetCurrentTime();
 
     {
-        std::lock_guard<std::mutex> lock(_mutex);
+        std::lock_guard lock(_mutex);
         _tasks.push_back(task);
         _taskFastLookup[task->GetChannel().GetStream().get()] = task;
     }
@@ -220,7 +217,6 @@ void Orchestrator::SetInactivityTimeout(std::chrono::milliseconds ms) {
 }
 
 void Orchestrator::WakeUp() {
-    _wakeUpTime = Clock::GetCurrentTime();
     _newEvent.Signal();
     Profiler::Record<OrchestratorSignalled>();
 }
@@ -247,10 +243,10 @@ void Orchestrator::OnEvent(std::shared_ptr<FileStream> fs, int events) {
         // No use talking to a wall. Even if we had other events,
         // no one's going to be listening to our replies.
         RecordChannelEvent<ChannelCompleted>(channel);
-        Log::Default()->Verbose("Channel {} received completion event", channel.GetId());
+        Log::Verbose("Channel {} received completion event", channel.GetId());
         channel.Close();
     } else {
-        std::lock_guard<std::mutex> taskLock(task->GetMutex());
+        std::lock_guard taskLock(task->GetMutex());
         HandleChannelEvent(channel, events);
     }
 
@@ -261,35 +257,35 @@ void Orchestrator::OnEvent(std::shared_ptr<FileStream> fs, int events) {
     WakeUp();
 }
 
-void Orchestrator::HandleChannelEvent(ChannelBase& channel, int events) {
+void Orchestrator::HandleChannelEvent(Channel& channel, int events) {
     switch (channel.GetDefiniteStage()) {
-        case ChannelBase::Stage::WaitReadable: {
+        case Channel::Stage::WaitReadable: {
             if (events & Poller::Events::Readable) {
                 RecordChannelEvent<ChannelReadable>(channel);
-                Log::Default()->Verbose("Channel {} became readable", channel.GetId());
-                channel.SetStage(ChannelBase::Stage::Read);
+                Log::Verbose("Channel {} became readable", channel.GetId());
+                channel.SetStage(Channel::Stage::Read);
             } else {
-                Log::Default()->Error("Channel {} was waiting for readbility but got different "
+                Log::Error("Channel {} was waiting for readbility but got different "
                                       "event. Check poll logic!", channel.GetId());
             }
         } break;
 
-        case ChannelBase::Stage::WaitWritable: {
+        case Channel::Stage::WaitWritable: {
             if (events & Poller::Events::Writable) {
                 RecordChannelEvent<ChannelWritable>(channel);
-                Log::Default()->Verbose("Channel {} became writable", channel.GetId());
-                channel.SetStage(ChannelBase::Stage::Write);
+                Log::Verbose("Channel {} became writable", channel.GetId());
+                channel.SetStage(Channel::Stage::Write);
             } else {
-                Log::Default()->Error("Channel {} was waiting for writability but got different "
+                Log::Error("Channel {} was waiting for writability but got different "
                                       "event. Check poll logic!", channel.GetId());
             }
         } break;
 
-        case ChannelBase::Stage::Closed: {
-            // I'm not sure this can happen, but I'm not taking any chances.
-            // At any rate, log it so that maybe it'll help understand if
-            // and when it *does* happen.
-            Log::Default()->Verbose("Ignoring event on already closed channel {}", channel.GetId());
+        case Channel::Stage::Closed: {
+            // One reason this can happen is if the channel has reached an
+            // inactivity timeout after the event was dispatched but
+            // before it was processed.
+            Log::Verbose("Ignoring event on already closed channel {}", channel.GetId());
             return;
          }
 
@@ -297,7 +293,7 @@ void Orchestrator::HandleChannelEvent(ChannelBase& channel, int events) {
             // The client is not supposed to be in the poller
             // if it wasn't waiting for anything... This must
             // be caused by a programming error.
-            Log::Default()->Error("Channel {} was not in a waiting stage but received an event. "
+            Log::Error("Channel {} was not in a waiting stage but received an event. "
                                   "Check poll logic!", channel.GetId());
             channel.Close();
             return;
@@ -318,8 +314,8 @@ void Orchestrator::IterateOnce() {
         // will filter this task out for us.
         task->MarkHandlingInProcess(true);
 
-        _threadPool.Post([=] {
-            std::lock_guard<std::mutex> lock(task->GetMutex());
+        _activationThreadPool.Post([=] {
+            std::lock_guard lock(task->GetMutex());
             task->Activate();
         });
     }
@@ -397,13 +393,14 @@ Clock::TimePoint Orchestrator::GetLatestAllowedWakeup() {
     // our inactivity timeout, when we check
     // if any channels have remained inactive
     // for too long, in which case we close them.
-    auto timeout = _wakeUpTime.load() + _inactivityTimeout.load();
+    auto now = Clock::GetCurrentTime();
+    auto timeout = now + _inactivityTimeout.load();
 
     for (auto& t : _tasks) {
         auto& channel = t->GetChannel();
         auto&& requestedTimeout = channel.GetRequestedTimeout();
 
-        if ((requestedTimeout >= _wakeUpTime.load()) && (requestedTimeout < timeout)) {
+        if ((requestedTimeout >= now) && (requestedTimeout < timeout)) {
             // This client has requested an earlier timeout than
             // the one we were going to use. In order that we can
             // respond to its event as quickly as possible, we'll
@@ -417,7 +414,7 @@ Clock::TimePoint Orchestrator::GetLatestAllowedWakeup() {
 
 void Orchestrator::CollectGarbage() {
     auto garbageIterator = std::stable_partition(begin(_tasks), end(_tasks), [](auto& t) {
-        return t->GetChannel().GetTentativeStage() != ChannelBase::Stage::Closed;
+        return t->GetChannel().GetTentativeStage() != Channel::Stage::Closed;
     });
 
     for (auto i = garbageIterator, e = end(_tasks); i != e; ++i)

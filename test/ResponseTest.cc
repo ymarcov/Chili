@@ -63,7 +63,8 @@ private:
 class ResponseTest : public Test {
 protected:
     auto MakeResponse(std::shared_ptr<StringOutputStream> s) const {
-        return std::make_unique<Response>(std::move(s));
+        auto readyToWrite = std::make_shared<Signal<>>();
+        return std::make_unique<Response>(std::move(s), readyToWrite);
     }
 
     auto MakeStream() const {
@@ -80,7 +81,7 @@ protected:
 
     void Flush(std::unique_ptr<Response>& r, std::size_t quota = 1) {
         std::size_t consumed;
-        while (!r->Flush(quota, consumed))
+        while (r->Flush(quota, consumed) != Response::FlushStatus::Done)
             ;
     }
 };
@@ -89,7 +90,7 @@ TEST_F(ResponseTest, just_status) {
     auto stream = MakeStream();
     auto r = MakeResponse(stream);
 
-    r->Send(Status::Continue);
+    r->SetStatus(Status::Continue);
     Flush(r);
 
     EXPECT_EQ("HTTP/1.1 100 Continue\r\nContent-Length: 0\r\n\r\n", stream->ToString());
@@ -99,9 +100,9 @@ TEST_F(ResponseTest, some_headers) {
     auto stream = MakeStream();
     auto r = MakeResponse(stream);
 
-    r->AppendField("First", "Hello world!");
-    r->AppendField("Second", "v4r!0u$ sYm80;5");
-    r->Send(Status::Ok);
+    r->AppendHeader("First", "Hello world!");
+    r->AppendHeader("Second", "v4r!0u$ sYm80;5");
+    r->SetStatus(Status::Ok);
     Flush(r);
 
     auto expected = "HTTP/1.1 200 OK\r\n"
@@ -118,7 +119,7 @@ TEST_F(ResponseTest, headers_and_body) {
     auto r = MakeResponse(stream);
 
     r->SetContent(MakeBodyFromString("Hello world!"));
-    r->Send(Status::BadGateway);
+    r->SetStatus(Status::BadGateway);
     Flush(r);
 
     auto expected = "HTTP/1.1 502 Bad Gateway\r\n"
@@ -134,7 +135,7 @@ TEST_F(ResponseTest, headers_and_body_as_string) {
     auto r = MakeResponse(stream);
 
     r->SetContent("Hello world!");
-    r->Send(Status::BadGateway);
+    r->SetStatus(Status::BadGateway);
     Flush(r);
 
     auto expected = "HTTP/1.1 502 Bad Gateway\r\n"
@@ -151,7 +152,7 @@ TEST_F(ResponseTest, simple_cookies) {
 
     r->SetCookie("First", "One");
     r->SetCookie("Second", "Two");
-    r->Send(Status::NotFound);
+    r->SetStatus(Status::NotFound);
     Flush(r);
 
     auto expected = "HTTP/1.1 404 Not Found\r\n"
@@ -175,7 +176,7 @@ TEST_F(ResponseTest, cookie_with_simple_options) {
     opts.SetMaxAge(10min);
 
     r->SetCookie("First", "One", opts);
-    r->Send(Status::Ok);
+    r->SetStatus(Status::Ok);
     Flush(r);
 
     auto expected = "HTTP/1.1 200 OK\r\n"
@@ -199,7 +200,7 @@ TEST_F(ResponseTest, cookie_with_expiration_date) {
     opts.SetExpiration(t);
 
     r->SetCookie("First", "One", opts);
-    r->Send(Status::Ok);
+    r->SetStatus(Status::Ok);
     Flush(r);
 
     auto expected = "HTTP/1.1 200 OK\r\n"
@@ -219,7 +220,7 @@ TEST_F(ResponseTest, cookie_with_httponly_and_secure) {
     opts.SetSecure();
 
     r->SetCookie("First", "One", opts);
-    r->Send(Status::Ok);
+    r->SetStatus(Status::Ok);
     Flush(r);
 
     auto expected = "HTTP/1.1 200 OK\r\n"
@@ -238,10 +239,11 @@ TEST_F(ResponseTest, send_cached) {
     opts.SetHttpOnly();
     opts.SetSecure();
     r->SetCookie("First", "One", opts);
-    auto cached = r->CacheAs(Status::Ok);
+    r->SetStatus(Status::Ok);
+    auto cached = r->Cache();
 
     r = MakeResponse(stream);
-    r->SendCached(cached);
+    r->UseCached(cached);
     Flush(r);
 
     auto expected = "HTTP/1.1 200 OK\r\n"
@@ -264,7 +266,7 @@ TEST_F(ResponseTest, chunked) {
     });
 
     r->SetContent(data);
-    r->Send(Status::Ok);
+    r->SetStatus(Status::Ok);
     Flush(r, 0x1000);
 
     auto expected = "HTTP/1.1 200 OK\r\n"

@@ -12,7 +12,7 @@ PollService::PollService(int threads) :
         auto it = _tasks.find(fs.get());
 
         if (it == _tasks.end())
-            Log::Default()->Fatal("FileStream triggered in PollService has no task");
+            Log::Fatal("FileStream triggered in PollService has no task");
 
         auto task = std::move(it->second);
 

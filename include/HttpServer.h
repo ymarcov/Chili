@@ -17,13 +17,8 @@ public:
      *
      * @param channelFactory  The factory from which to create new
      *                        channels when connections are received.
-     *
-     * @param threads         The number of threads to be used for
-     *                        processing incoming requests.
      */
-    HttpServer(const IPEndpoint& endpoint,
-               std::shared_ptr<ChannelFactory> channelFactory,
-               int threads);
+    HttpServer(const IPEndpoint& endpoint, std::shared_ptr<ChannelFactory> channelFactory);
 
     /**
      * Limit the read (input) bandwidth rate of this server.

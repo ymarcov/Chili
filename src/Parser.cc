@@ -20,6 +20,10 @@ Parser::Error::Error(Parser::Error::Type t, const char* what) :
     std::runtime_error{what},
     _type{t} {}
 
+Parser::Error::Type Parser::Error::GetType() const {
+    return _type;
+}
+
 Parser Parser::Parse(const char* buf, std::size_t bufSize) {
     Parser p(buf, bufSize);
     p.ParseAll();

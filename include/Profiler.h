@@ -26,6 +26,7 @@ public:
      */
 
     virtual void Read(const class ChannelEvent&) {}
+    virtual void Read(const class ChannelActivating&) {}
     virtual void Read(const class ChannelActivated&) {}
     virtual void Read(const class ChannelReadable&) {}
     virtual void Read(const class ChannelWritable&) {}
@@ -94,6 +95,8 @@ public:
     std::uint64_t GetTimesChannelsWereActivated() const;
     Hz GetRateChannelsWereActivated() const;
     Hz GetRateChannelsWereActivated(Clock::TimePoint) const;
+
+    std::chrono::milliseconds GetChannelsUpTime() const;
 
     std::uint64_t GetTimesChannelsWaitedForReadability() const;
     Hz GetRateChannelsWaitedForReadability() const;
@@ -188,7 +191,7 @@ private:
 
 template <class T, class... Args>
 void Profiler::Record(Args... args) {
-    std::lock_guard<std::mutex> lock(_mutex);
+    std::lock_guard lock(_mutex);
 
     if (_enabled)
         _events.push_back(std::make_unique<T>(args...));

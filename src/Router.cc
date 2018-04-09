@@ -6,7 +6,7 @@ class RoutedChannel : public Channel {
 public:
     RoutedChannel(std::shared_ptr<FileStream> fs, std::shared_ptr<Router> router);
 
-    Control Process(const Request&, Response&) override;
+    void Process() override;
 
 private:
     std::shared_ptr<Router> _router;
@@ -18,17 +18,20 @@ Router::Router() {
     };
 }
 
-Channel::Control Router::InvokeRoute(Channel& channel) const {
+void Router::InvokeRoute(Channel& channel) const {
     const RouteHandler* handler;
     Args args;
+    Protocol::Status status;
 
     if (FindMatch(channel.GetRequest(), handler, args)) {
-        auto status = (*handler)(channel, args);
-        return channel.SendResponse(status);
+        status = (*handler)(channel, args);
     } else {
-        auto status = _defaultHandler(channel, args);
-        return channel.SendFinalResponse(status);
+        status = _defaultHandler(channel, args);
+        channel.GetResponse().CloseConnection();
     }
+
+    channel.GetResponse().SetStatus(status);
+    channel.SendResponse();
 }
 
 bool Router::FindMatch(const Request& request, const RouteHandler*& outHandler, Args& outArgs) const {
@@ -41,8 +44,7 @@ bool Router::FindMatch(const Request& request, const RouteHandler*& outHandler, 
         auto& routes = methodRoutes->second;
 
         for (auto& route : routes) {
-            auto& regex = route.first;
-            auto& handler = route.second;
+            auto& [regex, handler] = route;
             std::smatch matches;
 
             if (std::regex_match(uri, matches, regex)) {
@@ -73,15 +75,15 @@ RoutedChannel::RoutedChannel(std::shared_ptr<FileStream> fs, std::shared_ptr<Rou
     Channel(std::move(fs)),
     _router(std::move(router)) {}
 
-Channel::Control RoutedChannel::Process(const Request&, Response&) {
-    return _router->InvokeRoute(*this);
+void RoutedChannel::Process() {
+    _router->InvokeRoute(*this);
 }
 
 RoutedChannelFactory::RoutedChannelFactory(std::shared_ptr<Router> router) :
     _router(std::move(router)) {}
 
-std::unique_ptr<Channel> RoutedChannelFactory::CreateChannel(std::shared_ptr<FileStream> fs) {
-    return std::make_unique<RoutedChannel>(std::move(fs), _router);
+std::shared_ptr<Channel> RoutedChannelFactory::CreateChannel(std::shared_ptr<FileStream> fs) {
+    return std::make_shared<RoutedChannel>(std::move(fs), _router);
 }
 
 } // namespace Chili

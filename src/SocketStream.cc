@@ -86,7 +86,7 @@ void SocketStream::Close() {
 
 void SocketStream::Shutdown() {
     if (-1 == ::shutdown(_nativeHandle, SHUT_RDWR))
-        Log::Default()->Debug("Failed to shutdown socket fd {}", _nativeHandle);
+        Log::Debug("Failed to shutdown socket fd {}", _nativeHandle);
 }
 
 } // namespace Chili
