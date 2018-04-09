@@ -2,7 +2,7 @@
 
 # Chili: HTTP Served Hot
 
-***An efficient, simple to use, HTTP server library in modern C++*** \
+***An efficient, simple to use, HTTP server library in modern C++***
 
 ### Performance
 - Asynchronous I/O and request processing
