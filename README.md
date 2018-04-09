@@ -12,11 +12,14 @@ It has a light footprint, employs modern C++ constructs, and compiles well with 
 
 #### Performance & Flexibility
 - Asynchronous I/O and request processing
-- Read/Write throttling, both for the server as a whole and for individual connections
-- Supports file streaming & serving custom streams with async data generation
-- Supports conditional request message body fetching & rejection
 - Offers response caching for added efficiency
+- Autoscaling threadpools: uses less memory when load is light
 - Does not overload the CPU or memory when not required
+
+#### Flexibility
+- File streaming and serving custom streams with async data generation
+- Read/Write throttling, both for the server as a whole and for individual connections
+- Conditional request message body fetching & rejection
 
 #### User Friendliness
 - Uses modern C++ and is easy to use, and even to customize the code

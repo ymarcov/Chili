@@ -1,8 +1,10 @@
 #pragma once
 
+#include "Clock.h"
 #include "Semaphore.h"
 
 #include <atomic>
+#include <chrono>
 #include <functional>
 #include <future>
 #include <memory>
@@ -22,28 +24,39 @@ public:
 
     void Stop();
     std::future<void> Post(Work);
-    std::size_t GetThreadCount() const;
+    std::size_t GetWorkerCount() const;
+
+    void SetUpscalePatience(std::chrono::microseconds);
+    void SetDownscalePatience(std::chrono::microseconds);
 
 private:
     friend class Worker;
 
     struct WorkContext {
-        WorkContext(Work&& w) : _work(std::move(w)) {}
+        WorkContext(Work&& w);
+
+        std::chrono::nanoseconds PendingTime() const;
+
         std::promise<void> _promise;
         Work _work;
+        Clock::TimePoint _submissionTime;
     };
 
-    int _capacity;
-    std::vector<std::unique_ptr<std::thread>> _threads;
-    std::queue<std::unique_ptr<WorkContext>> _pending;
-    std::mutex _mutex;
-    Semaphore _semaphore;
-    std::atomic_bool _stop{false};
-};
+    void SpawnWorker();
+    bool NeedWorker() const;
+    void Collect() const;
 
-inline std::size_t ThreadPool::GetThreadCount() const {
-    return _threads.size();
-}
+    int _capacity;
+    mutable std::vector<std::shared_ptr<class Worker>> _workers;
+    std::queue<std::unique_ptr<WorkContext>> _pending;
+    mutable std::mutex _mutex;
+    mutable bool _needToCollect{false};
+    Semaphore _semaphore;
+    std::chrono::microseconds _upscalePatience{500};
+    std::chrono::microseconds _downscalePatience{5'000'000};
+    std::atomic_bool _stop{false};
+    std::thread _upscaler;
+};
 
 } // namespace Chili
 
