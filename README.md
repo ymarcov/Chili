@@ -43,7 +43,7 @@ int main() {
     auto server = Chili::HttpServer(endpoint, handler);
 
     auto task = server.Start();
-    Chili::Log::Info("HelloWorld Server Started");
+    std::cout << "HelloWorld server started!\n";
     task.wait();
 }
 ```
