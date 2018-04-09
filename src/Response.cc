@@ -104,6 +104,7 @@ bool Response::IsPrepared() const {
 
 void Response::UseCached(std::shared_ptr<CachedResponse> cr) {
     _response = std::move(cr);
+    _prepared = true;
 }
 
 std::shared_ptr<CachedResponse> Response::Cache() {
