@@ -1,7 +1,5 @@
 ![Logo](https://raw.githubusercontent.com/ymarcov/Chili/master/logo.png)
 
-# Chili: HTTP Served Hot
-
 ***High-Performance Embedded HTTP Server / HTTP Middleware***
 
 ### Performance
