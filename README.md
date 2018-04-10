@@ -2,7 +2,7 @@
 
 # Chili: HTTP Served Hot
 
-***HIGH-PERFORMANCE EMBEDDED HTTP SERVER | HTTP MIDDLEWARE | MODERN C++***
+***High-Performance Embedded HTTP Server | HTTP Middleware***
 
 ### Performance
 - Asynchronous I/O and request processing
