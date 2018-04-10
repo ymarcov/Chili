@@ -17,6 +17,7 @@
 
 ### User Friendliness
 - Uses modern C++ and is easy to use, and even to customize the code
+- Built-in Profiler to help debug potential performance issues
 - Public API documented with Doxygen
 
 ### Robustness
