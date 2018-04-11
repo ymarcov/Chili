@@ -397,20 +397,25 @@ std::chrono::milliseconds Profile::GetOrchestratorIdleTime() const {
     struct : ProfileEventReader {
         void Read(const OrchestratorWaiting& e) {
             _lastWait = e.GetTimePoint();
+            _hasFirstWait = true;
         }
 
         void Read(const OrchestratorWokeUp& e) {
-            IdleTime += std::chrono::duration_cast<std::chrono::milliseconds>(e.GetTimePoint() - _lastWait);
+            if (!_hasFirstWait)
+                return;
+
+            IdleTime += std::chrono::duration_cast<std::chrono::microseconds>(e.GetTimePoint() - _lastWait);
         }
 
         Clock::TimePoint _lastWait;
-        std::chrono::milliseconds IdleTime{0};
+        std::chrono::microseconds IdleTime{0};
+        bool _hasFirstWait = false;
     } reader;
 
     for (auto& e : _events)
         reader.Visit(e);
 
-    return reader.IdleTime;
+    return std::chrono::duration_cast<std::chrono::milliseconds>(reader.IdleTime);
 }
 
 std::uint64_t Profile::GetTimesPollerDispatchedAnEvent() const {
