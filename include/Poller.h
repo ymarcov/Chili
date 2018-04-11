@@ -78,5 +78,17 @@ public:
     void Accept(ProfileEventReader&) const override;
 };
 
+class PollerWaiting : public PollerEvent {
+public:
+    using PollerEvent::PollerEvent;
+    void Accept(ProfileEventReader&) const override;
+};
+
+class PollerWokeUp : public PollerEvent {
+public:
+    using PollerEvent::PollerEvent;
+    void Accept(ProfileEventReader&) const override;
+};
+
 } // namespace Chili
 

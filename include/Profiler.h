@@ -55,6 +55,8 @@ public:
      */
     virtual void Read(const class PollerEvent&) {}
     virtual void Read(const class PollerEventDispatched&) {}
+    virtual void Read(const class PollerWokeUp&) {}
+    virtual void Read(const class PollerWaiting&) {}
 };
 
 class ProfileEvent {
@@ -156,6 +158,9 @@ public:
     std::uint64_t GetTimesPollerDispatchedAnEvent() const;
     Hz GetRatePollerDispatchedAnEvent() const;
     Hz GetRatePollerDispatchedAnEvent(Clock::TimePoint) const;
+
+    std::chrono::milliseconds GetPollerUpTime() const;
+    std::chrono::milliseconds GetPollerIdleTime() const;
 
 private:
     Profile();

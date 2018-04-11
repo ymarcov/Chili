@@ -108,10 +108,15 @@ void Poller::Stop() {
 void Poller::PollLoop(const Poller::EventHandler& handler) {
     constexpr int maxEvents = 1000;
     struct epoll_event events[maxEvents];
-    int n;
 
     while (!_stop) {
-        if (-1 == (n = ::epoll_wait(_fd, events, maxEvents, 100))) {
+        Profiler::Record<PollerWaiting>();
+
+        auto n = ::epoll_wait(_fd, events, maxEvents, 100);
+
+        Profiler::Record<PollerWokeUp>();
+
+        if (n == -1) {
             _threadPool->Stop();
             _promise.set_exception(std::make_exception_ptr(SystemError{}));
             OnStop();
@@ -212,6 +217,14 @@ void PollerEvent::Accept(ProfileEventReader& reader) const {
 }
 
 void PollerEventDispatched::Accept(ProfileEventReader& reader) const {
+    reader.Read(*this);
+}
+
+void PollerWaiting::Accept(ProfileEventReader& reader) const {
+    reader.Read(*this);
+}
+
+void PollerWokeUp::Accept(ProfileEventReader& reader) const {
     reader.Read(*this);
 }
 

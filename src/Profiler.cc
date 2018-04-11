@@ -104,6 +104,10 @@ std::string Profile::GetSummary() const {
             GetTimesPollerDispatchedAnEvent(),
             GetRatePollerDispatchedAnEvent());
 
+    w.write("[Poller] Up Time: {} ms\n", GetPollerUpTime().count());
+
+    w.write("[Poller] Idle Time: {} ms\n", GetPollerIdleTime().count());
+
     return w.str();
 }
 
@@ -176,6 +180,62 @@ public:
     bool _accountForAll = false;
     Clock::TimePoint _position;
     std::vector<const T*> _window;
+};
+
+template <class Begin, class End>
+class ActivityCalculator {
+public:
+    template <class Events>
+    std::chrono::milliseconds GetUpTime(Events& events) const {
+        struct : ProfileEventReader {
+            void Read(const Begin& e) {
+                if (!_hasWakeUpData)
+                    return;
+
+                UpTime += std::chrono::duration_cast<std::chrono::milliseconds>(e.GetTimePoint() - _lastWakeUp);
+            }
+
+            void Read(const End& e) {
+                _lastWakeUp = e.GetTimePoint();
+                _hasWakeUpData = true;
+            }
+
+            bool _hasWakeUpData = false;
+            Clock::TimePoint _lastWakeUp;
+            std::chrono::milliseconds UpTime{0};
+        } reader;
+
+        for (auto& e : events)
+            reader.Visit(e);
+
+        return reader.UpTime;
+    }
+
+    template <class Events>
+    std::chrono::milliseconds GetIdleTime(Events& events) const {
+        struct : ProfileEventReader {
+            void Read(const Begin& e) {
+                _lastWait = e.GetTimePoint();
+                _hasFirstWait = true;
+            }
+
+            void Read(const End& e) {
+                if (!_hasFirstWait)
+                    return;
+
+                IdleTime += std::chrono::duration_cast<std::chrono::microseconds>(e.GetTimePoint() - _lastWait);
+            }
+
+            Clock::TimePoint _lastWait;
+            std::chrono::microseconds IdleTime{0};
+            bool _hasFirstWait = false;
+        } reader;
+
+        for (auto& e : events)
+            reader.Visit(e);
+
+        return std::chrono::duration_cast<std::chrono::milliseconds>(reader.IdleTime);
+    }
 };
 
 } // unnamed namespace
@@ -369,53 +429,11 @@ Hz Profile::GetRateOrchestratorCapturedTasks(Clock::TimePoint t) const {
 }
 
 std::chrono::milliseconds Profile::GetOrchestratorUpTime() const {
-    struct : ProfileEventReader {
-        void Read(const OrchestratorWaiting& e) {
-            if (!_hasWakeUpData)
-                return;
-
-            UpTime += std::chrono::duration_cast<std::chrono::milliseconds>(e.GetTimePoint() - _lastWakeUp);
-        }
-
-        void Read(const OrchestratorWokeUp& e) {
-            _lastWakeUp = e.GetTimePoint();
-            _hasWakeUpData = true;
-        }
-
-        bool _hasWakeUpData = false;
-        Clock::TimePoint _lastWakeUp;
-        std::chrono::milliseconds UpTime{0};
-    } reader;
-
-    for (auto& e : _events)
-        reader.Visit(e);
-
-    return reader.UpTime;
+    return ActivityCalculator<OrchestratorWaiting, OrchestratorWokeUp>().GetUpTime(_events);
 }
 
 std::chrono::milliseconds Profile::GetOrchestratorIdleTime() const {
-    struct : ProfileEventReader {
-        void Read(const OrchestratorWaiting& e) {
-            _lastWait = e.GetTimePoint();
-            _hasFirstWait = true;
-        }
-
-        void Read(const OrchestratorWokeUp& e) {
-            if (!_hasFirstWait)
-                return;
-
-            IdleTime += std::chrono::duration_cast<std::chrono::microseconds>(e.GetTimePoint() - _lastWait);
-        }
-
-        Clock::TimePoint _lastWait;
-        std::chrono::microseconds IdleTime{0};
-        bool _hasFirstWait = false;
-    } reader;
-
-    for (auto& e : _events)
-        reader.Visit(e);
-
-    return std::chrono::duration_cast<std::chrono::milliseconds>(reader.IdleTime);
+    return ActivityCalculator<OrchestratorWaiting, OrchestratorWokeUp>().GetIdleTime(_events);
 }
 
 std::uint64_t Profile::GetTimesPollerDispatchedAnEvent() const {
@@ -428,6 +446,14 @@ Hz Profile::GetRatePollerDispatchedAnEvent() const {
 
 Hz Profile::GetRatePollerDispatchedAnEvent(Clock::TimePoint t) const {
     return HzCalculator<PollerEventDispatched>(t).ReadAll(_events);
+}
+
+std::chrono::milliseconds Profile::GetPollerUpTime() const {
+    return ActivityCalculator<PollerWaiting, PollerWokeUp>().GetUpTime(_events);
+}
+
+std::chrono::milliseconds Profile::GetPollerIdleTime() const {
+    return ActivityCalculator<PollerWaiting, PollerWokeUp>().GetIdleTime(_events);
 }
 
 void Profiler::Enable() {
