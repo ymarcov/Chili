@@ -1,10 +1,12 @@
 #pragma once
 
+#include "Semaphore.h"
 #include "SocketStream.h"
 
 #include <atomic>
 #include <future>
 #include <memory>
+#include <queue>
 #include <thread>
 
 namespace Chili {
@@ -37,10 +39,15 @@ protected:
 
 private:
     void AcceptLoop();
+    void DispatchLoop();
 
     SocketStream _socket;
     std::promise<void> _promise;
-    std::thread _thread;
+    std::queue<int> _acceptedFds;
+    Semaphore _semaphore;
+    std::mutex _mutex;
+    std::thread _acceptThread;
+    std::thread _dispatchThread;
     std::atomic_bool _stop{true};
 };
 

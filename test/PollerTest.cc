@@ -131,12 +131,14 @@ TEST_F(PollerTest, signals_read_events) {
 
 TEST_F(PollerTest, reaps_connections) {
     std::atomic_int processingCount{0};
-    WaitEvent allProcessing, mayStopProcessing;
+    WaitEvent allProcessing;
 
-    auto pollerTask = _poller->Start([&](std::shared_ptr<FileStream>, int events) {
-        if (++processingCount == 3)
-            allProcessing.Signal();
-        mayStopProcessing.Wait();
+    auto pollerTask = _poller->Start([&](std::shared_ptr<FileStream> fs, int events) {
+        if (!(events & Poller::Events::Completion)) {
+            if (++processingCount == 3)
+                allProcessing.Signal();
+            _poller->Poll(fs, Poller::Events::Completion);
+        }
     });
 
     auto serverTask = _server.Start();
@@ -152,9 +154,8 @@ TEST_F(PollerTest, reaps_connections) {
         c2->Write("hello", 5);
         c3->Write("hello", 5);
 
-        allProcessing.Wait();
+        EXPECT_TRUE(allProcessing.Wait(1s));
         EXPECT_EQ(3, _poller->GetWatchedCount());
-        mayStopProcessing.Signal();
     }
 
     std::this_thread::sleep_for(50ms);

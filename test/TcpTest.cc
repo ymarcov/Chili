@@ -116,5 +116,18 @@ TEST_F(TcpTest, server_restart) {
     task.get();
 }
 
+TEST_F(TcpTest, stress) {
+    auto server = CreateServer();
+    auto task = server->Start([](auto c) {});
+    auto clients = std::vector<std::unique_ptr<TcpConnection>>(1000);
+
+    for (int i = 0; i < 10; ++i)
+        for (auto& c : clients)
+            c = CreateClient();
+
+    server->Stop();
+    task.get();
+}
+
 } // namespace Chili
 
