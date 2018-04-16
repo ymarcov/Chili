@@ -3,7 +3,7 @@
 namespace Chili {
 
 PolledTcpServer::PolledTcpServer(const IPEndpoint& ep, std::shared_ptr<Poller> poller) :
-    TcpServer{ep},
+    TcpServer{ep, 1},
     _poller{std::move(poller)} {
     _poller->OnStop += [this] { Stop(); };
 }

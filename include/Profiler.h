@@ -53,10 +53,20 @@ public:
     /**
      * Poller events
      */
+
     virtual void Read(const class PollerEvent&) {}
     virtual void Read(const class PollerEventDispatched&) {}
     virtual void Read(const class PollerWokeUp&) {}
     virtual void Read(const class PollerWaiting&) {}
+
+    /**
+     * SocketServer events
+     */
+
+    virtual void Read(const class SocketServerEvent&) {}
+    virtual void Read(const class SocketQueued&) {}
+    virtual void Read(const class SocketDequeued&) {}
+    virtual void Read(const class SocketAccepted&) {}
 };
 
 class ProfileEvent {
@@ -161,6 +171,18 @@ public:
 
     std::chrono::milliseconds GetPollerUpTime() const;
     std::chrono::milliseconds GetPollerIdleTime() const;
+
+    std::uint64_t GetTimesSocketQueued() const;
+    Hz GetRateSocketQueued() const;
+    Hz GetRateSocketQueued(Clock::TimePoint) const;
+
+    std::uint64_t GetTimesSocketDequeued() const;
+    Hz GetRateSocketDequeued() const;
+    Hz GetRateSocketDequeued(Clock::TimePoint) const;
+
+    std::uint64_t GetTimesSocketAccepted() const;
+    Hz GetRateSocketAccepted() const;
+    Hz GetRateSocketAccepted(Clock::TimePoint) const;
 
 private:
     Profile();

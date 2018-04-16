@@ -17,7 +17,7 @@ namespace Chili {
  */
 class TcpServer : public SocketServer {
 public:
-    TcpServer(const IPEndpoint&);
+    TcpServer(const IPEndpoint&, int listeners);
 
     /**
      * Gets the endpoint that this server

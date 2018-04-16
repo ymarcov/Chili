@@ -1,5 +1,6 @@
 #pragma once
 
+#include "Profiler.h"
 #include "Semaphore.h"
 #include "SocketStream.h"
 
@@ -16,6 +17,7 @@ namespace Chili {
  */
 class SocketServer {
 public:
+    SocketServer(int listeners);
     virtual ~SocketServer();
 
     /**
@@ -46,9 +48,38 @@ private:
     std::queue<int> _acceptedFds;
     Semaphore _semaphore;
     std::mutex _mutex;
-    std::thread _acceptThread;
+    std::vector<std::thread> _listenerThreads;
     std::thread _dispatchThread;
     std::atomic_bool _stop{true};
+};
+
+/**
+ * Profiling
+ */
+
+class SocketServerEvent : public ProfileEvent {
+public:
+    std::string GetSource() const override;
+    std::string GetSummary() const override;
+    void Accept(ProfileEventReader&) const override;
+};
+
+class SocketQueued : public SocketServerEvent {
+public:
+    using SocketServerEvent::SocketServerEvent;
+    void Accept(ProfileEventReader&) const override;
+};
+
+class SocketDequeued : public SocketServerEvent {
+public:
+    using SocketServerEvent::SocketServerEvent;
+    void Accept(ProfileEventReader&) const override;
+};
+
+class SocketAccepted : public SocketServerEvent {
+public:
+    using SocketServerEvent::SocketServerEvent;
+    void Accept(ProfileEventReader&) const override;
 };
 
 } // namespace Chili

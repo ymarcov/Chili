@@ -3,7 +3,7 @@
 namespace Chili {
 
 ThreadedTcpServer::ThreadedTcpServer(const IPEndpoint& ep, std::shared_ptr<ThreadPool> tp) :
-    TcpServer{ep},
+    TcpServer{ep, 1},
     _threadPool{std::move(tp)} {}
 
 std::future<void> ThreadedTcpServer::Start(ThreadedTcpServer::ConnectionHandler handler) {

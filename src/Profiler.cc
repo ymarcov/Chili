@@ -2,6 +2,7 @@
 #include "Channel.h"
 #include "Orchestrator.h"
 #include "Poller.h"
+#include "SocketServer.h"
 
 #include <chrono>
 #include <cstdlib>
@@ -107,6 +108,18 @@ std::string Profile::GetSummary() const {
     w.write("[Poller] Up Time: {} ms\n", GetPollerUpTime().count());
 
     w.write("[Poller] Idle Time: {} ms\n", GetPollerIdleTime().count());
+
+    w.write("[SocketServer] # Sockets Queued: {} ({}/sec)\n",
+            GetTimesSocketQueued(),
+            GetRateSocketQueued());
+
+    w.write("[SocketServer] # Sockets Dequeued: {} ({}/sec)\n",
+            GetTimesSocketDequeued(),
+            GetRateSocketDequeued());
+
+    w.write("[SocketServer] # Sockets Accepted: {} ({}/sec)\n",
+            GetTimesSocketAccepted(),
+            GetRateSocketAccepted());
 
     return w.str();
 }
@@ -454,6 +467,42 @@ std::chrono::milliseconds Profile::GetPollerUpTime() const {
 
 std::chrono::milliseconds Profile::GetPollerIdleTime() const {
     return ActivityCalculator<PollerWaiting, PollerWokeUp>().GetIdleTime(_events);
+}
+
+std::uint64_t Profile::GetTimesSocketQueued() const {
+    return Counter<SocketQueued>().ReadAll(_events);
+}
+
+Hz Profile::GetRateSocketQueued() const {
+    return HzCalculator<SocketQueued>().ReadAll(_events);
+}
+
+Hz Profile::GetRateSocketQueued(Clock::TimePoint t) const {
+    return HzCalculator<SocketQueued>(t).ReadAll(_events);
+}
+
+std::uint64_t Profile::GetTimesSocketDequeued() const {
+    return Counter<SocketDequeued>().ReadAll(_events);
+}
+
+Hz Profile::GetRateSocketDequeued() const {
+    return HzCalculator<SocketDequeued>().ReadAll(_events);
+}
+
+Hz Profile::GetRateSocketDequeued(Clock::TimePoint t) const {
+    return HzCalculator<SocketDequeued>(t).ReadAll(_events);
+}
+
+std::uint64_t Profile::GetTimesSocketAccepted() const {
+    return Counter<SocketAccepted>().ReadAll(_events);
+}
+
+Hz Profile::GetRateSocketAccepted() const {
+    return HzCalculator<SocketAccepted>().ReadAll(_events);
+}
+
+Hz Profile::GetRateSocketAccepted(Clock::TimePoint t) const {
+    return HzCalculator<SocketAccepted>(t).ReadAll(_events);
 }
 
 void Profiler::Enable() {

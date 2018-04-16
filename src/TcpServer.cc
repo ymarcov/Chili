@@ -19,6 +19,17 @@ void EnableAddressReuse(SocketStream& socket) {
     }
 }
 
+void EnablePortReuse(SocketStream& socket) {
+    int optValue = 1;
+    if( -1 == ::setsockopt(socket.GetNativeHandle(),
+                             SOL_SOCKET,
+                             SO_REUSEPORT,
+                             &optValue,
+                             sizeof(optValue))) {
+        throw SystemError{};
+    }
+}
+
 void BindTo(SocketStream& socket, const IPEndpoint& ep) {
     auto addr = ep.GetAddrInfo();
     auto paddr = reinterpret_cast<::sockaddr*>(addr.get());
@@ -33,8 +44,9 @@ void Listen(SocketStream& socket) {
 
 } // unnamed namespace
 
-TcpServer::TcpServer(const IPEndpoint& ep) :
-    _endpoint{ep} {}
+TcpServer::TcpServer(const IPEndpoint& ep, int listeners)
+    : SocketServer{listeners}
+    , _endpoint{ep} {}
 
 void TcpServer::ResetListenerSocket(SocketStream& socket) {
     socket = SocketStream();
@@ -47,6 +59,7 @@ void TcpServer::ResetListenerSocket(SocketStream& socket) {
     socket = SocketStream{fd};
 
     EnableAddressReuse(socket);
+    EnablePortReuse(socket);
     BindTo(socket, _endpoint);
     Listen(socket);
 }

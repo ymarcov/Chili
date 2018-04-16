@@ -1,20 +1,26 @@
 #include "SocketServer.h"
+#include "ExitTrap.h"
 #include "Log.h"
 #include "SystemError.h"
 
 #include <algorithm>
+#include <pthread.h>
+#include <sched.h>
 #include <sys/socket.h>
 #include <sys/types.h>
 #include <unistd.h>
 
 namespace Chili {
 
+SocketServer::SocketServer(int listeners)
+    : _listenerThreads(listeners) {}
+
 SocketServer::~SocketServer() {
     Stop();
 }
 
 std::future<void> SocketServer::Start() {
-    if (!_stop || _acceptThread.joinable() || _dispatchThread.joinable())
+    if (!_stop || _dispatchThread.joinable())
         throw std::logic_error("Start() called when socket server is already running");
 
     // reset state
@@ -22,8 +28,10 @@ std::future<void> SocketServer::Start() {
     _stop = false;
     _promise = std::promise<void>{};
 
-    _acceptThread = std::thread([this] { AcceptLoop(); });
     _dispatchThread = std::thread([this] { DispatchLoop(); });
+
+    for (auto& t : _listenerThreads)
+        t = std::thread([this] { AcceptLoop(); });
 
     return _promise.get_future();
 }
@@ -39,10 +47,10 @@ void SocketServer::AcceptLoop() {
             std::lock_guard lock(_mutex);
             _acceptedFds.push(ret);
             _semaphore.Increment();
+            Profiler::Record<SocketQueued>();
         } else {
             if (_stop) {
                 // OK: we were supposed to stop
-                _promise.set_value();
                 return;
             } else {
                 // Oops: something bad happened
@@ -68,12 +76,13 @@ void SocketServer::AcceptLoop() {
             }
         }
     }
-
-    // all work is done. notify future.
-    _promise.set_value();
 }
 
 void SocketServer::DispatchLoop() {
+    auto onExit = CreateExitTrap([&] {
+        // all work is done. notify future.
+        _promise.set_value();
+    });
 
     while (!_stop) {
         _semaphore.Decrement();
@@ -88,8 +97,11 @@ void SocketServer::DispatchLoop() {
 
         lock.unlock();
 
+        Profiler::Record<SocketDequeued>();
+
         try {
             OnAccepted(fd);
+            Profiler::Record<SocketAccepted>();
         } catch (...) {
             Log::Warning("Socket server OnAccepted() threw an error which was ignored. Please handle internally!");
         }
@@ -102,11 +114,36 @@ void SocketServer::Stop() {
 
     _semaphore.Increment();
 
-    if (_acceptThread.joinable())
-        _acceptThread.join();
+    for (auto& t : _listenerThreads)
+        if (t.joinable())
+            t.join();
 
     if (_dispatchThread.joinable())
         _dispatchThread.join();
+}
+
+std::string SocketServerEvent::GetSource() const {
+    return "SocketServer";
+}
+
+std::string SocketServerEvent::GetSummary() const {
+    return "Event on SocketServer";
+}
+
+void SocketServerEvent::Accept(ProfileEventReader& reader) const {
+    reader.Read(*this);
+}
+
+void SocketQueued::Accept(ProfileEventReader& reader) const {
+    reader.Read(*this);
+}
+
+void SocketDequeued::Accept(ProfileEventReader& reader) const {
+    reader.Read(*this);
+}
+
+void SocketAccepted::Accept(ProfileEventReader& reader) const {
+    reader.Read(*this);
 }
 
 } // namespace Chili

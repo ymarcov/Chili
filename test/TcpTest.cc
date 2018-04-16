@@ -1,6 +1,7 @@
 #include <gmock/gmock.h>
 
 #include "TcpConnection.h"
+#include "TestUtils.h"
 #include "ThreadedTcpServer.h"
 #include "Timeout.h"
 
