@@ -33,8 +33,8 @@ int main() {
     auto handler = Chili::RequestHandler([](Chili::Channel& c) {
         auto& res = c.GetResponse();
 
-        res.SetContent("<h1>Hello world!</h1>");
         res.AppendHeader("Content-Type", "text/html");
+        res.SetContent("<h1>Hello world!</h1>");
         res.SetStatus(Chili::Status::Ok);
 
         c.SendResponse();
