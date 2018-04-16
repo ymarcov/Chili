@@ -1,6 +1,6 @@
 ![Logo](https://raw.githubusercontent.com/ymarcov/Chili/master/logoH.png)
 
-***High-Performance Embedded HTTP Server / HTTP Middleware***
+***Embedded HTTP Server / HTTP Middleware***
 
 ### Performance
 - Asynchronous I/O and request processing
