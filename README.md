@@ -1,4 +1,4 @@
-![Logo](https://raw.githubusercontent.com/ymarcov/Chili/master/logoH.png)
+![Logo](https://raw.githubusercontent.com/ymarcov/Chili/master/project/logoH.png)
 
 ***Embedded HTTP Server / HTTP Middleware***
 
