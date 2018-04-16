@@ -6,6 +6,7 @@
 - Asynchronous I/O and request processing
 - Offers response caching for added efficiency
 - Autoscaling threadpools: uses less memory when load is light
+- Supports multiple listeners for improved load-distribution
 - Does not overload the CPU or memory when not required
 
 ### Flexibility
