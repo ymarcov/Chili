@@ -44,8 +44,9 @@ void SocketServer::AcceptLoop() {
                            reinterpret_cast<::socklen_t*>(AddressBufferSize()));
 
         if (ret > 0) {
-            std::lock_guard lock(_mutex);
+            std::unique_lock lock(_mutex);
             _acceptedFds.push(ret);
+            lock.unlock();
             _semaphore.Increment();
             Profiler::Record<SocketQueued>();
         } else {
