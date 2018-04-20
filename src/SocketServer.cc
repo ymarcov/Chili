@@ -13,7 +13,9 @@
 namespace Chili {
 
 SocketServer::SocketServer(int listeners)
-    : _listenerThreads(listeners) {}
+    : _listeners(listeners)
+    , _listenerSockets(listeners)
+    , _listenerThreads(listeners) {}
 
 SocketServer::~SocketServer() {
     Stop();
@@ -23,23 +25,24 @@ std::future<void> SocketServer::Start() {
     if (!_stop || _dispatchThread.joinable())
         throw std::logic_error("Start() called when socket server is already running");
 
-    // reset state
-    ResetListenerSocket(_socket);
+    for (auto& s : _listenerSockets)
+        ResetListenerSocket(s);
+
     _stop = false;
     _promise = std::promise<void>{};
 
-    _dispatchThread = std::thread([this] { DispatchLoop(); });
+    _dispatchThread = std::thread([=] { DispatchLoop(); });
 
-    for (auto& t : _listenerThreads)
-        t = std::thread([this] { AcceptLoop(); });
+    for (auto i = 0; i < _listeners; i++)
+        _listenerThreads[i] = std::thread([=] { AcceptLoop(i); });
 
     return _promise.get_future();
 }
 
-void SocketServer::AcceptLoop() {
+void SocketServer::AcceptLoop(int listener) {
     while (!_stop) {
         // block until a new connection is accepted
-        int ret = ::accept(_socket.GetNativeHandle(),
+        int ret = ::accept(_listenerSockets[listener].GetNativeHandle(),
                            reinterpret_cast<::sockaddr*>(AddressBuffer()),
                            reinterpret_cast<::socklen_t*>(AddressBufferSize()));
 
@@ -111,7 +114,9 @@ void SocketServer::DispatchLoop() {
 
 void SocketServer::Stop() {
     _stop = true;
-    _socket = SocketStream{};
+
+    for (auto& s : _listenerSockets)
+        s = SocketStream{};
 
     _semaphore.Increment();
 

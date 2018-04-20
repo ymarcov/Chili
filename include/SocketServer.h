@@ -40,10 +40,11 @@ protected:
     virtual std::size_t* AddressBufferSize() = 0;
 
 private:
-    void AcceptLoop();
+    void AcceptLoop(int listener);
     void DispatchLoop();
 
-    SocketStream _socket;
+    int _listeners;
+    std::vector<SocketStream> _listenerSockets;
     std::promise<void> _promise;
     std::queue<int> _acceptedFds;
     Semaphore _semaphore;
