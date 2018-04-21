@@ -117,7 +117,7 @@ FileStream::NativeHandle FileStream::GetNativeHandle() const {
 }
 
 void FileStream::SetBlocking(bool blocking) {
-    auto flags = ::fcntl(_nativeHandle, F_GETFL, O_NONBLOCK);
+    auto flags = ::fcntl(_nativeHandle, F_GETFL, 0);
 
     if (flags == -1)
         throw SystemError{};
