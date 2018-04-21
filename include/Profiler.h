@@ -36,8 +36,10 @@ public:
     virtual void Read(const class ChannelWaitReadable&) {}
     virtual void Read(const class ChannelWaitWritable&) {}
     virtual void Read(const class ChannelReading&) {}
+    virtual void Read(const class ChannelRead&) {}
     virtual void Read(const class ChannelWriting&) {}
     virtual void Read(const class ChannelWritten&) {}
+    virtual void Read(const class ChannelWrittenAll&) {}
     virtual void Read(const class ChannelClosed&) {}
 
     /**
@@ -138,9 +140,13 @@ public:
     Hz GetRateChannelsWereReading() const;
     Hz GetRateChannelsWereReading(Clock::TimePoint) const;
 
+    std::chrono::milliseconds GetTimeSpentWhileChannelsWereReading() const;
+
     std::uint64_t GetTimesChannelsWereWriting() const;
     Hz GetRateChannelsWereWriting() const;
     Hz GetRateChannelsWereWriting(Clock::TimePoint) const;
+
+    std::chrono::milliseconds GetTimeSpentWhileChannelsWereWriting() const;
 
     std::uint64_t GetTimesChannelsWroteFullResponse() const;
     Hz GetRateChannelsWroteFullResponse() const;

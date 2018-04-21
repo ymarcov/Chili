@@ -315,6 +315,12 @@ public:
     void Accept(ProfileEventReader&) const override;
 };
 
+class ChannelRead : public ChannelEvent {
+public:
+    using ChannelEvent::ChannelEvent;
+    void Accept(ProfileEventReader&) const override;
+};
+
 class ChannelWriting : public ChannelEvent {
 public:
     using ChannelEvent::ChannelEvent;
@@ -322,6 +328,12 @@ public:
 };
 
 class ChannelWritten : public ChannelEvent {
+public:
+    using ChannelEvent::ChannelEvent;
+    void Accept(ProfileEventReader&) const override;
+};
+
+class ChannelWrittenAll : public ChannelEvent {
 public:
     using ChannelEvent::ChannelEvent;
     void Accept(ProfileEventReader&) const override;

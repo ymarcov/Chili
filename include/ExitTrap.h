@@ -9,10 +9,16 @@ public:
         _c(std::move(c)) {}
 
     ~ExitTrap() {
-        _c();
+        if (!_cancelled)
+            _c();
+    }
+
+    void Cancel() {
+        _cancelled = true;
     }
 
 private:
+    bool _cancelled = false;
     Callable _c;
 };
 

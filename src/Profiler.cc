@@ -65,6 +65,8 @@ std::string Profile::GetSummary() const {
             GetTimesChannelsWereReading(),
             GetRateChannelsWereReading());
 
+    w.write("[Channel::Read] Total Time: {} ms\n", GetTimeSpentWhileChannelsWereReading().count());
+
     w.write("[Channel::Write] # Waited for Writability: {} ({}/sec)\n",
             GetTimesChannelsWaitedForWritability(),
             GetRateChannelsWaitedForWritability());
@@ -84,6 +86,8 @@ std::string Profile::GetSummary() const {
     w.write("[Channel::Write] # Wrote Full Response: {} ({}/sec)\n",
             GetTimesChannelsWroteFullResponse(),
             GetRateChannelsWroteFullResponse());
+
+    w.write("[Channel::Write] Total Time: {} ms\n", GetTimeSpentWhileChannelsWereWriting().count());
 
     w.write("[Orchestrator] # Signalled: {} ({}/sec)\n",
             GetTimesOrchestratorWasSignalled(),
@@ -369,6 +373,10 @@ Hz Profile::GetRateChannelsWereReading(Clock::TimePoint t) const {
     return HzCalculator<ChannelReading>(t).ReadAll(_events);
 }
 
+std::chrono::milliseconds Profile::GetTimeSpentWhileChannelsWereReading() const {
+    return ActivityCalculator<ChannelReading, ChannelRead>().GetUpTime(_events);
+}
+
 std::uint64_t Profile::GetTimesChannelsWereWriting() const {
     return Counter<ChannelWriting>().ReadAll(_events);
 }
@@ -381,16 +389,20 @@ Hz Profile::GetRateChannelsWereWriting(Clock::TimePoint t) const {
     return HzCalculator<ChannelWriting>(t).ReadAll(_events);
 }
 
+std::chrono::milliseconds Profile::GetTimeSpentWhileChannelsWereWriting() const {
+    return ActivityCalculator<ChannelWriting, ChannelWritten>().GetUpTime(_events);
+}
+
 std::uint64_t Profile::GetTimesChannelsWroteFullResponse() const {
-    return Counter<ChannelWritten>().ReadAll(_events);
+    return Counter<ChannelWrittenAll>().ReadAll(_events);
 }
 
 Hz Profile::GetRateChannelsWroteFullResponse() const {
-    return HzCalculator<ChannelWritten>().ReadAll(_events);
+    return HzCalculator<ChannelWrittenAll>().ReadAll(_events);
 }
 
 Hz Profile::GetRateChannelsWroteFullResponse(Clock::TimePoint t) const {
-    return HzCalculator<ChannelWritten>(t).ReadAll(_events);
+    return HzCalculator<ChannelWrittenAll>(t).ReadAll(_events);
 }
 
 std::uint64_t Profile::GetTimesChannelsWereClosed() const {

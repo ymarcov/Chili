@@ -74,11 +74,19 @@ void ChannelReading::Accept(ProfileEventReader& reader) const {
     reader.Read(*this);
 }
 
+void ChannelRead::Accept(ProfileEventReader& reader) const {
+    reader.Read(*this);
+}
+
 void ChannelWriting::Accept(ProfileEventReader& reader) const {
     reader.Read(*this);
 }
 
 void ChannelWritten::Accept(ProfileEventReader& reader) const {
+    reader.Read(*this);
+}
+
+void ChannelWrittenAll::Accept(ProfileEventReader& reader) const {
     reader.Read(*this);
 }
 
@@ -159,13 +167,11 @@ void Channel::FetchContent(std::function<void()> callback) {
         if (value == "100-continue") {
             ResetResponse();
             _response.SetStatus(Status::Continue);
-            RecordProfileEvent<ChannelWriting>();
             _stage = Stage::Write;
         }
     } else {
         // It doesn't need our confirmation!
         // Ok, just go straight to reading.
-        RecordProfileEvent<ChannelReading>();
         _stage = Stage::Read;
     }
 
@@ -183,7 +189,6 @@ void Channel::RejectContent() {
             ResetResponse();
             _response.CloseConnection();
             _response.SetStatus(Status::ExpectationFailed);
-            RecordProfileEvent<ChannelWriting>();
             _stage = Stage::Write;
         }
     } else {
@@ -198,7 +203,6 @@ void Channel::SendResponse() {
     if (!_response.IsPrepared())
         throw std::logic_error("Response has not been fully prepared");
 
-    RecordProfileEvent<ChannelWriting>();
     _stage = Stage::Write;
 
     if (auto o = _orchestrator.lock())
@@ -298,6 +302,12 @@ bool Channel::IsWaitingForClient() const {
 }
 
 void Channel::OnRead() {
+    RecordProfileEvent<ChannelReading>();
+
+    auto onExit = CreateExitTrap([&] {
+        RecordProfileEvent<ChannelRead>();
+    });
+
     auto throttlingInfo = GetThrottlingInfo(_throttlers.Read);
 
     if (!throttlingInfo.full) {
@@ -316,9 +326,13 @@ void Channel::OnRead() {
             _fetchingContent = false;
     } else {
         // We're fetching the request's header
-        if ((doneReading = FetchData(&Request::ConsumeHeader, throttlingInfo.currentQuota)))
+        if ((doneReading = FetchData(&Request::ConsumeHeader, throttlingInfo.currentQuota))) {
+            onExit.Cancel();
             LogNewRequest();
+        }
     }
+
+    onExit.Cancel();
 
     if (doneReading) {
         // All done reading, prepare a new response
@@ -418,12 +432,16 @@ void Channel::SendInternalError() {
     ResetResponse();
     _response.CloseConnection();
     _response.SetStatus(Status::InternalServerError);
-    RecordProfileEvent<ChannelWriting>();
     _stage = Stage::Write;
 }
 
 void Channel::OnWrite() {
+    RecordProfileEvent<ChannelWriting>();
     _stage = Stage::Writing;
+
+    auto onExit = CreateExitTrap([&] {
+        RecordProfileEvent<ChannelWritten>();
+    });
 
     auto throttlingInfo = GetThrottlingInfo(_throttlers.Write);
 
@@ -442,20 +460,18 @@ void Channel::OnWrite() {
 
     // Okay, all data was flushed
 
-    RecordProfileEvent<ChannelWritten>();
+    RecordProfileEvent<ChannelWrittenAll>();
 
     if (_forceClose) {
         Close();
     } else if (_fetchingContent) {
         // This means that we just sent a response requesting
         // the client to send more data to the channel.
-        RecordProfileEvent<ChannelReading>();
         _stage = Stage::Read;
     } else if (_response.GetKeepAlive()) {
         Log::Verbose("Channel {} sent response and keeps alive", _id);
         _request = Request(_stream);
         _fetchingContent = false; // Will be reading a new request header
-        RecordProfileEvent<ChannelReading>();
         _stage = Stage::Read;
     } else {
         Log::Verbose("Channel {} sent final response", _id);
