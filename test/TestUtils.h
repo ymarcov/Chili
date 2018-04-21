@@ -16,7 +16,7 @@ auto PtrShim(T t) {
     return std::shared_ptr<V>(t, [](U) {});
 }
 
-std::string GetEnvironmentVariable(const std::string& name) {
+inline std::string GetEnvironmentVariable(const std::string& name) {
     auto result = std::getenv(name.c_str());
     return result ? result : "";
 }
