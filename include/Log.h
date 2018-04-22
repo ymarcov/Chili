@@ -60,7 +60,7 @@ public:
     }
 
     template <class... Args>
-    static void Fatal(const char* format, Args&&... args) {
+    [[noreturn]] static void Fatal(const char* format, Args&&... args) {
         if (Enabled(Level::Fatal)) {
             std::ostringstream msg;
             msg << fmt::format(format, args...);
@@ -71,8 +71,9 @@ public:
                 msg << "|--> " << f << '\n';
             msg << "|--> =======================\n";
             _logger->Log("Fatal", msg.str());
-            std::terminate();
         }
+
+        std::terminate();
     }
 
 private:
