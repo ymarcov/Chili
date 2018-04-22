@@ -7,6 +7,7 @@
 #include <poll.h>
 #include <sys/sendfile.h>
 #include <sys/stat.h>
+#include <sys/uio.h>
 #include <unistd.h>
 
 namespace Chili {
@@ -171,6 +172,17 @@ bool FileStream::EndOfStream() const {
 
 std::size_t FileStream::Write(const void* buffer, std::size_t maxBytes) {
     auto bytesWritten = ::write(_nativeHandle, buffer, maxBytes);
+
+    if (bytesWritten == -1)
+        throw SystemError{};
+
+    return bytesWritten;
+}
+
+std::size_t FileStream::WriteVector(std::vector<std::pair<const void*, std::size_t>> vec) {
+    auto bytesWritten = ::writev(_nativeHandle,
+                                 reinterpret_cast<struct ::iovec*>(vec.data()),
+                                 vec.size());
 
     if (bytesWritten == -1)
         throw SystemError{};

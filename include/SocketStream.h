@@ -4,6 +4,7 @@
 
 #include <atomic>
 #include <memory>
+#include <vector>
 
 namespace Chili {
 
@@ -18,6 +19,7 @@ public:
     SocketStream& operator=(SocketStream&&);
 
     std::size_t Write(const void* buffer, std::size_t maxBytes) override;
+    std::size_t WriteVector(std::vector<std::pair<const void*, std::size_t>>) override;
     std::size_t WriteTo(FileStream&, std::size_t maxBytes) override;
 
 protected:

@@ -7,6 +7,7 @@
 #include <chrono>
 #include <memory>
 #include <string>
+#include <vector>
 
 namespace Chili {
 
@@ -42,6 +43,7 @@ public:
     std::size_t Read(void* buffer, std::size_t maxBytes) override;
     std::size_t Read(void* buffer, std::size_t maxBytes, std::chrono::milliseconds timeout) override;
     std::size_t Write(const void* buffer, std::size_t maxBytes) override;
+    std::size_t WriteVector(std::vector<std::pair<const void*, std::size_t>>) override;
     virtual std::size_t WriteTo(FileStream&, std::size_t maxBytes);
 
     bool EndOfStream() const override;

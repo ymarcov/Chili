@@ -4,6 +4,7 @@
 
 #include <fcntl.h>
 #include <sys/socket.h>
+#include <sys/uio.h>
 
 namespace Chili {
 
@@ -58,6 +59,20 @@ SocketStream& SocketStream::operator=(SocketStream&& rhs) {
 
 std::size_t SocketStream::Write(const void* buffer, std::size_t maxBytes) {
     auto bytesWritten = ::send(_nativeHandle, buffer, maxBytes, MSG_NOSIGNAL);
+
+    if (bytesWritten == -1)
+        throw SystemError{};
+
+    return bytesWritten;
+}
+
+std::size_t SocketStream::WriteVector(std::vector<std::pair<const void*, std::size_t>> vec) {
+    struct ::msghdr mh = {};
+
+    mh.msg_iov = reinterpret_cast<struct ::iovec*>(vec.data());
+    mh.msg_iovlen = vec.size();
+
+    auto bytesWritten = ::sendmsg(_nativeHandle, &mh, MSG_NOSIGNAL);
 
     if (bytesWritten == -1)
         throw SystemError{};
