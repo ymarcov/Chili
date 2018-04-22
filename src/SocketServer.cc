@@ -70,8 +70,8 @@ void SocketServer::AcceptLoop(int listener) {
                 };
 
                 if (std::find(begin(ignored), end(ignored), ret) == end(ignored)) {
+                    _promiseException = std::make_exception_ptr(SystemError{});
                     _stop = true;
-                    _promise.set_exception(std::make_exception_ptr(SystemError{}));
                     Log::Error("Socket server closed due to unrecoverable error");
                     return;
                 } else {
@@ -85,7 +85,11 @@ void SocketServer::AcceptLoop(int listener) {
 void SocketServer::DispatchLoop() {
     auto onExit = CreateExitTrap([&] {
         // all work is done. notify future.
-        _promise.set_value();
+        if (_promiseException)
+            _promise.set_exception(_promiseException);
+        else
+            _promise.set_value();
+
     });
 
     while (!_stop) {

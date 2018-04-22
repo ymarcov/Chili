@@ -5,6 +5,7 @@
 #include "SocketStream.h"
 
 #include <atomic>
+#include <exception>
 #include <future>
 #include <memory>
 #include <queue>
@@ -46,6 +47,7 @@ private:
     int _listeners;
     std::vector<SocketStream> _listenerSockets;
     std::promise<void> _promise;
+    std::exception_ptr _promiseException;
     std::queue<int> _acceptedFds;
     Semaphore _semaphore;
     std::mutex _mutex;
