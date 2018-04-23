@@ -41,15 +41,26 @@ private:
 
         lock.unlock();
 
-        if (!_threadPool->_semaphore.TryDecrement(patience)) {
-            _isAlive = false;
+        while (!_threadPool->_semaphore.TryDecrement(patience)) {
             lock.lock();
-            _threadPool->_needToCollect = true;
-            return false;
+
+            if (_threadPool->_semaphore.TryDecrement()) {
+                // someone got through in between not being
+                // able to decrement and locking the mutex
+                return Acquire();
+            } else {
+                _isAlive = false;
+                _threadPool->_needToCollect = true;
+                return false;
+            }
         }
 
         lock.lock();
 
+        return Acquire();
+    }
+
+    bool Acquire() {
         if (_threadPool->_stop)
             return false;
 
@@ -152,18 +163,18 @@ std::future<void> ThreadPool::Post(Work w) {
     auto workContext = std::make_unique<WorkContext>(std::move(w));
     auto workFuture = workContext->_promise.get_future();
 
-    {
-        // lock queue and push work item
-        std::lock_guard<std::mutex> lock(_mutex);
+    // lock queue and push work item
+    std::unique_lock lock(_mutex);
 
-        if (_stop)
-            return {};
+    if (_stop)
+        return {};
 
-        if (NeedWorker())
-            SpawnWorker();
+    if (NeedWorker())
+        SpawnWorker();
 
-        _pending.push(std::move(workContext));
-    }
+    _pending.push(std::move(workContext));
+
+    lock.unlock();
 
     // explicitly wake up one sleeping worker.
     _semaphore.Increment();
