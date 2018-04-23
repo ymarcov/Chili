@@ -1,4 +1,5 @@
 #include "Response.h"
+#include "Log.h"
 #include "TcpConnection.h"
 
 #include <algorithm>
@@ -148,11 +149,6 @@ void Response::Prepare(Status status) {
 }
 
 Response::FlushStatus Response::Flush(std::size_t maxBytes, std::size_t& totalBytesWritten) {
-    auto headersResult = FlushHeader(maxBytes, totalBytesWritten);
-
-    if (headersResult != FlushStatus::Done)
-        return headersResult;
-
    auto& response = GetState();
 
    if (response._transferMode == TransferMode::Normal) {
@@ -161,7 +157,7 @@ Response::FlushStatus Response::Flush(std::size_t maxBytes, std::size_t& totalBy
        else if (response._body)
            return FlushBody(*response._body, maxBytes, totalBytesWritten);
        else
-           return FlushStatus::Done; // no content provided, only send headers
+           return FlushWithHeader(std::string(), maxBytes, totalBytesWritten);
    } else if (response._transferMode == TransferMode::Chunked) {
        if (response._stream)
            return FlushStream(maxBytes, totalBytesWritten);
@@ -172,32 +168,37 @@ Response::FlushStatus Response::Flush(std::size_t maxBytes, std::size_t& totalBy
    }
 }
 
-Response::FlushStatus Response::FlushHeader(std::size_t& maxBytes, std::size_t& totalBytesWritten) {
+template <class T>
+Response::FlushStatus Response::FlushWithHeader(const T& data, std::size_t& maxBytes, std::size_t& totalBytesWritten) {
     auto& response = GetState();
     auto& header = response._header;
 
     if (_writePosition >= header.size())
-        return FlushStatus::Done; // move on
+        Log::Fatal("Invalid call to Response::FlushWithHeader()");
 
-    if (auto tcp = std::dynamic_pointer_cast<TcpConnection>(_stream))
-        tcp->Cork(true);
+    auto vec = std::vector<std::pair<const void*, std::size_t>>();
 
-    auto quota = std::min(maxBytes, header.size() - _writePosition);
-    auto bytesWritten = _stream->Write(header.c_str() + _writePosition, quota);
+    auto headerBytesRemaining = header.size() - _writePosition;
+
+    if (maxBytes <= headerBytesRemaining || data.empty()) {
+        auto quota = std::min(maxBytes, headerBytesRemaining);
+        vec.push_back(std::make_pair(header.c_str() + _writePosition, quota));
+    } else {
+        auto dataQuota = std::min(data.size(), maxBytes - headerBytesRemaining);
+
+        vec.push_back(std::make_pair(header.data() + _writePosition, headerBytesRemaining));
+        vec.push_back(std::make_pair(data.data(), dataQuota));
+    }
+
+    auto bytesWritten = _stream->WriteVector(vec);
 
     totalBytesWritten += bytesWritten;
     _writePosition += bytesWritten;
     maxBytes -= bytesWritten;
 
-    auto headerSent = _writePosition == header.size();
+    auto headerSent = _writePosition >= header.size();
 
     if (headerSent) {
-        // if response has no body, and only headers, uncork.
-        if (!(response._strBody || response._body)) {
-            if (auto tcp = std::dynamic_pointer_cast<TcpConnection>(_stream))
-                tcp->Cork(false);
-        }
-
         return FlushStatus::Done;
     } else {
         if (maxBytes > 0)
@@ -208,9 +209,22 @@ Response::FlushStatus Response::FlushHeader(std::size_t& maxBytes, std::size_t& 
 }
 
 template <class T>
-Response::FlushStatus Response::FlushBody(T& body, std::size_t& maxBytes, std::size_t& totalBytesWritten) {
+Response::FlushStatus Response::FlushBody(const T& body, std::size_t& maxBytes, std::size_t& totalBytesWritten) {
     auto& response = GetState();
     auto& header = response._header;
+
+    if (_writePosition < header.size()) {
+        auto result = FlushWithHeader(body, maxBytes, totalBytesWritten);
+
+        if (result != FlushStatus::Done)
+            return result;
+
+        if (maxBytes == 0)
+            return FlushStatus::ReachedQuota;
+    }
+
+    if (_writePosition < header.size())
+        Log::Fatal("Invalid write state in Response::FlushBody()");
 
     auto bodyBytesConsumed = _writePosition - header.size();
     auto quota = std::min(maxBytes, body.size() - bodyBytesConsumed);
@@ -222,9 +236,6 @@ Response::FlushStatus Response::FlushBody(T& body, std::size_t& maxBytes, std::s
     auto sentAll = (_writePosition - header.size()) == body.size();
 
     if (sentAll) {
-        if (auto tcp = std::dynamic_pointer_cast<TcpConnection>(_stream))
-            tcp->Cork(false);
-
         return FlushStatus::Done;
     } else {
         if (maxBytes > 0)
@@ -236,124 +247,147 @@ Response::FlushStatus Response::FlushBody(T& body, std::size_t& maxBytes, std::s
 
 Response::FlushStatus Response::FlushStream(std::size_t& maxBytes, std::size_t& totalBytesWritten) {
     auto& response = GetState();
-    auto& input = response._stream;
-    auto& buffer = response._body; // use as buffer
-    auto quota = std::min(maxBytes, buffer->size());
-    auto newChunk = (_chunkWritePosition == 0);
+    auto& header = response._header;
 
-    if (newChunk) {
-        // heuristic to make sure we can always send chunk header.
-        // this should be okay since our max chunk isn't that big anyway,
-        // so 16 bytes should always be enough to send the size header in hex.
-        if (quota <= 0x10) {
+    if (_writePosition < header.size()) {
+        auto result = FlushWithHeader(std::string(), maxBytes, totalBytesWritten);
+
+        if (result != FlushStatus::Done)
+            return result;
+
+        if (maxBytes == 0)
             return FlushStatus::ReachedQuota;
-        } else {
-            quota -= 0x10;
-            maxBytes -= 0x10;
-        }
-
-        // send new chunk header
-        auto chunkHeader = std::string();
-        auto lastPseudoChunk = false;
-
-        if (input->EndOfStream()) {
-            chunkHeader = "0\r\n\r\n";
-            lastPseudoChunk = true;
-        } else {
-            if (auto bufferedInput = std::dynamic_pointer_cast<BufferedInputStream>(input)) {
-                if (bufferedInput->GetBufferedInputSize() == 0) {
-                    bufferedInput->BufferInputAsync();
-                    return FlushStatus::WaitingForContent;
-                }
-            }
-
-            _chunkSize = input->Read(buffer->data(), quota);
-
-            _chunkWritePosition = 0;
-            chunkHeader = fmt::format("{:X}\r\n", _chunkSize);
-
-            if (chunkHeader.size() > 0x10)
-                throw std::runtime_error("Chunk header too big; dropping response");
-        }
-
-        if (auto tcp = std::dynamic_pointer_cast<TcpConnection>(_stream))
-            tcp->Cork(true);
-
-        auto bytesWritten = _stream->Write(chunkHeader.data(), chunkHeader.size());
-
-        totalBytesWritten += bytesWritten;
-        maxBytes -= bytesWritten;
-
-        if (bytesWritten != chunkHeader.size()) {
-            // okay, this makes it a bit easier to program,
-            // and it's *supposed* to be very unlikely anyway,
-            // since it's so small.
-            throw std::runtime_error("Failed to write chunk size; dropping response!");
-        }
-
-        if (lastPseudoChunk) {
-            if (auto tcp = std::dynamic_pointer_cast<TcpConnection>(_stream))
-                tcp->Cork(false);
-
-            return FlushStatus::Done;
-        } else { // reclaim leftovers
-            quota += (0x10 - bytesWritten);
-            maxBytes += (0x10 - bytesWritten);
-        }
     }
 
-    // send chunk data
-    if (quota <= 2) {
-        return FlushStatus::ReachedQuota;
-    } else {
-        quota -= 2; // trailing CRLF
-        maxBytes -= 2;
+    if (_needNewChunk) {
+        auto result = ReadNextChunk();
+
+        if (result == ReadResult::Buffering)
+            return FlushStatus::WaitingForContent;
     }
 
-    auto bytesWritten = _stream->Write(buffer->data() + _chunkWritePosition,
-                                       std::min(quota, _chunkSize - _chunkWritePosition));
+    auto vec = GetChunkVector(maxBytes);
 
-    _chunkWritePosition += bytesWritten;
+    auto bytesWritten = _stream->WriteVector(vec);
+
+    maxBytes -= bytesWritten;
     totalBytesWritten += bytesWritten;
 
-    if (_chunkWritePosition == _chunkSize) {
-        if (2 != _stream->Write("\r\n", 2)) {
-            // okay, this makes it a bit easier to program,
-            // and it's *supposed* to be very unlikely anyway,
-            // since it's so small.
-            throw std::runtime_error("Failed to write chunk trailing CRLF; dropping response!");
-        }
+    UpdateChunkWritePositions(bytesWritten);
 
-        if (auto tcp = std::dynamic_pointer_cast<TcpConnection>(_stream))
-            tcp->Cork(false);
-
-        _chunkWritePosition = 0;
+    if (_chunkWritePosition < _chunkSize) {
+        if (maxBytes > 0)
+            return FlushStatus::IncompleteWrite;
+        else
+            return FlushStatus::ReachedQuota;
     } else {
-        return FlushStatus::IncompleteWrite;
+        if (_isLastChunk) {
+            return FlushStatus::Done;
+        } else {
+            _needNewChunk = true;
+            return FlushStatus::Repeat;
+        }
+    }
+}
+
+void Response::UpdateChunkWritePositions(std::size_t bytesWritten) {
+    if (_chunkHeaderWritePosition < _chunkHeader.size()) {
+        auto chunkHeaderRemaining = _chunkHeader.size() - _chunkHeaderWritePosition;
+        auto chunkHeaderWritten = std::min(bytesWritten, chunkHeaderRemaining);
+
+        _chunkHeaderWritePosition += chunkHeaderWritten;
+        bytesWritten -= chunkHeaderWritten;
+
+        if (bytesWritten == 0 || _chunkHeaderWritePosition < _chunkHeader.size())
+            return;
     }
 
-    if (!input->EndOfStream()) {
-        if (auto bufferedInput = std::dynamic_pointer_cast<BufferedInputStream>(input)) {
-            if (bufferedInput->GetBufferedInputSize() == 0) {
-                bufferedInput->BufferInputAsync();
-                return FlushStatus::WaitingForContent;
+    if (_chunkWritePosition < _chunkSize) {
+        auto chunkBodyRemaining = _chunkSize - _chunkWritePosition;
+        auto chunkBodyWritten = std::min(bytesWritten, chunkBodyRemaining);
+
+        _chunkWritePosition += chunkBodyWritten;
+        bytesWritten -= chunkBodyWritten;
+
+        if (bytesWritten == 0 || _chunkWritePosition < _chunkSize)
+            return;
+    }
+
+    if (_chunkTrailWritePosition < 2) {
+        auto chunkTrailRemaining = 2 - _chunkTrailWritePosition;
+        auto chunkTrailWritten = std::min(bytesWritten, chunkTrailRemaining);
+
+        _chunkTrailWritePosition += chunkTrailWritten;
+    }
+}
+
+Response::ReadResult Response::ReadNextChunk() {
+    auto& response = GetState();
+    auto& input = response._stream;
+    auto& buffer = response._body;
+
+    if (input->EndOfStream()) {
+        _chunkHeader = "0\r\n\r\n";
+        _chunkSize = 0;
+        _chunkHeaderWritePosition = 0;
+        _needNewChunk = false;
+        _isLastChunk = true;
+        return ReadResult::EndOfMessageChunk;
+    }
+
+    if (auto bufferedInput = std::dynamic_pointer_cast<BufferedInputStream>(input)) {
+        if (bufferedInput->GetBufferedInputSize() == 0) {
+            bufferedInput->BufferInputAsync();
+            return ReadResult::Buffering;
+        }
+    }
+
+    _chunkSize = input->Read(buffer->data(), buffer->size());
+    _chunkHeader = fmt::format("{:X}\r\n", _chunkSize);
+
+    _chunkWritePosition = 0;
+    _chunkHeaderWritePosition = 0;
+    _chunkTrailWritePosition = 0;
+    _needNewChunk = false;
+
+    return ReadResult::NewChunk;
+}
+
+std::vector<std::pair<const void*, std::size_t>> Response::GetChunkVector(std::size_t maxBytes) {
+    auto vec = std::vector<std::pair<const void*, std::size_t>>();
+
+    auto& chunk = GetState()._body;
+    auto chunkHeaderRemaining = _chunkHeader.size() - _chunkHeaderWritePosition;
+    auto chunkBodyRemaining = _chunkSize - _chunkWritePosition;
+
+    if (chunkHeaderRemaining > 0) {
+        auto headerQuota = std::min(maxBytes, chunkHeaderRemaining);
+        vec.push_back(std::make_pair(_chunkHeader.data() + _chunkHeaderWritePosition, headerQuota));
+
+        if (_chunkSize > 0 && maxBytes > chunkHeaderRemaining) {
+            auto dataQuota = std::min(maxBytes - chunkHeaderRemaining, _chunkSize);
+            vec.push_back(std::make_pair(chunk->data(), dataQuota));
+
+            if (maxBytes - chunkHeaderRemaining - _chunkSize >= 2) {
+                auto quota = std::min(maxBytes, 2lu);
+                vec.push_back(std::make_pair("\r\n", quota));
             }
         }
+    } else if (chunkBodyRemaining > 0) {
+        auto quota = std::min(maxBytes, chunkBodyRemaining);
+        vec.push_back(std::make_pair(chunk->data() + _chunkWritePosition, quota));
 
-        return FlushStatus::Repeat;
-
-    } else { // send EOM
-        auto chunkHeader = std::string("0\r\n\r\n");
-        auto bytesWritten = _stream->Write(chunkHeader.data(), chunkHeader.size());
-
-        totalBytesWritten += bytesWritten;
-        maxBytes -= bytesWritten;
-
-        if (bytesWritten != chunkHeader.size())
-            throw std::runtime_error("Failed to write chunk size; dropping response!");
-
-        return FlushStatus::Done;
+        if (maxBytes - chunkBodyRemaining >= 2) {
+            auto quota = std::min(maxBytes, 2lu);
+            vec.push_back(std::make_pair("\r\n", quota));
+        }
+    } else {
+        auto quota = std::min(maxBytes, 2lu);
+        auto trail = "r\n";
+        vec.push_back(std::make_pair(trail + _chunkTrailWritePosition, quota));
     }
+
+    return vec;
 }
 
 bool Response::GetKeepAlive() const {

@@ -165,15 +165,26 @@ public:
     bool IsPrepared() const;
 
 private:
+    enum class ReadResult {
+        Buffering,
+        NewChunk,
+        EndOfMessageChunk
+    };
+
     void Prepare(Status);
     CachedResponse& GetState() const;
 
-    FlushStatus FlushHeader(std::size_t& maxBytes, std::size_t& consumed);
+    template <class T>
+    FlushStatus FlushWithHeader(const T& data, std::size_t& maxBytes, std::size_t& consumed);
 
     template <class T>
-    FlushStatus FlushBody(T& data, std::size_t& maxBytes, std::size_t& consumed);
+    FlushStatus FlushBody(const T& data, std::size_t& maxBytes, std::size_t& consumed);
 
     FlushStatus FlushStream(std::size_t& maxBytes, std::size_t& consumed);
+
+    ReadResult ReadNextChunk();
+    std::vector<std::pair<const void*, std::size_t>> GetChunkVector(std::size_t maxBytes);
+    void UpdateChunkWritePositions(std::size_t bytesWritten);
 
     std::shared_ptr<OutputStream> _stream;
     std::weak_ptr<Signal<>> _readyToWrite;
@@ -181,8 +192,13 @@ private:
     std::vector<std::pair<std::string, std::string>> _headers;
     mutable std::shared_ptr<CachedResponse> _response;
     std::size_t _writePosition = 0;
-    std::size_t _chunkSize = 0;
     std::size_t _chunkWritePosition = 0;
+    std::size_t _chunkSize;
+    std::string _chunkHeader;
+    std::size_t _chunkHeaderWritePosition = 0;
+    std::size_t _chunkTrailWritePosition = 0;
+    bool _needNewChunk = true;
+    bool _isLastChunk = false;
 };
 
 } // namespace Chili
