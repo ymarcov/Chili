@@ -49,7 +49,7 @@ private:
     std::promise<void> _promise;
     std::exception_ptr _promiseException;
     std::queue<int> _acceptedFds;
-    Semaphore _semaphore;
+    std::unique_ptr<Semaphore> _semaphore;
     std::mutex _mutex;
     std::vector<std::thread> _listenerThreads;
     std::thread _dispatchThread;

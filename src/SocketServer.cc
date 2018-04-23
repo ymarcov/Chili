@@ -25,6 +25,8 @@ std::future<void> SocketServer::Start() {
     if (!_stop || _dispatchThread.joinable())
         throw std::logic_error("Start() called when socket server is already running");
 
+    _semaphore = std::make_unique<Semaphore>();
+
     for (auto& s : _listenerSockets)
         ResetListenerSocket(s);
 
@@ -50,7 +52,7 @@ void SocketServer::AcceptLoop(int listener) {
             std::unique_lock lock(_mutex);
             _acceptedFds.push(ret);
             lock.unlock();
-            _semaphore.Increment();
+            _semaphore->Increment();
             Profiler::Record<SocketQueued>();
         } else {
             if (_stop) {
@@ -93,7 +95,7 @@ void SocketServer::DispatchLoop() {
     });
 
     while (!_stop) {
-        _semaphore.Decrement();
+        _semaphore->Decrement();
 
         if (_stop)
             return;
@@ -122,7 +124,8 @@ void SocketServer::Stop() {
     for (auto& s : _listenerSockets)
         s = SocketStream{};
 
-    _semaphore.Increment();
+    if (_semaphore)
+        _semaphore->Increment();
 
     for (auto& t : _listenerThreads)
         if (t.joinable())
@@ -130,6 +133,8 @@ void SocketServer::Stop() {
 
     if (_dispatchThread.joinable())
         _dispatchThread.join();
+
+    _semaphore.reset();
 }
 
 std::string SocketServerEvent::GetSource() const {

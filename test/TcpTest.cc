@@ -46,7 +46,8 @@ protected:
 
     void WaitForGoodbye(TcpConnection& c) {
         char buffer[0x100];
-        auto n = c.Read(buffer, sizeof(buffer));
+        std::size_t n;
+        ASSERT_NO_THROW(n = c.Read(buffer, sizeof(buffer), 1s));
         EXPECT_EQ(7, n);
     }
 
