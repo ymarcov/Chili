@@ -266,9 +266,7 @@ Response::FlushStatus Response::FlushStream(std::size_t& maxBytes, std::size_t& 
             return FlushStatus::WaitingForContent;
     }
 
-    auto vec = GetChunkVector(maxBytes);
-
-    auto bytesWritten = _stream->WriteVector(vec);
+    auto bytesWritten = _stream->WriteVector(GetChunkVector(maxBytes));
 
     maxBytes -= bytesWritten;
     totalBytesWritten += bytesWritten;
