@@ -167,8 +167,7 @@ public:
 private:
     enum class ReadResult {
         Buffering,
-        NewChunk,
-        EndOfMessageChunk
+        DataAvailable,
     };
 
     void Prepare(Status);

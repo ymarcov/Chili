@@ -267,7 +267,7 @@ TEST_F(ResponseTest, chunked) {
 
     r->SetContent(data);
     r->SetStatus(Status::Ok);
-    Flush(r, 0x1000);
+    Flush(r, 0x1);
 
     auto expected = "HTTP/1.1 200 OK\r\n"
         "Transfer-Encoding: chunked\r\n"
