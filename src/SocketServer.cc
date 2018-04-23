@@ -22,6 +22,8 @@ SocketServer::~SocketServer() {
 }
 
 std::future<void> SocketServer::Start() {
+    std::lock_guard lock(_startStopMutex);
+
     if (!_stop || _dispatchThread.joinable())
         throw std::logic_error("Start() called when socket server is already running");
 
@@ -119,6 +121,8 @@ void SocketServer::DispatchLoop() {
 }
 
 void SocketServer::Stop() {
+    std::lock_guard lock(_startStopMutex);
+
     _stop = true;
 
     for (auto& s : _listenerSockets)

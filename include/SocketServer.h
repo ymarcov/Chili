@@ -51,6 +51,7 @@ private:
     std::queue<int> _acceptedFds;
     std::unique_ptr<Semaphore> _semaphore;
     std::mutex _mutex;
+    std::mutex _startStopMutex;
     std::vector<std::thread> _listenerThreads;
     std::thread _dispatchThread;
     std::atomic_bool _stop{true};
