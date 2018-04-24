@@ -5,7 +5,6 @@
 
 #include <algorithm>
 #include <pthread.h>
-#include <sched.h>
 #include <sys/socket.h>
 #include <sys/types.h>
 #include <unistd.h>
