@@ -561,8 +561,8 @@ Channel::ThrottlingInfo Channel::GetThrottlingInfo(const Throttlers::Group& grou
     info.full = info.currentQuota == info.capacity;
 
     if (!info.full)
-        info.fillTime = std::max(_throttlers.Read.Dedicated.GetFillTime(info.capacity),
-                                 _throttlers.Read.Master->GetFillTime(info.capacity));
+        info.fillTime = std::max(group.Dedicated.GetFillTime(info.capacity),
+                                 group.Master->GetFillTime(info.capacity));
     else
         info.fillTime = Clock::GetCurrentTime();
 
