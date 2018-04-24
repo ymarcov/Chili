@@ -22,8 +22,12 @@ struct ConsoleLogger : Logger {
         if (!std::strftime(buffer, sizeof(buffer), "%F %T", &t))
             std::strncpy(buffer, "UNKNOWN TIME", sizeof(buffer));
 
+        static auto epoch = std::chrono::system_clock::time_point();
+
+        auto ms = std::chrono::duration_cast<std::chrono::milliseconds>(now - epoch).count() % 1000;
+
         std::lock_guard lock(mutex);
-        std::cerr << levelTag[0] << ":[" << buffer << "] " << message << std::endl;
+        std::cerr << levelTag[0] << ":[" << buffer << "." << ms << "] " << message << std::endl;
     }
 };
 
