@@ -367,7 +367,7 @@ std::vector<std::pair<const void*, std::size_t>> Response::GetChunkVector(std::s
         maxBytes -= headerQuota;
 
         if (_chunkSize > 0 && maxBytes > 0) {
-            auto dataQuota = std::min(maxBytes - chunkHeaderRemaining, _chunkSize);
+            auto dataQuota = std::min(maxBytes, _chunkSize);
             vec.push_back(std::make_pair(chunk->data(), dataQuota));
 
             maxBytes -= dataQuota;
@@ -388,7 +388,8 @@ std::vector<std::pair<const void*, std::size_t>> Response::GetChunkVector(std::s
             vec.push_back(std::make_pair("\r\n", quota));
         }
     } else {
-        auto quota = std::min(maxBytes, 2lu);
+        auto chunkTrailRemaining = 2lu - _chunkTrailWritePosition;
+        auto quota = std::min(maxBytes, chunkTrailRemaining);
         auto trail = "\r\n";
         vec.push_back(std::make_pair(trail + _chunkTrailWritePosition, quota));
     }
