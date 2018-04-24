@@ -1,6 +1,6 @@
 #pragma once
 
-#include "TcpServer.h"
+#include "TcpAcceptor.h"
 #include "ThreadPool.h"
 
 #include <functional>
@@ -8,7 +8,7 @@
 
 namespace Chili {
 
-class ThreadedTcpServer : public TcpServer {
+class ThreadedTcpServer {
 public:
     using ConnectionHandler = std::function<void(std::shared_ptr<TcpConnection>)>;
 
@@ -16,10 +16,10 @@ public:
 
     std::future<void> Start(ConnectionHandler);
 
-protected:
-    void OnAccepted(std::shared_ptr<TcpConnection>) override;
+    void Stop();
 
 private:
+    TcpAcceptor _tcpAcceptor;
     std::shared_ptr<ThreadPool> _threadPool;
     ConnectionHandler _handler;
 };

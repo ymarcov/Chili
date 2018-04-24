@@ -1,6 +1,7 @@
 #pragma once
 
-#include "SocketServer.h"
+#include "Signal.h"
+#include "Acceptor.h"
 #include "SocketStream.h"
 #include "TcpConnection.h"
 
@@ -15,9 +16,9 @@ namespace Chili {
 /**
  * A TCP server.
  */
-class TcpServer : public SocketServer {
+class TcpAcceptor : public Acceptor {
 public:
-    TcpServer(const IPEndpoint&, int listeners);
+    TcpAcceptor(const IPEndpoint&, int listeners);
 
     /**
      * Gets the endpoint that this server
@@ -25,11 +26,10 @@ public:
      */
     const IPEndpoint& GetEndpoint() const;
 
-protected:
-    virtual void OnAccepted(std::shared_ptr<TcpConnection>) = 0;
+    Signal<std::shared_ptr<TcpConnection>> OnAccepted;
 
 private:
-    void OnAccepted(int fd) override;
+    void RelinquishSocket(int fd) override;
     void ResetListenerSocket(SocketStream&) override;
     void* AddressBuffer() override;
     std::size_t* AddressBufferSize() override;
@@ -39,7 +39,7 @@ private:
     std::size_t _addrBufferSize = sizeof(::sockaddr_in);
 };
 
-inline const IPEndpoint& TcpServer::GetEndpoint() const {
+inline const IPEndpoint& TcpAcceptor::GetEndpoint() const {
     return _endpoint;
 }
 

@@ -1,14 +1,14 @@
 #pragma once
 
 #include "Orchestrator.h"
-#include "TcpServer.h"
+#include "TcpAcceptor.h"
 
 namespace Chili {
 
 /**
  * An HTTP/TCP server.
  */
-class HttpServer : public TcpServer {
+class HttpServer {
 public:
     /**
      * Creates a new server listening on \p endpoint.
@@ -19,6 +19,19 @@ public:
      *                        channels when connections are received.
      */
     HttpServer(const IPEndpoint& endpoint, std::shared_ptr<ChannelFactory> channelFactory, int listeners = 1);
+
+    /**
+     * Starts the server so that new connections can be accepted.
+     *
+     * @return A task that finishes when the server has stopped.
+     */
+    std::future<void> Start();
+
+    /**
+     * Request the server to stop. This should cause the task
+     * returned by Start() to finish.
+     */
+    void Stop();
 
     /**
      * Limit the read (input) bandwidth rate of this server.
@@ -40,8 +53,7 @@ public:
     void SetInactivityTimeout(std::chrono::milliseconds);
 
 private:
-    void OnAccepted(std::shared_ptr<TcpConnection>) override;
-
+    TcpAcceptor _tcpAcceptor;
     std::shared_ptr<Orchestrator> _orchestrator;
 };
 

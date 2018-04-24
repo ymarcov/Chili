@@ -2,7 +2,7 @@
 #include "Channel.h"
 #include "Orchestrator.h"
 #include "Poller.h"
-#include "SocketServer.h"
+#include "Acceptor.h"
 
 #include <chrono>
 #include <cstdlib>
@@ -113,15 +113,15 @@ std::string Profile::GetSummary() const {
 
     w.write("[Poller] Idle Time: {} ms\n", GetPollerIdleTime().count());
 
-    w.write("[SocketServer] # Sockets Queued: {} ({}/sec)\n",
+    w.write("[Acceptor] # Sockets Queued: {} ({}/sec)\n",
             GetTimesSocketQueued(),
             GetRateSocketQueued());
 
-    w.write("[SocketServer] # Sockets Dequeued: {} ({}/sec)\n",
+    w.write("[Acceptor] # Sockets Dequeued: {} ({}/sec)\n",
             GetTimesSocketDequeued(),
             GetRateSocketDequeued());
 
-    w.write("[SocketServer] # Sockets Accepted: {} ({}/sec)\n",
+    w.write("[Acceptor] # Sockets Accepted: {} ({}/sec)\n",
             GetTimesSocketAccepted(),
             GetRateSocketAccepted());
 

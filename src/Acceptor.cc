@@ -1,4 +1,4 @@
-#include "SocketServer.h"
+#include "Acceptor.h"
 #include "ExitTrap.h"
 #include "Log.h"
 #include "SystemError.h"
@@ -11,16 +11,16 @@
 
 namespace Chili {
 
-SocketServer::SocketServer(int listeners)
+Acceptor::Acceptor(int listeners)
     : _listeners(listeners)
     , _listenerSockets(listeners)
     , _listenerThreads(listeners) {}
 
-SocketServer::~SocketServer() {
+Acceptor::~Acceptor() {
     Stop();
 }
 
-std::future<void> SocketServer::Start() {
+std::future<void> Acceptor::Start() {
     std::lock_guard lock(_startStopMutex);
 
     if (!_stop || _dispatchThread.joinable())
@@ -42,7 +42,7 @@ std::future<void> SocketServer::Start() {
     return _promise.get_future();
 }
 
-void SocketServer::AcceptLoop(int listener) {
+void Acceptor::AcceptLoop(int listener) {
     while (!_stop) {
         // block until a new connection is accepted
         int ret = ::accept(_listenerSockets[listener].GetNativeHandle(),
@@ -85,7 +85,7 @@ void SocketServer::AcceptLoop(int listener) {
     }
 }
 
-void SocketServer::DispatchLoop() {
+void Acceptor::DispatchLoop() {
     auto onExit = CreateExitTrap([&] {
         // all work is done. notify future.
         if (_promiseException)
@@ -111,7 +111,7 @@ void SocketServer::DispatchLoop() {
         Profiler::Record<SocketDequeued>();
 
         try {
-            OnAccepted(fd);
+            RelinquishSocket(fd);
             Profiler::Record<SocketAccepted>();
         } catch (...) {
             Log::Warning("Socket server OnAccepted() threw an error which was ignored. Please handle internally!");
@@ -119,7 +119,7 @@ void SocketServer::DispatchLoop() {
     }
 }
 
-void SocketServer::Stop() {
+void Acceptor::Stop() {
     std::lock_guard lock(_startStopMutex);
 
     _stop = true;
@@ -140,15 +140,15 @@ void SocketServer::Stop() {
     _semaphore.reset();
 }
 
-std::string SocketServerEvent::GetSource() const {
-    return "SocketServer";
+std::string AcceptorEvent::GetSource() const {
+    return "Acceptor";
 }
 
-std::string SocketServerEvent::GetSummary() const {
-    return "Event on SocketServer";
+std::string AcceptorEvent::GetSummary() const {
+    return "Event on Acceptor";
 }
 
-void SocketServerEvent::Accept(ProfileEventReader& reader) const {
+void AcceptorEvent::Accept(ProfileEventReader& reader) const {
     reader.Read(*this);
 }
 

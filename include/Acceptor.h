@@ -16,10 +16,10 @@ namespace Chili {
 /**
  * A socket server.
  */
-class SocketServer {
+class Acceptor {
 public:
-    SocketServer(int listeners);
-    virtual ~SocketServer();
+    Acceptor(int listeners);
+    virtual ~Acceptor();
 
     /**
      * Starts the server so that new connections can be accepted.
@@ -35,7 +35,7 @@ public:
     void Stop();
 
 protected:
-    virtual void OnAccepted(int fd) = 0;
+    virtual void RelinquishSocket(int fd) = 0;
     virtual void ResetListenerSocket(SocketStream&) = 0;
     virtual void* AddressBuffer() = 0;
     virtual std::size_t* AddressBufferSize() = 0;
@@ -61,28 +61,28 @@ private:
  * Profiling
  */
 
-class SocketServerEvent : public ProfileEvent {
+class AcceptorEvent : public ProfileEvent {
 public:
     std::string GetSource() const override;
     std::string GetSummary() const override;
     void Accept(ProfileEventReader&) const override;
 };
 
-class SocketQueued : public SocketServerEvent {
+class SocketQueued : public AcceptorEvent {
 public:
-    using SocketServerEvent::SocketServerEvent;
+    using AcceptorEvent::AcceptorEvent;
     void Accept(ProfileEventReader&) const override;
 };
 
-class SocketDequeued : public SocketServerEvent {
+class SocketDequeued : public AcceptorEvent {
 public:
-    using SocketServerEvent::SocketServerEvent;
+    using AcceptorEvent::AcceptorEvent;
     void Accept(ProfileEventReader&) const override;
 };
 
-class SocketAccepted : public SocketServerEvent {
+class SocketAccepted : public AcceptorEvent {
 public:
-    using SocketServerEvent::SocketServerEvent;
+    using AcceptorEvent::AcceptorEvent;
     void Accept(ProfileEventReader&) const override;
 };
 

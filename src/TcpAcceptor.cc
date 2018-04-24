@@ -1,4 +1,4 @@
-#include "TcpServer.h"
+#include "TcpAcceptor.h"
 #include "SystemError.h"
 
 #include <netinet/tcp.h>
@@ -44,11 +44,11 @@ void Listen(SocketStream& socket) {
 
 } // unnamed namespace
 
-TcpServer::TcpServer(const IPEndpoint& ep, int listeners)
-    : SocketServer{listeners}
+TcpAcceptor::TcpAcceptor(const IPEndpoint& ep, int listeners)
+    : Acceptor{listeners}
     , _endpoint{ep} {}
 
-void TcpServer::ResetListenerSocket(SocketStream& socket) {
+void TcpAcceptor::ResetListenerSocket(SocketStream& socket) {
     socket = SocketStream();
 
     auto fd = ::socket(AF_INET, SOCK_STREAM | SOCK_CLOEXEC, 0);
@@ -64,15 +64,15 @@ void TcpServer::ResetListenerSocket(SocketStream& socket) {
     Listen(socket);
 }
 
-void TcpServer::OnAccepted(int fd) {
+void TcpAcceptor::RelinquishSocket(int fd) {
     OnAccepted(std::make_shared<TcpConnection>(fd, *static_cast<::sockaddr_in*>(AddressBuffer())));
 }
 
-void* TcpServer::AddressBuffer() {
+void* TcpAcceptor::AddressBuffer() {
     return &_addrBuffer;
 }
 
-std::size_t* TcpServer::AddressBufferSize() {
+std::size_t* TcpAcceptor::AddressBufferSize() {
     return &_addrBufferSize;
 }
 

@@ -3,15 +3,23 @@
 namespace Chili {
 
 HttpServer::HttpServer(const IPEndpoint& ep, std::shared_ptr<ChannelFactory> factory, int listeners) :
-    TcpServer(ep, listeners),
+    _tcpAcceptor(ep, listeners),
     _orchestrator(Orchestrator::Create(std::move(factory), 8)) {
+    _tcpAcceptor.OnAccepted += [this](auto conn) {
+        conn->SetBlocking(false);
+        _orchestrator->Add(std::move(conn));
+    };
+
     _orchestrator->OnStop += [this] { Stop(); };
     _orchestrator->Start();
 }
 
-void HttpServer::OnAccepted(std::shared_ptr<TcpConnection> conn) {
-    conn->SetBlocking(false);
-    _orchestrator->Add(std::move(conn));
+std::future<void> HttpServer::Start() {
+    return _tcpAcceptor.Start();
+}
+
+void HttpServer::Stop() {
+    _tcpAcceptor.Stop();
 }
 
 void HttpServer::ThrottleRead(Throttler t) {

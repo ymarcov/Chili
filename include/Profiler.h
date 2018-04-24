@@ -62,10 +62,10 @@ public:
     virtual void Read(const class PollerWaiting&) {}
 
     /**
-     * SocketServer events
+     * Acceptor events
      */
 
-    virtual void Read(const class SocketServerEvent&) {}
+    virtual void Read(const class AcceptorEvent&) {}
     virtual void Read(const class SocketQueued&) {}
     virtual void Read(const class SocketDequeued&) {}
     virtual void Read(const class SocketAccepted&) {}
