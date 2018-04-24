@@ -31,7 +31,6 @@ int main() {
             std::shared_ptr<FileStream> stream = FileStream::Open(uri, FileMode::Read);
             res.SetContent(stream);
             res.AppendHeader("Content-Type", "application/octet-stream");
-            Log::Info("HELLO");
             res.SetStatus(Status::Ok);
             res.CloseConnection();
             c.SendResponse();
