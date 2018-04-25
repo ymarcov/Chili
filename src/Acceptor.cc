@@ -4,7 +4,6 @@
 #include "SystemError.h"
 
 #include <algorithm>
-#include <pthread.h>
 #include <sys/socket.h>
 #include <sys/types.h>
 #include <unistd.h>
