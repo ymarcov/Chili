@@ -2,6 +2,7 @@
 
 #include "Poller.h"
 
+#include <map>
 #include <mutex>
 
 namespace Chili {

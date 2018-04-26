@@ -9,10 +9,10 @@
 #include <chrono>
 #include <functional>
 #include <future>
-#include <map>
 #include <memory>
 #include <mutex>
 #include <thread>
+#include <unordered_map>
 
 namespace Chili {
 
@@ -57,7 +57,7 @@ private:
     std::atomic_bool _stop;
     std::thread _thread;
     std::promise<void> _promise;
-    std::map<const void*, std::pair<unsigned, std::shared_ptr<FileStream>>> _files;
+    std::unordered_map<const void*, std::pair<unsigned, std::shared_ptr<FileStream>>> _files;
     std::mutex _filesMutex;
 };
 

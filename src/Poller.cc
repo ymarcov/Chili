@@ -134,9 +134,21 @@ void Poller::PollLoop(const Poller::EventHandler& handler) {
 void Poller::DispatchEvents(void* eventsPtr, std::size_t n, const Poller::EventHandler& handler) {
     auto events = static_cast<struct epoll_event*>(eventsPtr);
 
+    auto files = std::vector<std::shared_ptr<FileStream>>();
+
+    files.reserve(n);
+
+    std::unique_lock lock{_filesMutex};
+
+    for (std::size_t i = 0; i < n; ++i) {
+        files.push_back(GetFileStreamFromPtr(events[i].data.ptr));
+    }
+
+    lock.unlock();
+
     for (std::size_t i = 0; i < n; ++i) {
         auto eventMask = events[i].events;
-        auto fs = GetFileStreamFromPtr(events[i].data.ptr);
+        auto& fs = files[i];
 
         if (!fs) {
             Log::Verbose("File stream was closed in between iterations");
@@ -157,7 +169,6 @@ void Poller::DispatchEvents(void* eventsPtr, std::size_t n, const Poller::EventH
 }
 
 std::shared_ptr<FileStream> Poller::GetFileStreamFromPtr(void* ptr) {
-    std::lock_guard lock{_filesMutex};
     auto it = _files.find(ptr);
     return it == _files.end() ? nullptr : it->second.second;
 }
