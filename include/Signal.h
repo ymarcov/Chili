@@ -11,13 +11,15 @@ class Signal {
 public:
     using Callback = std::function<void(Param...)>;
 
-    void operator()(Param&&... p) const {
-        Raise(std::forward<Param>(p)...);
+    template <class... Args>
+    void operator()(Args&&... args) const {
+        Raise(args...);
     }
 
-    void Raise(Param&&... p) const {
+    template <class... Args>
+    void Raise(Args&&... args) const {
         for (auto& s : _subscribers)
-            s(std::forward<Param>(p)...);
+            s(args...);
     }
 
     template <class T>
@@ -40,17 +42,19 @@ class SynchronizedSignal {
 public:
     using Callback = std::function<void(Param...)>;
 
-    void operator()(Param&&... p) const {
-        Raise(std::forward<Param>(p)...);
+    template <class... Args>
+    void operator()(Args&&... args) const {
+        Raise(args...);
     }
 
-    void Raise(Param&&... p) const {
+    template <class... Args>
+    void Raise(Args&&... args) const {
         std::unique_lock lock(_mutex);
         auto subscribers = _subscribers;
         lock.unlock();
 
         for (auto& s : _subscribers)
-            s(std::forward<Param>(p)...);
+            s(args...);
     }
 
     template <class T>
