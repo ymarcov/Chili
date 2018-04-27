@@ -1,6 +1,5 @@
 #include "Response.h"
 #include "Log.h"
-#include "TcpConnection.h"
 
 #include <algorithm>
 #include <array>
