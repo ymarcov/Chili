@@ -50,9 +50,15 @@ void Acceptor::AcceptLoop(int listener) {
 
         if (ret > 0) {
             std::unique_lock lock(_mutex);
-            _acceptedFds.push(ret);
+
+            auto ep = IPEndpoint(*reinterpret_cast<::sockaddr_in*>(AddressBuffer()));
+
+            _acceptedFds.push(std::make_pair(ret, std::move(ep)));
+
             lock.unlock();
+
             _semaphore->Increment();
+
             Profiler::Record<SocketQueued>();
         } else {
             if (_stop) {
@@ -102,7 +108,7 @@ void Acceptor::DispatchLoop() {
 
         std::unique_lock lock(_mutex);
 
-        auto fd = _acceptedFds.front();
+        auto [fd, ep] = std::move(_acceptedFds.front());
         _acceptedFds.pop();
 
         lock.unlock();
@@ -110,7 +116,7 @@ void Acceptor::DispatchLoop() {
         Profiler::Record<SocketDequeued>();
 
         try {
-            RelinquishSocket(fd);
+            RelinquishSocket(fd, std::move(ep));
             Profiler::Record<SocketAccepted>();
         } catch (...) {
             Log::Warning("Socket server OnAccepted() threw an error which was ignored. Please handle internally!");

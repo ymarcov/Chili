@@ -29,7 +29,7 @@ public:
     Signal<std::shared_ptr<TcpConnection>> OnAccepted;
 
 private:
-    void RelinquishSocket(int fd) override;
+    void RelinquishSocket(int fd, IPEndpoint remote) override;
     void ResetListenerSocket(SocketStream&) override;
     void* AddressBuffer() override;
     std::size_t* AddressBufferSize() override;

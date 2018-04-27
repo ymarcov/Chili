@@ -1,5 +1,6 @@
 #pragma once
 
+#include "IPEndpoint.h"
 #include "Profiler.h"
 #include "Semaphore.h"
 #include "SocketStream.h"
@@ -35,7 +36,7 @@ public:
     void Stop();
 
 protected:
-    virtual void RelinquishSocket(int fd) = 0;
+    virtual void RelinquishSocket(int fd, IPEndpoint remote) = 0;
     virtual void ResetListenerSocket(SocketStream&) = 0;
     virtual void* AddressBuffer() = 0;
     virtual std::size_t* AddressBufferSize() = 0;
@@ -48,7 +49,7 @@ private:
     std::vector<SocketStream> _listenerSockets;
     std::promise<void> _promise;
     std::exception_ptr _promiseException;
-    std::queue<int> _acceptedFds;
+    std::queue<std::pair<int, IPEndpoint>> _acceptedFds;
     std::unique_ptr<Semaphore> _semaphore;
     std::mutex _mutex;
     std::mutex _startStopMutex;

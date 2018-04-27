@@ -64,8 +64,8 @@ void TcpAcceptor::ResetListenerSocket(SocketStream& socket) {
     Listen(socket);
 }
 
-void TcpAcceptor::RelinquishSocket(int fd) {
-    OnAccepted(std::make_shared<TcpConnection>(fd, *static_cast<::sockaddr_in*>(AddressBuffer())));
+void TcpAcceptor::RelinquishSocket(int fd, IPEndpoint ep) {
+    OnAccepted(std::make_shared<TcpConnection>(fd, std::move(ep)));
 }
 
 void* TcpAcceptor::AddressBuffer() {
