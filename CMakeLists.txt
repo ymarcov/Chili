@@ -20,6 +20,10 @@ project(fmtlib)
 file(GLOB SOURCES "ext/fmtlib/fmt/*.cc")
 add_library(fmt STATIC ${SOURCES})
 
+project(http-parser++)
+file(GLOB SOURCES "ext/http-parser++/http-parser/http_parser.cc")
+add_library(http-parser++ STATIC ${SOURCES})
+
 project(gmock)
 include_directories(ext/gmock)
 include_directories(ext/gtest)
@@ -29,10 +33,11 @@ add_library(gmock STATIC ext/gtest/src/gtest-all.cc
 
 project(static_lib)
 include_directories(ext/fmtlib)
+include_directories(ext/http-parser++)
 include_directories(include)
 file(GLOB SOURCES "src/*.cc")
 add_library(chili_static STATIC ${SOURCES})
-target_link_libraries(chili_static fmt curl pthread unwind)
+target_link_libraries(chili_static fmt http-parser++ curl pthread unwind)
 
 project(shared_lib)
 add_library(chili SHARED "")

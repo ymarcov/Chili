@@ -127,7 +127,7 @@ protected:
         auto req = std::make_unique<Request>(std::move(s));
         std::size_t totalBytesRead = 0;
 
-        while (!req->ConsumeHeader(16, totalBytesRead))
+        while (!req->ConsumeHeader(5, totalBytesRead))
             ;
 
         return req;
@@ -148,8 +148,8 @@ protected:
     }
 
     auto MakeHugeAndMessyInputStream() const {
-        std::string oneMillionChars(10000, 'a');
-        auto streams = { ToString(hugeRequestHeaderData), oneMillionChars};
+        std::string manyChars(10000, 'a');
+        auto streams = { ToString(hugeRequestHeaderData), manyChars};
         return std::make_shared<NonContiguousInputStream>(streams);
     }
 };
@@ -161,8 +161,7 @@ TEST_F(RequestTest, header_getters) {
     EXPECT_EQ(Version::Http11, r->GetVersion());
     EXPECT_EQ("/path/to/res", r->GetUri());
     EXPECT_EQ("request.urih.com", r->GetHeader("Host"));
-    EXPECT_EQ("abcd1234", r->GetCookie("Session"));
-    EXPECT_EQ(2, r->GetCookieNames().size());
+    EXPECT_EQ("gzip, deflate", r->GetHeader("Accept-Encoding"));
     EXPECT_EQ(13, r->GetContentLength());
     EXPECT_FALSE(r->KeepAlive());
 }
@@ -174,11 +173,14 @@ TEST_F(RequestTest, body) {
     while (!r->ConsumeContent(0x10, totalBytesRead))
         ;
 
+    EXPECT_EQ(13, r->GetContentLength());
     EXPECT_EQ("Request body!", std::string(r->GetContent().data(), r->GetContent().size()));
 }
 
 TEST_F(RequestTest, huge_body) {
     auto r = MakeRequest(MakeHugeAndMessyInputStream());
+
+    EXPECT_EQ(10013, r->GetContentLength());
 
     std::size_t totalBytesRead = 0;
     while (!r->ConsumeContent(0x10, totalBytesRead))

@@ -4,62 +4,164 @@
 #include <algorithm>
 #include <chrono>
 #include <cstring>
+#include <http-parser/http_parser.h>
 #include <strings.h>
 
 namespace Chili {
 
 constexpr std::size_t BufferSize = 0x2000;
 
-namespace {
+class HttpParserStringBuilder {
+public:
+    void Reset(const char* at) {
+        Data = at;
+        Length = 0;
+        State = 0;
+    }
 
-bool BufferContainsEndOfHeaderMarker(const char* buffer, std::size_t bufferSize) {
-    const std::uint32_t eohMarker = 0x0A0D0A0D;
+    void Feed(std::size_t length) {
+        Length += length;
+    }
 
-    if (bufferSize < sizeof(eohMarker))
-        return false;
+    const char* Data = nullptr;
+    std::size_t Length = 0;
+    int State = 0;
+};
 
-    for (auto i = 0U; i <= (bufferSize - sizeof(std::uint32_t)); i++)
-        if (*reinterpret_cast<const std::uint32_t*>(buffer + i) == eohMarker)
-            return true;
-
-    return false;
+static ::http_parser* GetParser(const std::shared_ptr<void>& ptr) {
+    return static_cast<::http_parser*>(ptr.get());
 }
 
-} // unnamed namespace
+static class HttpParserSettings {
+public:
+    HttpParserSettings() {
+        _settings.on_url = [](auto parser, auto at, auto length) {
+            if (!length)
+                return 0;
+
+            auto& r = GetRequest(parser);
+            auto& sb = r.GetStringBuilder();
+
+            if (sb.State != 1) {
+                sb.Reset(at);
+                sb.State = 1;
+            }
+
+            sb.Feed(length);
+
+            r._uri = std::string_view(sb.Data, sb.Length);
+
+            return 0;
+        };
+
+        _settings.on_header_field = [](auto parser, auto at, auto length) {
+            if (!length)
+                return 0;
+
+            auto& r = GetRequest(parser);
+            auto& sb = r.GetStringBuilder();
+
+            if (sb.State != 2) {
+                r._headers.push_back({});
+                sb.Reset(at);
+                sb.State = 2;
+            }
+
+            sb.Feed(length);
+
+            r._headers.back().first = std::string_view(sb.Data, sb.Length);
+
+            return 0;
+        };
+
+        _settings.on_header_value = [](auto parser, auto at, auto length) {
+            if (!length)
+                return 0;
+
+            auto& r = GetRequest(parser);
+            auto& sb = r.GetStringBuilder();
+
+            if (sb.State != 3) {
+                sb.Reset(at);
+                sb.State = 3;
+            }
+
+            sb.Feed(length);
+
+            r._headers.back().second = std::string_view(sb.Data, sb.Length);
+
+            return 0;
+        };
+
+        _settings.on_headers_complete = [](auto parser) {
+            GetRequest(parser)._parsedHeader = true;
+            return 2; // don't parse body for us
+        };
+    }
+
+    operator const http_parser_settings*() const {
+        return &_settings;
+    }
+
+private:
+    static Request& GetRequest(::http_parser* parser) {
+        return *static_cast<Request*>(parser->data);
+    }
+
+    ::http_parser_settings _settings;
+} httpParserSettings;
 
 Request::Request(std::shared_ptr<InputStream> input) :
     _buffer(BufferSize),
-    _input{std::move(input)} {}
+    _input{std::move(input)} {
+    auto parser = std::make_unique<::http_parser>();
+    ::http_parser_init(parser.get(), HTTP_REQUEST);
+    parser->data = this;
+    _httpParser = std::move(parser);
+    _httpParserStringBuilder = std::make_shared<HttpParserStringBuilder>();
+}
+
+HttpParserStringBuilder& Request::GetStringBuilder() {
+    return *static_cast<HttpParserStringBuilder*>(_httpParserStringBuilder.get());
+}
 
 bool Request::ConsumeHeader(std::size_t maxBytes, std::size_t& bytesRead) {
     if (_bufferPosition == 0)
         std::memset(_buffer.data(), 0, BufferSize);
 
     auto quota = std::min(maxBytes, BufferSize - _bufferPosition);
+
     bytesRead = _input->Read(_buffer.data() + _bufferPosition, quota);
 
     if (!bytesRead)
         return false;
 
+    auto parser = GetParser(_httpParser);
+
+    auto bytesParsed = ::http_parser_execute(parser,
+                                             httpParserSettings,
+                                             _buffer.data() + _bufferPosition,
+                                             bytesRead);
+
     _bufferPosition += bytesRead;
+    _headerBytesParsed += bytesParsed;
 
-    // When we have the end-of-header marker, we can continue to the parsing stage
-
-    if (!BufferContainsEndOfHeaderMarker(_buffer.data(), _bufferPosition)) {
-        if (_bufferPosition == BufferSize)
+    if (!_parsedHeader) {
+        if (bytesParsed != bytesRead)
+            throw std::runtime_error(::http_errno_name(static_cast<::http_errno>(parser->http_errno)));
+        else if (_bufferPosition == BufferSize)
             throw std::runtime_error("No end-of-header found in request header");
-
-        return false;
+        else
+            return false;
     }
 
-    _parser = Parser::Parse(static_cast<char*>(_buffer.data()), _bufferPosition);
-    _onlySentHeaderFirst = (_bufferPosition == _parser.GetHeaderLength());
+    _onlySentHeaderFirst = (_bufferPosition == _headerBytesParsed);
 
     return true;
 }
 
 Method Request::GetMethod() const {
-    auto field = _parser.GetMethod();
+    auto method = ::http_method_str(static_cast<::http_method>(GetParser(_httpParser)->method));
 
     // indices must correspond to Method enum
     auto methods = {
@@ -74,9 +176,11 @@ Method Request::GetMethod() const {
     };
 
     int i = 0;
+
     for (auto& m : methods) {
-        if (!::strncasecmp(field.Data, m, field.Size))
+        if (!::strcmp(method, m))
             return static_cast<Method>(i);
+
         ++i;
     }
 
@@ -84,33 +188,31 @@ Method Request::GetMethod() const {
 }
 
 std::string_view Request::GetUri() const {
-    auto f = _parser.GetUri();
-    return {f.Data, f.Size};
+    return _uri;
 }
 
 Version Request::GetVersion() const {
-    auto field = _parser.GetVersion();
+    auto parser = GetParser(_httpParser);
 
-    // indices must correspond to Version
-    auto versions = {
-        "HTTP/1.0",
-        "HTTP/1.1"
-    };
+    if (parser->http_major != 1)
+        throw std::runtime_error("Unsupported HTTP method");
 
-    int i = 0;
-    for (auto& v : versions) {
-        if (!::strncasecmp(field.Data, v, field.Size))
-            return static_cast<Version>(i);
-        ++i;
-    }
-
-    throw std::runtime_error("Unsupported HTTP method");
+    if (parser->http_minor == 0)
+        return Version::Http10;
+    else if (parser->http_minor == 1)
+        return Version::Http11;
+    else
+        throw std::runtime_error("Unsupported HTTP method");
 }
 
 std::vector<std::string_view> Request::GetHeaderNames() const {
     std::vector<std::string_view> result;
-    for (auto& f : _parser.GetFieldNames())
-        result.emplace_back(f.Data, f.Size);
+
+    result.reserve(_headers.size());
+
+    for (auto& h : _headers)
+        result.push_back(h.first);
+
     return result;
 }
 
@@ -119,41 +221,28 @@ bool Request::HasHeader(const std::string_view& name) const {
 }
 
 bool Request::GetHeader(const std::string_view& name, std::string* value) const {
-    Parser::Field f;
+    for (auto& [headerName, headerValue] : _headers) {
+        if (!::strncasecmp(headerName.data(), name.data(), name.size())) {
+            if (value)
+                *value = std::string(headerValue.data(), headerValue.size());
 
-    if (_parser.GetField(name, &f)) {
-        if (value)
-            *value = {f.Data, f.Size};
-        return true;
+            return true;
+        }
     }
 
     return false;
 }
 
 std::string_view Request::GetHeader(const std::string_view& name) const {
-    auto f = _parser.GetField(name);
-    return {f.Data, f.Size};
-}
+    for (auto& [headerName, headerValue] : _headers)
+        if (!::strncasecmp(headerName.data(), name.data(), name.size()))
+                return headerValue;
 
-std::string_view Request::GetCookie(const std::string_view& name) const {
-    auto f = _parser.GetCookie(name);
-    return {f.Data, f.Size};
-}
-
-std::vector<std::string_view> Request::GetCookieNames() const {
-    std::vector<std::string_view> result;
-    for (auto& f : _parser.GetCookieNames())
-        result.emplace_back(f.Data, f.Size);
-    return result;
+    throw std::runtime_error("Specified header does not exist");
 }
 
 bool Request::HasContent() const {
-    Parser::Field f;
-
-    if (!_parser.GetField("Content-Length", &f))
-        return false;
-
-    return !!std::strncmp(f.Data, "0", f.Size);
+    return GetContentLength() != 0;
 }
 
 bool Request::IsContentAvailable() const {
@@ -161,27 +250,11 @@ bool Request::IsContentAvailable() const {
 }
 
 std::size_t Request::GetContentLength() const {
-    try {
-        char* endptr;
-        return strtoul(GetHeader("Content-Length").data(), &endptr, 10);
-    } catch (const Parser::Error&) {
-        return 0;
-    }
+    return GetParser(_httpParser)->content_length;
 }
 
 bool Request::KeepAlive() const {
-    Parser::Field f;
-
-    if (_parser.GetField("connection", &f)) {
-        if (!::strncasecmp(f.Data, "close", f.Size))
-            return false;
-
-        if (!::strncasecmp(f.Data, "keep-alive", f.Size))
-            return true;
-    }
-
-    f = _parser.GetVersion();
-    return !::strncasecmp(f.Data, "HTTP/1.1", f.Size);
+    return ::http_should_keep_alive(GetParser(_httpParser));
 }
 
 bool Request::ConsumeContent(std::size_t maxBytes, std::size_t& totalBytesRead) {
@@ -207,7 +280,7 @@ bool Request::ConsumeContent(std::size_t maxBytes, std::size_t& totalBytesRead) 
         _content.resize(contentLength);
 
         if (!_onlySentHeaderFirst) {
-            auto nonHeaderDataInInitialBuffer = _bufferPosition - _parser.GetHeaderLength();
+            auto nonHeaderDataInInitialBuffer = _bufferPosition - _headerBytesParsed;
             auto contentInInitialBuffer = std::min(nonHeaderDataInInitialBuffer, contentLength);
 
             // not modifying maxBytes or totalBytesRead on purpose,
@@ -215,7 +288,7 @@ bool Request::ConsumeContent(std::size_t maxBytes, std::size_t& totalBytesRead) 
             // header consumption stage and was already counted.
             auto remaining = contentInInitialBuffer;
 
-            std::memcpy(_content.data() + _contentPosition, _parser.GetBody(), remaining);
+            std::memcpy(_content.data() + _contentPosition, _buffer.data() + _headerBytesParsed, remaining);
 
             _contentPosition += remaining;
 

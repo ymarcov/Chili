@@ -86,15 +86,6 @@ void PrintInfo(const Request& request) {
     }
 
     /*
-     * Print cookies
-     */
-
-    for (auto& cookieName : request.GetCookieNames()) {
-        auto cookie = request.GetCookie(cookieName);
-        std::cout << "Cookie: " << cookieName << " = " << cookie << "\n";
-    }
-
-    /*
      * Print body
      */
 

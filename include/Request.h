@@ -1,7 +1,6 @@
 #pragma once
 
 #include "InputStream.h"
-#include "Parser.h"
 #include "Protocol.h"
 
 #include <memory>
@@ -60,17 +59,6 @@ public:
     std::string_view GetHeader(const std::string_view& name) const;
 
     /**
-     * Gets the names of all cookies present in the request.
-     */
-    std::vector<std::string_view> GetCookieNames() const;
-
-    /**
-     * Gets a cookie by name.
-     * Throws if the cookie does not exist.
-     */
-    std::string_view GetCookie(const std::string_view& name) const;
-
-    /**
      * Returns true if the request has a message
      * body (i.e. Content-Length > 0).
      */
@@ -113,11 +101,20 @@ public:
     bool ConsumeContent(std::size_t maxBytes, std::size_t& totalBytesRead);
 
 private:
+    friend class HttpParserSettings;
+
+    class HttpParserStringBuilder& GetStringBuilder();
+
     std::vector<char> _buffer;
     std::size_t _bufferPosition = 0;
     std::shared_ptr<InputStream> _input;
-    Parser _parser;
+    std::shared_ptr<void> _httpParser;
+    std::shared_ptr<void> _httpParserStringBuilder;
+    std::size_t _headerBytesParsed = 0;
+    bool _parsedHeader = false;
     bool _onlySentHeaderFirst = false;
+    std::string_view _uri;
+    std::vector<std::pair<std::string_view, std::string_view>> _headers;
     std::vector<char> _content;
     std::size_t _contentPosition = 0;
 };

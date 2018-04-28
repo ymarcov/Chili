@@ -1,3 +1,6 @@
 [submodule "ext/fmtlib"]
 	path = ext/fmtlib
 	url = http://github.com/ymarcov/fmt
+[submodule "ext/http-parser"]
+	path = ext/http-parser
+	url = https://github.com/ymarcov/http-parser
