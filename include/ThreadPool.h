@@ -52,8 +52,8 @@ private:
     mutable std::mutex _mutex;
     mutable bool _needToCollect{false};
     Semaphore _semaphore;
-    std::chrono::microseconds _upscalePatience{500};
-    std::chrono::microseconds _downscalePatience{5'000'000};
+    std::chrono::microseconds _upscalePatience;
+    std::chrono::microseconds _downscalePatience;
     std::atomic_bool _stop{false};
 };
 

@@ -97,7 +97,9 @@ std::chrono::nanoseconds ThreadPool::WorkContext::PendingTime() const {
 }
 
 ThreadPool::ThreadPool(int capacity)
-    : _capacity(capacity) {
+    : _capacity(capacity)
+    , _upscalePatience(2'000)
+    , _downscalePatience(5'000'000) {
     if (_capacity < 1)
         throw std::logic_error("ThreadPool capacity must be at least 1");
 }
