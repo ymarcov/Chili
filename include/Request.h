@@ -18,6 +18,7 @@ class Request {
 public:
     Request() = default;
     Request(std::shared_ptr<InputStream> input);
+    ~Request();
 
     /**
      * Gets the HTTP method of the request.
@@ -108,8 +109,8 @@ private:
     std::vector<char> _buffer;
     std::size_t _bufferPosition = 0;
     std::shared_ptr<InputStream> _input;
-    std::shared_ptr<void> _httpParser;
-    std::shared_ptr<void> _httpParserStringBuilder;
+    void* _httpParser = nullptr;
+    void* _httpParserStringBuilder = nullptr;
     std::size_t _headerBytesParsed = 0;
     bool _parsedHeader = false;
     bool _onlySentHeaderFirst = false;

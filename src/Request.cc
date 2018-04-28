@@ -28,8 +28,8 @@ public:
     int State = 0;
 };
 
-static ::http_parser* GetParser(const std::shared_ptr<void>& ptr) {
-    return static_cast<::http_parser*>(ptr.get());
+static ::http_parser* GetParser(void* ptr) {
+    return static_cast<::http_parser*>(ptr);
 }
 
 static class HttpParserSettings {
@@ -117,12 +117,18 @@ Request::Request(std::shared_ptr<InputStream> input) :
     auto parser = std::make_unique<::http_parser>();
     ::http_parser_init(parser.get(), HTTP_REQUEST);
     parser->data = this;
-    _httpParser = std::move(parser);
-    _httpParserStringBuilder = std::make_shared<HttpParserStringBuilder>();
+    _httpParser = parser.release();
+    _httpParserStringBuilder = new HttpParserStringBuilder();
+    _headers.reserve(8);
+}
+
+Request::~Request() {
+    delete GetParser(_httpParser);
+    delete &GetStringBuilder();
 }
 
 HttpParserStringBuilder& Request::GetStringBuilder() {
-    return *static_cast<HttpParserStringBuilder*>(_httpParserStringBuilder.get());
+    return *static_cast<HttpParserStringBuilder*>(_httpParserStringBuilder);
 }
 
 bool Request::ConsumeHeader(std::size_t maxBytes, std::size_t& bytesRead) {
