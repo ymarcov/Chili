@@ -19,7 +19,7 @@ void WaitEvent::Signal() {
 }
 
 void WaitEvent::Wait() const {
-    std::unique_lock<std::mutex> lock(_mutex);
+    std::unique_lock lock(_mutex);
     _cv.wait(lock, [this] { return _signalled == true; });
 }
 
@@ -28,17 +28,17 @@ bool WaitEvent::TryWait() const {
 }
 
 bool WaitEvent::Wait(std::chrono::microseconds timeout) const {
-    std::unique_lock<std::mutex> lock(_mutex);
+    std::unique_lock lock(_mutex);
     return _cv.wait_for(lock, timeout, [this] { return _signalled == true; });
 }
 
 bool WaitEvent::WaitUntil(Clock::TimePoint t) const {
-    std::unique_lock<std::mutex> lock(_mutex);
+    std::unique_lock lock(_mutex);
     return _cv.wait_until(lock, t, [this] { return _signalled == true; });
 }
 
 void WaitEvent::WaitAndReset() {
-    std::unique_lock<std::mutex> lock(_mutex);
+    std::unique_lock lock(_mutex);
     _cv.wait(lock, [this] { return _signalled == true; });
     _signalled = false;
 }
@@ -48,7 +48,7 @@ bool WaitEvent::TryWaitAndReset() {
 }
 
 bool WaitEvent::WaitAndReset(std::chrono::microseconds timeout) {
-    std::unique_lock<std::mutex> lock(_mutex);
+    std::unique_lock lock(_mutex);
 
     if (_cv.wait_for(lock, timeout, [this] { return _signalled == true; })) {
         _signalled = false;
@@ -59,7 +59,7 @@ bool WaitEvent::WaitAndReset(std::chrono::microseconds timeout) {
 }
 
 bool WaitEvent::WaitUntilAndReset(Clock::TimePoint t) {
-    std::unique_lock<std::mutex> lock(_mutex);
+    std::unique_lock lock(_mutex);
 
     if (_cv.wait_until(lock, t, [this] { return _signalled == true; })) {
         _signalled = false;
