@@ -3,6 +3,7 @@
 #include "Clock.h"
 
 #include <algorithm>
+#include <atomic>
 #include <chrono>
 #include <functional>
 #include <memory>
@@ -213,7 +214,7 @@ public:
     static Profile GetProfile();
 
 private:
-    static bool _enabled;
+    static std::atomic_bool _enabled;
     static std::vector<std::unique_ptr<ProfileEvent>> _events;
     static Clock::TimePoint _startTime;
     static Clock::TimePoint _endTime;
@@ -224,10 +225,10 @@ private:
 
 template <class T, class... Args>
 void Profiler::Record(Args... args) {
-    std::lock_guard lock(_mutex);
-
-    if (_enabled)
+    if (_enabled.load(std::memory_order_relaxed)) {
+        std::lock_guard lock(_mutex);
         _events.push_back(std::make_unique<T>(args...));
+    }
 }
 
 } // namespace Chili

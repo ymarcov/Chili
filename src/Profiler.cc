@@ -13,7 +13,7 @@ using namespace std::literals;
 
 namespace Chili {
 
-bool Profiler::_enabled = false;
+std::atomic_bool Profiler::_enabled = false;
 std::vector<std::unique_ptr<ProfileEvent>> Profiler::_events;
 Clock::TimePoint Profiler::_startTime{Clock::GetCurrentTime()};
 Clock::TimePoint Profiler::_endTime{Clock::GetCurrentTime()};
