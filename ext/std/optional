@@ -1,0 +1,16 @@
+#include <experimental/optional>
+
+namespace std {
+
+template <class T>
+using optional = experimental::optional<T>;
+
+using nullopt_t = experimental::nullopt_t;
+inline auto&& nullopt = experimental::nullopt;
+
+template <class T>
+inline decltype(auto) make_optional(T&& t) {
+    return experimental::make_optional(std::forward<T>(t));
+}
+
+}
