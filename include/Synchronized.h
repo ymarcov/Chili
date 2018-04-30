@@ -15,30 +15,30 @@ public:
         _t = std::forward<U>(u);
     }
 
-    operator T&() {
-        std::lock_guard lock(_mutex);
+    T& GetRefUnlocked() {
         return _t;
     }
 
-    operator const T&() const {
-        std::lock_guard lock(_mutex);
+    const T& GetRefUnlocked() const {
         return _t;
     }
 
-    T& GetValue() {
-        return _t;
-    }
-
-    const T& GetValue() const {
+    T GetCopy() const {
         std::lock_guard lock(_mutex);
         return _t;
     }
 
     template <class U>
-    Synchronized& operator=(U&& u) {
+    Synchronized& Set(U&& u) {
         std::lock_guard lock(_mutex);
         _t = std::forward<U>(u);
         return *this;
+    }
+
+    template <class Callable>
+    decltype(auto) Synchronize(Callable&& c) {
+        std::lock_guard lock(_mutex);
+        return c(_t);
     }
 
 private:

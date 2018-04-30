@@ -42,7 +42,7 @@ void Orchestrator::Task::Activate() {
     // Money line
     _channel->Advance();
 
-    _lastActive = Clock::GetCurrentTime();
+    _lastActive.Set(Clock::GetCurrentTime());
 
     // In case we're sending it off to the poller,
     // we don't need to notify our main thread,
@@ -94,7 +94,7 @@ bool Orchestrator::Task::ReachedInactivityTimeout() const {
         return false;
     }
 
-    auto diff = Clock::GetCurrentTime() - _lastActive.GetValue();
+    auto diff = Clock::GetCurrentTime() - _lastActive.GetCopy();
     return diff >= _orchestrator->_inactivityTimeout.load();
 }
 
@@ -193,7 +193,7 @@ void Orchestrator::Add(std::shared_ptr<FileStream> stream) {
     task->_channel->Initialize(shared_from_this());
     task->_channel->_throttlers.Read.Master = _masterReadThrottler;
     task->_channel->_throttlers.Write.Master = _masterWriteThrottler;
-    task->_lastActive = Clock::GetCurrentTime();
+    task->_lastActive.Set(Clock::GetCurrentTime());
 
     {
         std::lock_guard lock(_mutex);

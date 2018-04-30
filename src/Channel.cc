@@ -269,7 +269,7 @@ void Channel::SetStage(Stage s) {
 }
 
 Clock::TimePoint Channel::GetRequestedTimeout() const {
-    return _timeout;
+    return _timeout.GetCopy();
 }
 
 bool Channel::IsReady() const {
@@ -314,7 +314,7 @@ void Channel::OnRead() {
         Log::Verbose("Channel {} throttled. Waiting for read quota to fill.", _id);
         RecordReadTimeoutEvent(throttlingInfo.fillTime);
         _stage = Stage::ReadTimeout;
-        _timeout = throttlingInfo.fillTime;
+        _timeout.Set(throttlingInfo.fillTime);
         return;
     }
 
@@ -381,7 +381,7 @@ bool Channel::FetchData(bool(Request::*func)(std::size_t, std::size_t&), std::si
             auto fillTime = GetThrottlingInfo(_throttlers.Read).fillTime;
             RecordReadTimeoutEvent(fillTime);
             _stage = Stage::ReadTimeout;
-            _timeout = fillTime;
+            _timeout.Set(fillTime);
         }
     }
 
@@ -449,7 +449,7 @@ void Channel::OnWrite() {
         Log::Verbose("Channel {} throttled. Waiting for write quota to fill.", _id);
         RecordWriteTimeoutEvent(throttlingInfo.fillTime);
         _stage = Stage::WriteTimeout;
-        _timeout = throttlingInfo.fillTime;
+        _timeout.Set(throttlingInfo.fillTime);
         return;
     }
 
@@ -499,7 +499,7 @@ bool Channel::FlushData(std::size_t maxWrite) {
             auto fillTime = GetThrottlingInfo(_throttlers.Write).fillTime;
             RecordWriteTimeoutEvent(fillTime);
             _stage = Stage::WriteTimeout;
-            _timeout = fillTime;
+            _timeout.Set(fillTime);
             return false;
         };
 
@@ -533,7 +533,7 @@ void Channel::Close() {
 
     Log::Verbose("Channel {} closed", _id);
 
-    _timeout = Clock::GetCurrentTime();
+    _timeout.Set(Clock::GetCurrentTime());
     _request = Request();
     _response = Response();
     _stream.reset();
