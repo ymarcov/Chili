@@ -28,10 +28,6 @@ public:
     int State = 0;
 };
 
-static ::http_parser* GetParser(void* ptr) {
-    return static_cast<::http_parser*>(ptr);
-}
-
 static class HttpParserSettings {
 public:
     HttpParserSettings() {
@@ -111,24 +107,32 @@ private:
     ::http_parser_settings _settings;
 } httpParserSettings;
 
+struct PrivateData {
+    ::http_parser Parser;
+    HttpParserStringBuilder StringBuilder;
+};
+
+static ::http_parser* GetParser(void* ptr) {
+    return &static_cast<PrivateData*>(ptr)->Parser;
+}
+
+
 Request::Request(std::shared_ptr<InputStream> input) :
     _buffer(BufferSize),
     _input{std::move(input)} {
-    auto parser = std::make_unique<::http_parser>();
-    ::http_parser_init(parser.get(), HTTP_REQUEST);
-    parser->data = this;
-    _httpParser = parser.release();
-    _httpParserStringBuilder = new HttpParserStringBuilder();
+    auto privateData = new PrivateData();
+    ::http_parser_init(&privateData->Parser, HTTP_REQUEST);
+    privateData->Parser.data = this;
+    _privateData = privateData;
     _headers.reserve(8);
 }
 
 Request::~Request() {
-    delete GetParser(_httpParser);
-    delete &GetStringBuilder();
+    delete static_cast<PrivateData*>(_privateData);
 }
 
 HttpParserStringBuilder& Request::GetStringBuilder() {
-    return *static_cast<HttpParserStringBuilder*>(_httpParserStringBuilder);
+    return static_cast<PrivateData*>(_privateData)->StringBuilder;
 }
 
 bool Request::ConsumeHeader(std::size_t maxBytes, std::size_t& bytesRead) {
@@ -142,7 +146,7 @@ bool Request::ConsumeHeader(std::size_t maxBytes, std::size_t& bytesRead) {
     if (!bytesRead)
         return false;
 
-    auto parser = GetParser(_httpParser);
+    auto parser = GetParser(_privateData);
 
     auto bytesParsed = ::http_parser_execute(parser,
                                              httpParserSettings,
@@ -167,7 +171,7 @@ bool Request::ConsumeHeader(std::size_t maxBytes, std::size_t& bytesRead) {
 }
 
 Method Request::GetMethod() const {
-    auto method = ::http_method_str(static_cast<::http_method>(GetParser(_httpParser)->method));
+    auto method = ::http_method_str(static_cast<::http_method>(GetParser(_privateData)->method));
 
     // indices must correspond to Method enum
     auto methods = {
@@ -198,7 +202,7 @@ std::string_view Request::GetUri() const {
 }
 
 Version Request::GetVersion() const {
-    auto parser = GetParser(_httpParser);
+    auto parser = GetParser(_privateData);
 
     if (parser->http_major != 1)
         throw std::runtime_error("Unsupported HTTP method");
@@ -256,11 +260,11 @@ bool Request::IsContentAvailable() const {
 }
 
 std::size_t Request::GetContentLength() const {
-    return GetParser(_httpParser)->content_length;
+    return GetParser(_privateData)->content_length;
 }
 
 bool Request::KeepAlive() const {
-    return ::http_should_keep_alive(GetParser(_httpParser));
+    return ::http_should_keep_alive(GetParser(_privateData));
 }
 
 bool Request::ConsumeContent(std::size_t maxBytes, std::size_t& totalBytesRead) {

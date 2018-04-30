@@ -109,8 +109,7 @@ private:
     std::vector<char> _buffer;
     std::size_t _bufferPosition = 0;
     std::shared_ptr<InputStream> _input;
-    void* _httpParser = nullptr;
-    void* _httpParserStringBuilder = nullptr;
+    void* _privateData;
     std::size_t _headerBytesParsed = 0;
     bool _parsedHeader = false;
     bool _onlySentHeaderFirst = false;
